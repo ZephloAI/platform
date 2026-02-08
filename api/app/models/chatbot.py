@@ -1,0 +1,31 @@
+"""
+Chatbot model.
+
+Represents a chatbot tied to a specific website.
+Status flow: pending -> crawling -> ready (or error)
+"""
+
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy.orm import relationship
+
+from app.models.base import Base
+
+
+class Chatbot(Base):
+    __tablename__ = "chatbots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    website_url = Column(String, nullable=False)
+    status = Column(String, default="pending")  # pending, crawling, ready, error
+    created_at = Column(DateTime, default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="chatbots")
+    crawl_jobs = relationship(
+        "CrawlJob", back_populates="chatbot", cascade="all, delete-orphan"
+    )
+    pages = relationship(
+        "Page", back_populates="chatbot", cascade="all, delete-orphan"
+    )
