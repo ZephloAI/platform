@@ -55,6 +55,7 @@ async def chat(
                     "chatbot_id": body.chatbot_id,
                     "chatbot_name": chatbot.name,
                     "message": body.message,
+                    "session_id": body.session_id,
                 },
                 timeout=30.0,  # Agent may take time for RAG
             )

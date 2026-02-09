@@ -1,8 +1,10 @@
 fastapi==0.110.0
 uvicorn[standard]==0.27.1
-agno==1.5.3
+agno
 qdrant-client==1.12.1
 sentence-transformers==3.4.1
 pydantic-settings==2.1.0
 python-dotenv==1.0.1
 openai==1.68.2
+psycopg[binary]==3.2.4
+sqlalchemy

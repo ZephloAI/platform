@@ -47,9 +47,9 @@ function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
         </span>
       </div>
 
-      {/* URL */}
+      {/* URL or status hint */}
       <p className="text-[13px] text-label-tertiary truncate mb-6">
-        {chatbot.website_url}
+        {chatbot.website_url || 'No pages added yet'}
       </p>
 
       {/* Separator */}

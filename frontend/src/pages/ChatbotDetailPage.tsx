@@ -1,14 +1,55 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useChatbot, useStartCrawl } from '../hooks/useChatbots';
-import CrawlStatus from '../components/CrawlStatus';
+import { useChatbot } from '../hooks/useChatbots';
+import OverviewSection from '../components/OverviewSection';
+import KnowledgeSection from '../components/KnowledgeSection';
+import ConfigSection from '../components/ConfigSection';
 
 // ============================================================
 // ChatbotDetailPage
-// Apple-style detail view with glass cards, clean hierarchy,
-// and prominent actions. Stats are presented with emphasis.
+// Sidebar navigation with three sections:
+//   - Overview: status, metrics, embed code
+//   - Knowledge: website/pages tabs, crawl history
+//   - Config: widget customization
 // ============================================================
 
-// Status badge mapping using our design system
+type Section = 'overview' | 'knowledge' | 'config';
+
+const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
+  {
+    key: 'overview',
+    label: 'Overview',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    key: 'knowledge',
+    label: 'Knowledge',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'config',
+    label: 'Config',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    ),
+  },
+];
+
 const STATUS_BADGES: Record<string, string> = {
   pending: 'badge badge-pending',
   crawling: 'badge badge-crawling',
@@ -27,11 +68,7 @@ function ChatbotDetailPage() {
   const { id } = useParams<{ id: string }>();
   const chatbotId = Number(id);
   const { data: chatbot, isLoading, error } = useChatbot(chatbotId);
-  const startCrawlMutation = useStartCrawl();
-
-  const handleStartCrawl = () => {
-    startCrawlMutation.mutate(chatbotId);
-  };
+  const [activeSection, setActiveSection] = useState<Section>('overview');
 
   // Loading
   if (isLoading) {
@@ -55,35 +92,21 @@ function ChatbotDetailPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      {/* Back navigation */}
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-1.5 text-[13px] text-label-tertiary hover:text-label-primary font-medium transition-colors duration-200 mb-6"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-        Dashboard
-      </Link>
-
-      {/* Main info card */}
-      <div className="glass-card p-8 mb-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-[24px] font-semibold text-label-primary tracking-tight mb-1">
-              {chatbot.name}
-            </h1>
-            <a
-              href={chatbot.website_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[14px] text-accent hover:text-accent-hover transition-colors"
-            >
-              {chatbot.website_url}
-            </a>
-          </div>
+    <div className="animate-fade-in">
+      {/* Top bar: back + chatbot name + status */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-secondary/60 hover:bg-surface-secondary text-label-tertiary hover:text-label-primary transition-all duration-200"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </Link>
+          <h1 className="text-[22px] font-semibold text-label-primary tracking-tight">
+            {chatbot.name}
+          </h1>
           <span className={STATUS_BADGES[chatbot.status] || 'badge'}>
             {chatbot.status === 'crawling' && (
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse-soft" />
@@ -91,62 +114,38 @@ function ChatbotDetailPage() {
             {STATUS_LABELS[chatbot.status] || chatbot.status}
           </span>
         </div>
-
-        {/* Meta */}
-        <p className="text-[12px] text-label-quaternary uppercase tracking-wider">
-          Created {new Date(chatbot.created_at).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
-
-        {/* Separator */}
-        <div className="divider my-6" />
-
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleStartCrawl}
-            disabled={startCrawlMutation.isPending || chatbot.status === 'crawling'}
-            className="btn-primary"
-          >
-            {startCrawlMutation.isPending
-              ? 'Starting...'
-              : chatbot.status === 'crawling'
-                ? 'Crawling in Progress'
-                : 'Start Crawl'}
-          </button>
-
-          {chatbot.status === 'ready' && (
-            <Link to={`/chatbots/${chatbot.id}/chat`} className="btn-secondary">
-              Open Chat
-            </Link>
-          )}
-        </div>
       </div>
 
-      {/* Crawl jobs section */}
-      <div>
-        <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
-          Crawl History
-        </h2>
-
-        {(!chatbot.crawl_jobs || chatbot.crawl_jobs.length === 0) && (
-          <div className="glass-card p-8 text-center">
-            <p className="text-[14px] text-label-tertiary">
-              No crawl jobs yet. Start a crawl to index your website.
-            </p>
-          </div>
-        )}
-
-        {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && (
-          <div className="space-y-3">
-            {chatbot.crawl_jobs.map((job) => (
-              <CrawlStatus key={job.id} crawlJob={job} />
+      {/* Sidebar + Content */}
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <nav className="w-[200px] shrink-0">
+          <div className="sticky top-6 space-y-1">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setActiveSection(item.key)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                  activeSection === item.key
+                    ? 'bg-accent/[0.08] text-accent'
+                    : 'text-label-secondary hover:bg-surface-secondary/60 hover:text-label-primary'
+                }`}
+              >
+                <span className={activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
             ))}
           </div>
-        )}
+        </nav>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {activeSection === 'overview' && <OverviewSection chatbot={chatbot} />}
+          {activeSection === 'knowledge' && <KnowledgeSection chatbot={chatbot} />}
+          {activeSection === 'config' && <ConfigSection chatbot={chatbot} />}
+        </div>
       </div>
     </div>
   );

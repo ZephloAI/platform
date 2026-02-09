@@ -17,10 +17,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.crawl_job import CrawlJobResponse, CrawlJobUpdate
+from app.schemas.crawl_job import (
+    CrawlJobResponse,
+    CrawlJobUpdate,
+    CrawlStartRequest,
+    DiscoverRequest,
+    DiscoverResponse,
+)
 from app.services.crawl_service import CrawlService
 
 router = APIRouter(tags=["crawl-jobs"])
+
+
+@router.post(
+    "/api/chatbots/{chatbot_id}/discover",
+    response_model=DiscoverResponse,
+)
+async def discover_urls(
+    chatbot_id: int,
+    body: DiscoverRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Discover URLs on a website.
+
+    Accepts a website_url in the request body, calls the crawler service
+    to spider the site, and returns discovered page URLs. The user can
+    then select which pages to crawl.
+
+    Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
+    Raises 502 if the crawler service is unreachable.
+    """
+    service = CrawlService(db)
+    return await service.discover_urls(chatbot_id, user.id, body.website_url)
 
 
 @router.post(
@@ -30,19 +60,22 @@ router = APIRouter(tags=["crawl-jobs"])
 )
 async def start_crawl(
     chatbot_id: int,
+    body: CrawlStartRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Start a new crawl for a chatbot.
+    Start a new crawl for a chatbot with selected URLs.
 
     Creates a crawl job record and sends a request to the crawler service.
     The chatbot status changes to "crawling".
 
+    Requires a list of selected_urls to crawl.
+
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     """
     service = CrawlService(db)
-    return await service.start_crawl(chatbot_id, user.id)
+    return await service.start_crawl(chatbot_id, user.id, body.selected_urls)
 
 
 @router.get("/api/crawl-jobs/{crawl_job_id}", response_model=CrawlJobResponse)

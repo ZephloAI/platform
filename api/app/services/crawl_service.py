@@ -23,9 +23,59 @@ class CrawlService:
         self.crawl_job_repo = CrawlJobRepository(db)
         self.chatbot_repo = ChatbotRepository(db)
 
-    async def start_crawl(self, chatbot_id: int, user_id: int) -> CrawlJob:
+    async def discover_urls(
+        self, chatbot_id: int, user_id: int, website_url: str
+    ) -> dict:
         """
-        Start a new crawl for a chatbot.
+        Discover URLs on a website.
+
+        Proxies the request to the crawler service's /discover endpoint
+        and returns the list of discovered URLs. The website_url is provided
+        by the caller (not stored on the chatbot).
+
+        Raises 404 if chatbot not found or not owned by user.
+        Raises 502 if the crawler service is unreachable or returns an error.
+        """
+        # Verify ownership
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or chatbot.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbot not found",
+            )
+
+        # Call the crawler service's discover endpoint
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{settings.CRAWLER_SERVICE_URL}/discover",
+                    json={
+                        "website_url": website_url,
+                        "max_pages": 50,
+                    },
+                    timeout=120.0,
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.RequestError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Crawler service is unreachable",
+            )
+        except httpx.HTTPStatusError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Crawler service returned an error",
+            )
+
+    async def start_crawl(
+        self,
+        chatbot_id: int,
+        user_id: int,
+        selected_urls: list[str],
+    ) -> CrawlJob:
+        """
+        Start a new crawl for a chatbot with selected URLs.
 
         Steps:
         1. Verify the chatbot exists and belongs to the user
@@ -50,24 +100,26 @@ class CrawlService:
         # Mark the chatbot as "crawling"
         await self.chatbot_repo.update(chatbot_id, status="crawling")
 
+        # Build the crawler request payload
+        crawler_payload = {
+            "crawl_job_id": crawl_job.id,
+            "chatbot_id": chatbot_id,
+            "chatbot_name": chatbot.name,
+            "website_url": chatbot.website_url or "",
+            "callback_url": f"{settings.API_CALLBACK_URL}/api/internal/crawl-jobs/{crawl_job.id}",
+            "selected_urls": selected_urls,
+        }
+
         # Call the crawler service asynchronously (fire-and-forget style)
-        # If the crawler is down, we still return the job; it will be picked up later
         try:
             async with httpx.AsyncClient() as client:
                 await client.post(
                     f"{settings.CRAWLER_SERVICE_URL}/crawl",
-                    json={
-                        "crawl_job_id": crawl_job.id,
-                        "chatbot_id": chatbot_id,
-                        "chatbot_name": chatbot.name,
-                        "website_url": chatbot.website_url,
-                        "callback_url": f"{settings.API_CALLBACK_URL}/api/internal/crawl-jobs/{crawl_job.id}",
-                    },
+                    json=crawler_payload,
                     timeout=10.0,
                 )
         except httpx.RequestError:
             # Crawler service is unreachable - job stays "pending"
-            # The crawler can pick it up later or be retried manually
             pass
 
         return crawl_job

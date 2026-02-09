@@ -22,10 +22,20 @@ export interface AuthState {
 export interface Chatbot {
   id: number;
   name: string;
-  website_url: string;
+  website_url: string | null;
   status: 'pending' | 'crawling' | 'ready' | 'error';
   created_at: string;
   crawl_jobs?: CrawlJob[];
+  widget_icon: string | null;
+  widget_welcome: string | null;
+  widget_position: string | null;
+}
+
+/** Widget customization settings */
+export interface WidgetSettings {
+  widget_icon: string | null;
+  widget_welcome: string | null;
+  widget_position: string | null;
 }
 
 /** A crawl job that indexes a website's content */
@@ -36,6 +46,12 @@ export interface CrawlJob {
   pages_crawled: number;
   started_at: string;
   completed_at?: string;
+}
+
+/** A URL discovered during site discovery */
+export interface DiscoveredUrl {
+  url: string;
+  title: string;
 }
 
 /** A single message in a chat conversation */

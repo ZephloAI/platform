@@ -9,6 +9,7 @@ class ChatRequest(BaseModel):
     """Schema for sending a chat message."""
     chatbot_id: int
     message: str
+    session_id: str | None = None
 
 
 class ChatSource(BaseModel):
@@ -21,3 +22,4 @@ class ChatResponse(BaseModel):
     """Schema for the chat response from the agent service."""
     response: str
     sources: list[ChatSource] = []
+    session_id: str | None = None

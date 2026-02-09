@@ -4,13 +4,12 @@ import { useCreateChatbot } from '../hooks/useChatbots';
 
 // ============================================================
 // CreateChatbotPage
-// Apple-style creation form with glass card, clean layout,
-// and focused single-column design.
+// Simplified creation form - only requires a name.
+// Website URL and page selection happen on the detail page.
 // ============================================================
 
 function CreateChatbotPage() {
   const [name, setName] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const createMutation = useCreateChatbot();
@@ -19,13 +18,13 @@ function CreateChatbotPage() {
     e.preventDefault();
     setError('');
 
-    if (!name.trim() || !websiteUrl.trim()) {
-      setError('Please fill in all fields.');
+    if (!name.trim()) {
+      setError('Please enter a name for your chatbot.');
       return;
     }
 
     createMutation.mutate(
-      { name: name.trim(), website_url: websiteUrl.trim() },
+      { name: name.trim() },
       {
         onSuccess: (chatbot) => {
           navigate(`/chatbots/${chatbot.id}`);
@@ -43,7 +42,7 @@ function CreateChatbotPage() {
       <div className="mb-8">
         <h1 className="section-title">New Chatbot</h1>
         <p className="text-[14px] text-label-tertiary mt-1">
-          Connect a website and we will build your AI assistant.
+          Give your chatbot a name, then add pages to build its knowledge base.
         </p>
       </div>
 
@@ -68,22 +67,8 @@ function CreateChatbotPage() {
             className="input-field"
             placeholder="My Website Bot"
           />
-        </div>
-
-        {/* Website URL */}
-        <div>
-          <label htmlFor="websiteUrl" className="input-label">Website URL</label>
-          <input
-            id="websiteUrl"
-            type="url"
-            required
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            className="input-field"
-            placeholder="https://example.com"
-          />
           <p className="mt-2 text-[12px] text-label-quaternary">
-            We will crawl this website to build the chatbot&apos;s knowledge base.
+            You can add your website URL or specific pages in the next step.
           </p>
         </div>
 

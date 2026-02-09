@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chatbot import Chatbot
 from app.repositories.chatbot_repository import ChatbotRepository
+from app.schemas.chatbot import WidgetSettingsUpdate
 
 
 class ChatbotService:
@@ -20,14 +21,11 @@ class ChatbotService:
         """Get all chatbots owned by the given user."""
         return await self.chatbot_repo.get_all(user_id=user_id)
 
-    async def create_chatbot(
-        self, user_id: int, name: str, website_url: str
-    ) -> Chatbot:
+    async def create_chatbot(self, user_id: int, name: str) -> Chatbot:
         """Create a new chatbot for the given user."""
         return await self.chatbot_repo.create(
             user_id=user_id,
             name=name,
-            website_url=website_url,
         )
 
     async def get_chatbot(self, chatbot_id: int, user_id: int) -> Chatbot:
@@ -44,6 +42,19 @@ class ChatbotService:
                 detail="Chatbot not found",
             )
         return chatbot
+
+    async def update_widget_settings(
+        self, chatbot_id: int, user_id: int, settings: WidgetSettingsUpdate
+    ) -> Chatbot:
+        """Update widget customization settings with ownership check."""
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or chatbot.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbot not found",
+            )
+        update_data = settings.model_dump(exclude_unset=True)
+        return await self.chatbot_repo.update(chatbot_id, **update_data)
 
     async def delete_chatbot(self, chatbot_id: int, user_id: int) -> bool:
         """

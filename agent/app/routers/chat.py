@@ -1,11 +1,12 @@
 """
 Chat router - handles the main chat endpoint.
 
-This is the entry point for all chat messages. Users send a chatbot_id
-and a message, and get back the AI-generated response with source URLs.
+This is the entry point for all chat messages. Users send a chatbot_id,
+message, and optional session_id, and get back the AI-generated response
+with source URLs and the session_id for continuing the conversation.
 
 Endpoint:
-    POST /api/chat  ->  { chatbot_id, message }  ->  { response, sources }
+    POST /api/chat  ->  { chatbot_id, message, session_id? }  ->  { response, sources, session_id }
 """
 
 from fastapi import APIRouter, HTTPException
@@ -26,23 +27,20 @@ class ChatRequest(BaseModel):
     What the client sends to the chat endpoint.
 
     Attributes:
-        chatbot_id: Which chatbot to use (maps to a Qdrant collection).
-        message:    The user's question or message.
+        chatbot_id:   Which chatbot to use (maps to a Qdrant collection).
+        chatbot_name: Name of the chatbot (for collection lookup + persona).
+        message:      The user's question or message.
+        session_id:   Optional UUID to continue an existing conversation.
     """
 
     chatbot_id: int
     chatbot_name: str = ""
     message: str
+    session_id: str | None = None
 
 
 class ChatSource(BaseModel):
-    """
-    A source URL referenced in the response.
-
-    Attributes:
-        url:   Full URL of the source page.
-        title: Title of the source page.
-    """
+    """A source URL referenced in the response."""
 
     url: str
     title: str
@@ -53,12 +51,14 @@ class ChatResponse(BaseModel):
     What the chat endpoint returns to the client.
 
     Attributes:
-        response: The AI-generated answer text.
-        sources:  List of source pages the answer was based on.
+        response:   The AI-generated answer text.
+        sources:    List of source pages the answer was based on.
+        session_id: The session ID for this conversation thread.
     """
 
     response: str
     sources: list[ChatSource] = []
+    session_id: str | None = None
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -71,17 +71,18 @@ async def chat(request: ChatRequest):
     """
     Send a message to a chatbot and get an AI-generated response.
 
-    How it works:
-    1. Takes the chatbot_id and user message from the request.
-    2. Retrieves relevant website content from Qdrant (RAG).
-    3. Sends context + question to the LLM via the Agno agent.
-    4. Returns the response with source URLs.
-
-    Raises:
-        HTTPException 500: If something goes wrong during processing.
+    If session_id is provided, the agent loads conversation history
+    from that session. If omitted, a new session is created.
+    The response always includes the session_id so the client can
+    continue the conversation.
     """
     try:
-        result = await chat_with_agent(request.chatbot_id, request.message, chatbot_name=request.chatbot_name)
+        result = await chat_with_agent(
+            request.chatbot_id,
+            request.message,
+            chatbot_name=request.chatbot_name,
+            session_id=request.session_id,
+        )
         return ChatResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")

@@ -8,7 +8,7 @@ Run with: uvicorn app.main:app --reload
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chatbots, crawl_jobs, chat
+from app.routers import auth, chatbots, crawl_jobs, chat, public_chat
 
 # Create the FastAPI application
 app = FastAPI(
@@ -17,15 +17,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware - allow frontend dev server and production
+# CORS middleware - allow all origins so the embeddable widget works on any website
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite dev server
-        "http://localhost:80",    # Production frontend
-        "http://localhost",       # Production frontend (no port)
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(chatbots.router)
 app.include_router(crawl_jobs.router)
 app.include_router(chat.router)
+app.include_router(public_chat.router)
 
 
 @app.get("/health")

@@ -16,7 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.chatbot import ChatbotCreate, ChatbotResponse, ChatbotDetailResponse
+from app.schemas.chatbot import (
+    ChatbotCreate,
+    ChatbotResponse,
+    ChatbotDetailResponse,
+    WidgetSettingsUpdate,
+    WidgetSettingsResponse,
+)
 from app.services.chatbot_service import ChatbotService
 
 router = APIRouter(prefix="/api/chatbots", tags=["chatbots"])
@@ -51,8 +57,6 @@ async def create_chatbot(
     return await service.create_chatbot(
         user_id=user.id,
         name=body.name,
-        # Convert HttpUrl to string for storage
-        website_url=str(body.website_url),
     )
 
 
@@ -69,6 +73,29 @@ async def get_chatbot(
     """
     service = ChatbotService(db)
     return await service.get_chatbot(chatbot_id, user.id)
+
+
+@router.get("/{chatbot_id}/widget-settings", response_model=WidgetSettingsResponse)
+async def get_widget_settings(
+    chatbot_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get widget customization settings for a chatbot."""
+    service = ChatbotService(db)
+    return await service.get_chatbot(chatbot_id, user.id)
+
+
+@router.put("/{chatbot_id}/widget-settings", response_model=WidgetSettingsResponse)
+async def update_widget_settings(
+    chatbot_id: int,
+    body: WidgetSettingsUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update widget customization settings for a chatbot."""
+    service = ChatbotService(db)
+    return await service.update_widget_settings(chatbot_id, user.id, body)
 
 
 @router.delete("/{chatbot_id}")

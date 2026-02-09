@@ -17,9 +17,14 @@ class Chatbot(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
-    website_url = Column(String, nullable=False)
+    website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
     created_at = Column(DateTime, default=func.now())
+
+    # Widget customization
+    widget_icon = Column(String, nullable=True)       # Emoji or image URL
+    widget_welcome = Column(String, nullable=True)    # Welcome message
+    widget_position = Column(String, nullable=True)   # "right" or "left"
 
     # Relationships
     user = relationship("User", back_populates="chatbots")

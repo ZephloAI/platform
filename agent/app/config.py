@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     TOP_K: int = 5  # Number of chunks to retrieve from vector search
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/chatbot_saas"
 
     class Config:
         env_file = ".env"

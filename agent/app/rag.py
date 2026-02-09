@@ -118,11 +118,11 @@ def format_context_for_llm(contexts: list[dict]) -> str:
         Formatted string ready to include in the LLM prompt.
     """
     if not contexts:
-        return "No relevant information found in the knowledge base."
+        return "No relevant information found."
 
-    formatted = "Here is relevant information from the website:\n\n"
+    formatted = ""
     for i, ctx in enumerate(contexts, 1):
-        formatted += f"--- Source {i}: {ctx['title']} ({ctx['url']}) ---\n"
+        formatted += f"--- {ctx['title']} ---\n"
         formatted += f"{ctx['text']}\n\n"
 
     return formatted

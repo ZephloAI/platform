@@ -9,7 +9,7 @@ API service at each stage.
 import httpx
 
 from app.config import settings
-from app.crawler import crawl_website
+from app.crawler import crawl_website, crawl_selected_urls
 from app.chunker import chunk_text
 from app.embedder import generate_embeddings
 from app.indexer import create_collection, index_chunks
@@ -35,25 +35,42 @@ async def run_crawl_job(
     website_url: str,
     crawl_job_id: int,
     callback_url: str,
+    selected_urls: list[str] | None = None,
 ):
     """
     Run the full crawl pipeline as a background task.
 
     Steps:
       1. Notify API that crawl is in progress
-      2. Crawl the website (follow internal links)
+      2. Crawl the website -- either spider the whole site OR fetch only
+         the user-selected URLs if provided
       3. Create a fresh Qdrant collection for the chatbot
       4. For each page: chunk text -> embed chunks -> store in Qdrant
       5. Send progress updates after each page
       6. Notify API when complete (or on failure)
+
+    Args:
+        selected_urls: If provided, only these URLs are crawled (no link
+            following). This is used after the user picks pages from the
+            /discover endpoint.
     """
     try:
         # Step 1: Tell the API we've started
         await send_callback(callback_url, {"status": "in_progress"})
 
         # Step 2: Crawl the website
-        print(f"Starting crawl for chatbot {chatbot_id}: {website_url}")
-        pages = await crawl_website(website_url, max_pages=settings.MAX_PAGES)
+        if selected_urls:
+            # User picked specific pages -- crawl only those
+            print(
+                f"Starting selective crawl for chatbot {chatbot_id}: "
+                f"{len(selected_urls)} URLs"
+            )
+            pages = await crawl_selected_urls(selected_urls)
+        else:
+            # No selection -- spider the whole site as before
+            print(f"Starting crawl for chatbot {chatbot_id}: {website_url}")
+            pages = await crawl_website(website_url, max_pages=settings.MAX_PAGES)
+
         print(f"Crawled {len(pages)} pages from {website_url}")
 
         if not pages:
