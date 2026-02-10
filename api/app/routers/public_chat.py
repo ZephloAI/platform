@@ -51,6 +51,7 @@ async def get_widget_config(
         widget_icon=chatbot.widget_icon,
         widget_welcome=chatbot.widget_welcome,
         widget_position=chatbot.widget_position,
+        quick_prompts=chatbot.quick_prompts or [],
     )
 
 

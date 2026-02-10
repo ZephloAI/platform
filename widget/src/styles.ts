@@ -319,7 +319,7 @@ export const WIDGET_STYLES = /* css */ `
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 4px 10px;
+    padding: 5px 12px;
     background: var(--cb-bg);
     border: 1px solid var(--cb-border);
     border-radius: 20px;
@@ -331,18 +331,24 @@ export const WIDGET_STYLES = /* css */ `
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
-    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
   }
 
   .cb-sources-list a:hover {
-    background: rgba(0, 113, 227, 0.06);
-    border-color: rgba(0, 113, 227, 0.2);
+    background: var(--cb-bg-secondary);
+    border-color: rgba(0, 0, 0, 0.1);
     color: var(--cb-accent);
   }
 
+  .cb-sources-list a:active {
+    transform: scale(0.97);
+  }
+
   .cb-source-icon {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
     flex-shrink: 0;
     opacity: 0.5;
   }
@@ -486,6 +492,59 @@ export const WIDGET_STYLES = /* css */ `
     background: rgba(255, 59, 48, 0.06);
     border-radius: 12px;
     animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  /* ---- Quick Prompts ---- */
+  .cb-quick-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding: 0 16px 4px;
+  }
+
+  .cb-quick-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: var(--cb-bg);
+    border: 1px solid var(--cb-border);
+    border-radius: 100px;
+    font-family: var(--cb-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cb-text);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    letter-spacing: -0.01em;
+  }
+
+  .cb-quick-prompt:hover {
+    background: var(--cb-bg-secondary);
+    border-color: rgba(0, 0, 0, 0.1);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .cb-quick-prompt:active {
+    transform: scale(0.97);
+  }
+
+  .cb-quick-prompt svg {
+    width: 12px;
+    height: 12px;
+    color: var(--cb-text-tertiary);
+  }
+
+  .cb-input-prompts {
+    flex-shrink: 0;
+    padding: 8px 0 0;
+  }
+
+  .cb-input-prompts:empty {
+    display: none;
   }
 
   /* ---- Responsive: full-screen on small viewports ---- */

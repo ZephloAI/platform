@@ -20,6 +20,7 @@ export interface WidgetConfig {
   widget_icon: string | null;
   widget_welcome: string | null;
   widget_position: string | null;
+  quick_prompts?: { title: string; link?: string; prompt?: string }[];
 }
 
 /**

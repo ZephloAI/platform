@@ -32,6 +32,7 @@ interface WidgetState {
   icon: string;
   welcome: string;
   position: "left" | "right";
+  quickPrompts: { title: string; link?: string; prompt?: string }[];
 }
 
 // ---- Helper: detect initial config from the <script> tag ----
@@ -82,6 +83,7 @@ class ChatbotWidget extends HTMLElement {
       icon: "",
       welcome: "Hi! How can I help you today?",
       position: "right",
+      quickPrompts: [],
     };
 
     // Fetch config from API to get user-customized settings
@@ -92,6 +94,7 @@ class ChatbotWidget extends HTMLElement {
       this.state.welcome = config.widget_welcome || this.state.welcome;
       this.state.position =
         config.widget_position === "left" ? "left" : "right";
+      this.state.quickPrompts = config.quick_prompts || [];
     }
 
     // Load existing session and messages from localStorage (if any)
@@ -159,6 +162,11 @@ class ChatbotWidget extends HTMLElement {
           </div>
         </div>
 
+        <!-- Quick prompts (always visible) -->
+        <div class="cb-input-prompts">
+          ${this.renderQuickPrompts()}
+        </div>
+
         <!-- Input -->
         <div class="cb-input-area">
           <div class="cb-input-row">
@@ -211,6 +219,57 @@ class ChatbotWidget extends HTMLElement {
       this.sendBtn.disabled =
         this.textarea.value.trim().length === 0 || this.isLoading;
       this.autoResize();
+    });
+
+    // Quick prompt button clicks (event delegation on shadow root)
+    this.shadow.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest(".cb-quick-prompt") as HTMLElement | null;
+      if (!btn) return;
+      const index = Number(btn.dataset.qpIndex);
+      const qp = this.state.quickPrompts[index];
+      if (!qp) return;
+
+      if (qp.link) {
+        window.open(qp.link, "_blank", "noopener");
+      } else if (qp.prompt) {
+        // Remove welcome screen if present
+        const welcome = this.messagesEl.querySelector(".cb-welcome");
+        if (welcome) welcome.remove();
+
+        // Send the prompt as a user message
+        this.messages.push({ role: "user", content: qp.prompt });
+        this.appendMessage({ role: "user", content: qp.prompt });
+        this.saveMessages();
+
+        this.isLoading = true;
+        const typingEl = this.showTyping();
+        this.sendBtn.disabled = true;
+
+        sendMessage(this.state.apiUrl, this.state.chatbotId, qp.prompt, this.sessionId)
+          .then((data) => {
+            if (data.session_id) {
+              this.sessionId = data.session_id;
+              localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
+            }
+            typingEl.remove();
+            const msg: Message = { role: "assistant", content: data.response, sources: data.sources };
+            this.messages.push(msg);
+            this.appendMessage(msg);
+            this.saveMessages();
+
+            // Hide quick prompts above input after first message
+            const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
+            if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
+          })
+          .catch((err) => {
+            typingEl.remove();
+            this.showError(err instanceof Error ? err.message : "Something went wrong.");
+          })
+          .finally(() => {
+            this.isLoading = false;
+            this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+          });
+      }
     });
   }
 
@@ -281,6 +340,10 @@ class ChatbotWidget extends HTMLElement {
   private appendMessage(msg: Message) {
     const welcome = this.messagesEl.querySelector(".cb-welcome");
     if (welcome) welcome.remove();
+
+    // Hide input quick prompts once messages start
+    const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
+    if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
 
     const div = document.createElement("div");
     div.className = `cb-message ${msg.role}`;
@@ -362,7 +425,24 @@ class ChatbotWidget extends HTMLElement {
       </div>
     `;
 
+    // Show input prompts again for new chat
+    const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
+    if (inputPrompts) (inputPrompts as HTMLElement).style.display = "";
+
     this.textarea.focus();
+  }
+
+  private renderQuickPrompts(): string {
+    if (this.state.quickPrompts.length === 0) return '';
+    const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    const chatIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+    const buttons = this.state.quickPrompts
+      .map((qp, i) => {
+        const icon = qp.link ? linkIcon : chatIcon;
+        return `<button class="cb-quick-prompt" data-qp-index="${i}">${icon}${this.escapeHtml(qp.title)}</button>`;
+      })
+      .join('');
+    return `<div class="cb-quick-prompts">${buttons}</div>`;
   }
 
   private scrollToBottom() {

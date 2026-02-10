@@ -14,6 +14,13 @@ class ChatbotCreate(BaseModel):
     name: str
 
 
+class QuickPrompt(BaseModel):
+    """A single quick prompt button for the widget."""
+    title: str
+    link: str | None = None
+    prompt: str | None = None
+
+
 class ChatbotResponse(BaseModel):
     """Schema for chatbot list/detail responses."""
     id: int
@@ -24,6 +31,7 @@ class ChatbotResponse(BaseModel):
     widget_icon: str | None = None
     widget_welcome: str | None = None
     widget_position: str | None = None
+    quick_prompts: list[QuickPrompt] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,6 +46,7 @@ class WidgetSettingsUpdate(BaseModel):
     widget_icon: str | None = None
     widget_welcome: str | None = None
     widget_position: str | None = None
+    quick_prompts: list[QuickPrompt] | None = None
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -45,6 +54,7 @@ class WidgetSettingsResponse(BaseModel):
     widget_icon: str | None = None
     widget_welcome: str | None = None
     widget_position: str | None = None
+    quick_prompts: list[QuickPrompt] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,3 +66,4 @@ class PublicWidgetConfig(BaseModel):
     widget_icon: str | None = None
     widget_welcome: str | None = None
     widget_position: str | None = None
+    quick_prompts: list[QuickPrompt] | None = None

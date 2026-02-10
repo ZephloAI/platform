@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUpdateWidgetSettings } from '../hooks/useChatbots';
-import type { Chatbot } from '../types';
+import type { Chatbot, QuickPrompt } from '../types';
 
 // ============================================================
 // WidgetConfigurator
@@ -33,18 +33,23 @@ function WidgetConfigurator({ chatbot }: WidgetConfiguratorProps) {
   const [position, setPosition] = useState<'right' | 'left'>(
     (chatbot.widget_position as 'right' | 'left') || 'right'
   );
+  const [quickPrompts, setQuickPrompts] = useState<QuickPrompt[]>(
+    chatbot.quick_prompts || []
+  );
   // Sync from chatbot when it updates (e.g. after save + refetch)
   useEffect(() => {
     if (chatbot.widget_icon !== null) setIcon(chatbot.widget_icon);
     if (chatbot.widget_welcome !== null) setWelcome(chatbot.widget_welcome);
     if (chatbot.widget_position !== null)
       setPosition(chatbot.widget_position as 'right' | 'left');
-  }, [chatbot.widget_icon, chatbot.widget_welcome, chatbot.widget_position]);
+    if (chatbot.quick_prompts) setQuickPrompts(chatbot.quick_prompts);
+  }, [chatbot.widget_icon, chatbot.widget_welcome, chatbot.widget_position, chatbot.quick_prompts]);
 
   const hasChanges =
     icon !== (chatbot.widget_icon || '🤖') ||
     welcome !== (chatbot.widget_welcome || 'Hi! How can I help you today?') ||
-    position !== ((chatbot.widget_position as 'right' | 'left') || 'right');
+    position !== ((chatbot.widget_position as 'right' | 'left') || 'right') ||
+    JSON.stringify(quickPrompts) !== JSON.stringify(chatbot.quick_prompts || []);
 
   const handleSave = () => {
     updateMutation.mutate({
@@ -53,8 +58,41 @@ function WidgetConfigurator({ chatbot }: WidgetConfiguratorProps) {
         widget_icon: icon,
         widget_welcome: welcome,
         widget_position: position,
+        quick_prompts: quickPrompts,
       },
     });
+  };
+
+  const addQuickPrompt = () => {
+    setQuickPrompts([...quickPrompts, { title: '', prompt: '' }]);
+  };
+
+  const removeQuickPrompt = (index: number) => {
+    setQuickPrompts(quickPrompts.filter((_, i) => i !== index));
+  };
+
+  const updateQuickPrompt = (index: number, field: keyof QuickPrompt, value: string) => {
+    const updated = [...quickPrompts];
+    const current = updated[index];
+    if (!current) return;
+    if (field === 'title') {
+      updated[index] = { ...current, title: value };
+    } else {
+      updated[index] = { ...current, [field]: value || undefined };
+    }
+    setQuickPrompts(updated);
+  };
+
+  const toggleQuickPromptType = (index: number) => {
+    const updated = [...quickPrompts];
+    const item = updated[index];
+    if (!item) return;
+    if (item.link !== undefined && item.link !== null) {
+      updated[index] = { title: item.title, prompt: item.link || '' };
+    } else {
+      updated[index] = { title: item.title, link: item.prompt || '' };
+    }
+    setQuickPrompts(updated);
   };
 
   return (
@@ -95,6 +133,27 @@ function WidgetConfigurator({ chatbot }: WidgetConfiguratorProps) {
                 <div className="text-[12px] text-label-secondary leading-relaxed">
                   {welcome}
                 </div>
+                {quickPrompts.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center mt-3">
+                    {quickPrompts.filter(qp => qp.title).map((qp, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-black/[0.04] text-label-secondary"
+                      >
+                        {qp.link !== undefined && qp.link !== null ? (
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                          </svg>
+                        ) : (
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                          </svg>
+                        )}
+                        {qp.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             {/* Toggle button preview */}
@@ -189,6 +248,80 @@ function WidgetConfigurator({ chatbot }: WidgetConfiguratorProps) {
               Bottom Right
             </button>
           </div>
+        </div>
+
+        {/* Quick Prompts */}
+        <div>
+          <label className="input-label">Quick Prompts</label>
+          <p className="text-[11px] text-label-tertiary mb-3">
+            Add buttons that visitors can click to navigate or start a conversation.
+          </p>
+          <div className="space-y-3">
+            {quickPrompts.map((qp, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <div className="flex-1 space-y-2">
+                  <input
+                    type="text"
+                    value={qp.title}
+                    onChange={(e) => updateQuickPrompt(i, 'title', e.target.value)}
+                    placeholder="Button label"
+                    className="input-field text-[13px]"
+                  />
+                  <div className="flex gap-2 items-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleQuickPromptType(i)}
+                      className={`shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border transition-all duration-200 ${
+                        qp.link !== undefined && qp.link !== null
+                          ? 'border-blue-200 bg-blue-50 text-blue-600'
+                          : 'border-purple-200 bg-purple-50 text-purple-600'
+                      }`}
+                    >
+                      {qp.link !== undefined && qp.link !== null ? 'Link' : 'Prompt'}
+                    </button>
+                    <input
+                      type="text"
+                      value={(qp.link !== undefined && qp.link !== null ? qp.link : qp.prompt) || ''}
+                      onChange={(e) =>
+                        updateQuickPrompt(
+                          i,
+                          qp.link !== undefined && qp.link !== null ? 'link' : 'prompt',
+                          e.target.value
+                        )
+                      }
+                      placeholder={
+                        qp.link !== undefined && qp.link !== null
+                          ? 'https://example.com'
+                          : 'Message to send...'
+                      }
+                      className="input-field text-[13px] flex-1"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeQuickPrompt(i)}
+                  className="mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-label-tertiary hover:bg-red-50 hover:text-red-500 transition-all duration-200"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+          {quickPrompts.length < 10 && (
+            <button
+              type="button"
+              onClick={addQuickPrompt}
+              className="mt-3 w-full px-4 py-2.5 text-[13px] font-medium rounded-lg border-2 border-dashed border-separator text-label-secondary hover:border-accent hover:text-accent transition-all duration-200 flex items-center justify-center gap-1.5"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Quick Prompt
+            </button>
+          )}
         </div>
 
         {/* Save button */}

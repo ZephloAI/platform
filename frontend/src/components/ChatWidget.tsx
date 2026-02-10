@@ -96,7 +96,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
         <p className="text-[13px] font-medium text-label-secondary">Test your chatbot</p>
         <button
           onClick={handleNewChat}
-          title="New conversation"
+          title="New Chat"
           className="w-8 h-8 rounded-lg flex items-center justify-center text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 active:scale-90"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

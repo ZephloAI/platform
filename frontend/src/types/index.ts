@@ -29,6 +29,14 @@ export interface Chatbot {
   widget_icon: string | null;
   widget_welcome: string | null;
   widget_position: string | null;
+  quick_prompts?: QuickPrompt[] | null;
+}
+
+/** A quick prompt button shown in the widget */
+export interface QuickPrompt {
+  title: string;
+  link?: string;
+  prompt?: string;
 }
 
 /** Widget customization settings */
@@ -36,6 +44,7 @@ export interface WidgetSettings {
   widget_icon: string | null;
   widget_welcome: string | null;
   widget_position: string | null;
+  quick_prompts?: QuickPrompt[] | null;
 }
 
 /** A crawl job that indexes a website's content */
