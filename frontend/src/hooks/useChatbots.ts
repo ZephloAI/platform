@@ -126,6 +126,28 @@ export function useStartCrawl() {
 }
 
 /**
+ * Upload a logo image for a chatbot widget.
+ * Invalidates the chatbot detail on success.
+ */
+export function useUploadLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ chatbotId, file }: { chatbotId: number; file: File }): Promise<{ url: string }> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post(`/api/chatbots/${chatbotId}/logo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    },
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
  * Update widget customization settings for a chatbot.
  * Invalidates the chatbot detail on success.
  */
@@ -181,6 +203,7 @@ export function useChat() {
       response: string;
       sources: { url: string; title: string }[];
       session_id: string | null;
+      follow_up_prompts?: { title: string; link?: string; prompt?: string }[];
     }> => {
       const res = await apiClient.post('/api/chat', data);
       return res.data;

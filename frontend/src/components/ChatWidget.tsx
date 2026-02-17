@@ -68,6 +68,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
             role: 'assistant',
             content: data.response,
             sources: data.sources,
+            follow_up_prompts: data.follow_up_prompts,
           };
           setMessages((prev) => [...prev, assistantMessage]);
         },
@@ -158,6 +159,36 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
                         </svg>
                         {source.title}
                       </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Follow-up prompts */}
+              {msg.follow_up_prompts && msg.follow_up_prompts.length > 0 && (
+                <div className="mt-2.5 pt-2.5 border-t border-black/[0.06]">
+                  <p className="text-[10px] font-semibold text-label-tertiary uppercase tracking-wider mb-2">
+                    Suggested
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {msg.follow_up_prompts.map((fp, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/80 border border-accent/20 rounded-full text-[11px] font-medium text-accent max-w-[180px] truncate"
+                      >
+                        {fp.link ? (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-50">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-50">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                          </svg>
+                        )}
+                        {fp.title}
+                      </span>
                     ))}
                   </div>
                 </div>

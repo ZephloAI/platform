@@ -37,6 +37,7 @@ class ChatRequest(BaseModel):
     chatbot_name: str = ""
     message: str
     session_id: str | None = None
+    follow_up_prompts: list[dict] = []
 
 
 class ChatSource(BaseModel):
@@ -46,19 +47,29 @@ class ChatSource(BaseModel):
     title: str
 
 
+class FollowUpPrompt(BaseModel):
+    """A follow-up prompt suggested after an assistant response."""
+
+    title: str
+    link: str | None = None
+    prompt: str | None = None
+
+
 class ChatResponse(BaseModel):
     """
     What the chat endpoint returns to the client.
 
     Attributes:
-        response:   The AI-generated answer text.
-        sources:    List of source pages the answer was based on.
-        session_id: The session ID for this conversation thread.
+        response:          The AI-generated answer text.
+        sources:           List of source pages the answer was based on.
+        session_id:        The session ID for this conversation thread.
+        follow_up_prompts: Contextually selected follow-up prompts.
     """
 
     response: str
     sources: list[ChatSource] = []
     session_id: str | None = None
+    follow_up_prompts: list[FollowUpPrompt] = []
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -82,6 +93,7 @@ async def chat(request: ChatRequest):
             request.message,
             chatbot_name=request.chatbot_name,
             session_id=request.session_id,
+            follow_up_prompts=request.follow_up_prompts,
         )
         return ChatResponse(**result)
     except Exception as e:

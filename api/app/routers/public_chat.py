@@ -52,6 +52,18 @@ async def get_widget_config(
         widget_welcome=chatbot.widget_welcome,
         widget_position=chatbot.widget_position,
         quick_prompts=chatbot.quick_prompts or [],
+        follow_up_prompts=chatbot.follow_up_prompts or [],
+        greeting_prompts=chatbot.greeting_prompts or [],
+        greeting_prompt_duration=chatbot.greeting_prompt_duration,
+        widget_logo_url=chatbot.widget_logo_url,
+        widget_width=chatbot.widget_width,
+        widget_height=chatbot.widget_height,
+        widget_header_color=chatbot.widget_header_color,
+        widget_user_bubble_color=chatbot.widget_user_bubble_color,
+        widget_assistant_bubble_color=chatbot.widget_assistant_bubble_color,
+        widget_font_family=chatbot.widget_font_family,
+        widget_font_size=chatbot.widget_font_size,
+        widget_text_color=chatbot.widget_text_color,
     )
 
 
@@ -103,6 +115,7 @@ async def public_chat(
                     "chatbot_name": chatbot.name,
                     "message": body.message,
                     "session_id": body.session_id,
+                    "follow_up_prompts": chatbot.follow_up_prompts or [],
                 },
                 timeout=30.0,
             )

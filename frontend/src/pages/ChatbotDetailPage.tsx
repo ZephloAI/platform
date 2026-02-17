@@ -14,6 +14,7 @@ import ConfigSection from '../components/ConfigSection';
 // ============================================================
 
 type Section = 'overview' | 'knowledge' | 'config';
+type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 
 const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
   {
@@ -50,6 +51,13 @@ const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
   },
 ];
 
+const CONFIG_SUB_ITEMS: { key: ConfigTab; label: string }[] = [
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'quick-prompts', label: 'Quick Prompts' },
+  { key: 'follow-up-prompts', label: 'Follow-Up Prompts' },
+  { key: 'greeting-prompts', label: 'Greeting Prompts' },
+];
+
 const STATUS_BADGES: Record<string, string> = {
   pending: 'badge badge-pending',
   crawling: 'badge badge-crawling',
@@ -69,6 +77,7 @@ function ChatbotDetailPage() {
   const chatbotId = Number(id);
   const { data: chatbot, isLoading, error } = useChatbot(chatbotId);
   const [activeSection, setActiveSection] = useState<Section>('overview');
+  const [activeConfigTab, setActiveConfigTab] = useState<ConfigTab>('appearance');
 
   // Loading
   if (isLoading) {
@@ -122,20 +131,57 @@ function ChatbotDetailPage() {
         <nav className="w-[200px] shrink-0">
           <div className="sticky top-6 space-y-1">
             {NAV_ITEMS.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => setActiveSection(item.key)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-                  activeSection === item.key
-                    ? 'bg-accent/[0.08] text-accent'
-                    : 'text-label-secondary hover:bg-surface-secondary/60 hover:text-label-primary'
-                }`}
-              >
-                <span className={activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </button>
+              <div key={item.key}>
+                <button
+                  onClick={() => {
+                    setActiveSection(item.key);
+                    if (item.key === 'config') setActiveConfigTab('appearance');
+                  }}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                    activeSection === item.key
+                      ? 'bg-accent/[0.08] text-accent'
+                      : 'text-label-secondary hover:bg-surface-secondary/60 hover:text-label-primary'
+                  }`}
+                >
+                  <span className={activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}>
+                    {item.icon}
+                  </span>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.key === 'config' && (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-transform duration-200 ${activeSection === 'config' ? 'rotate-180' : ''}`}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  )}
+                </button>
+                {/* Config sub-items */}
+                {item.key === 'config' && activeSection === 'config' && (
+                  <div className="ml-7 mt-1 space-y-0.5">
+                    {CONFIG_SUB_ITEMS.map((sub) => (
+                      <button
+                        key={sub.key}
+                        onClick={() => setActiveConfigTab(sub.key)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ${
+                          activeConfigTab === sub.key
+                            ? 'bg-accent/[0.06] text-accent'
+                            : 'text-label-tertiary hover:bg-surface-secondary/60 hover:text-label-secondary'
+                        }`}
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </nav>
@@ -144,7 +190,7 @@ function ChatbotDetailPage() {
         <div className="flex-1 min-w-0">
           {activeSection === 'overview' && <OverviewSection chatbot={chatbot} />}
           {activeSection === 'knowledge' && <KnowledgeSection chatbot={chatbot} />}
-          {activeSection === 'config' && <ConfigSection chatbot={chatbot} />}
+          {activeSection === 'config' && <ConfigSection chatbot={chatbot} activeTab={activeConfigTab} />}
         </div>
       </div>
     </div>

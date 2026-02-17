@@ -13,9 +13,11 @@
  * settings from the dashboard.
  */
 
-import { sendMessage, fetchConfig, type ChatSource } from "./api";
+import { sendMessage, fetchConfig, type ChatSource, type FollowUpPrompt } from "./api";
 import { WIDGET_STYLES } from "./styles";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT } from "./icons";
+
+const SIDEBAR_WIDTH = 300;
 
 // ---- Types ----
 
@@ -23,6 +25,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: ChatSource[];
+  followUpPrompts?: FollowUpPrompt[];
 }
 
 interface WidgetState {
@@ -31,8 +34,19 @@ interface WidgetState {
   title: string;
   icon: string;
   welcome: string;
-  position: "left" | "right";
+  position: "left" | "right" | "left-sidebar" | "right-sidebar";
   quickPrompts: { title: string; link?: string; prompt?: string }[];
+  logoUrl: string | null;
+  width: number;
+  height: number;
+  headerColor: string;
+  userBubbleColor: string;
+  assistantBubbleColor: string;
+  fontFamily: string;
+  fontSize: number;
+  textColor: string;
+  greetingPrompts: { title: string; prompt: string }[];
+  greetingPromptDuration: number;
 }
 
 // ---- Helper: detect initial config from the <script> tag ----
@@ -66,6 +80,10 @@ class ChatbotWidget extends HTMLElement {
   private textarea!: HTMLTextAreaElement;
   private sendBtn!: HTMLButtonElement;
   private newChatBtn!: HTMLButtonElement;
+  private hostStyleEl: HTMLStyleElement | null = null;
+  private greetingsEl: HTMLDivElement | null = null;
+  private greetingsDismissed = false;
+  private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super();
@@ -84,6 +102,17 @@ class ChatbotWidget extends HTMLElement {
       welcome: "Hi! How can I help you today?",
       position: "right",
       quickPrompts: [],
+      logoUrl: null,
+      width: 380,
+      height: 520,
+      headerColor: "#0071e3",
+      userBubbleColor: "#0071e3",
+      assistantBubbleColor: "#f5f5f7",
+      fontFamily: "",
+      fontSize: 14,
+      textColor: "#1d1d1f",
+      greetingPrompts: [],
+      greetingPromptDuration: 0,
     };
 
     // Fetch config from API to get user-customized settings
@@ -92,9 +121,21 @@ class ChatbotWidget extends HTMLElement {
       this.state.title = config.name || this.state.title;
       this.state.icon = config.widget_icon || "";
       this.state.welcome = config.widget_welcome || this.state.welcome;
+      const pos = config.widget_position;
       this.state.position =
-        config.widget_position === "left" ? "left" : "right";
+        (pos === "left" || pos === "left-sidebar" || pos === "right-sidebar") ? pos : "right";
       this.state.quickPrompts = config.quick_prompts || [];
+      this.state.logoUrl = config.widget_logo_url || null;
+      this.state.width = config.widget_width || 380;
+      this.state.height = config.widget_height || 520;
+      this.state.headerColor = config.widget_header_color || "#0071e3";
+      this.state.userBubbleColor = config.widget_user_bubble_color || "#0071e3";
+      this.state.assistantBubbleColor = config.widget_assistant_bubble_color || "#f5f5f7";
+      this.state.fontFamily = config.widget_font_family || "";
+      this.state.fontSize = config.widget_font_size || 14;
+      this.state.textColor = config.widget_text_color || "#1d1d1f";
+      this.state.greetingPrompts = config.greeting_prompts || [];
+      this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
     }
 
     // Load existing session and messages from localStorage (if any)
@@ -111,33 +152,75 @@ class ChatbotWidget extends HTMLElement {
     this.render();
     this.bindEvents();
     this.restoreMessages();
+
+    if (this.state.position.includes('sidebar')) {
+      this.injectHostTransition();
+    }
+
+    // Auto-hide timer is now started on hover in bindEvents
   }
 
   private render() {
-    const { title, icon, welcome, position } = this.state;
+    const { title, icon, welcome, position, logoUrl } = this.state;
 
     // Position override
-    const posStyles =
-      position === "left"
-        ? `
+    const isLeftSide = position === "left" || position === "left-sidebar";
+    const posStyles = isLeftSide
+      ? `
         :host { left: 20px; right: auto; }
         .cb-panel { left: 0; right: auto; }
         .cb-toggle { left: 0; right: auto; }
+        .cb-greeting-bubbles { left: 0; right: auto; align-items: flex-start; }
       `
-        : "";
+      : "";
 
-    // Determine avatar content: emoji icon or default SVG bot icon
-    const avatarContent = icon
+    // Load Google Font if custom font is set
+    if (this.state.fontFamily) {
+      const fontLink = document.createElement('link');
+      fontLink.rel = 'stylesheet';
+      fontLink.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(this.state.fontFamily)}:wght@400;500;600&display=swap`;
+      this.shadow.appendChild(fontLink);
+    }
+
+    // Apply all config values as CSS variable overrides
+    const fontStack = this.state.fontFamily
+      ? `"${this.state.fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`
+      : '';
+    const customStyles = `
+      :host {
+        --cb-accent: ${this.state.headerColor};
+        --cb-accent-hover: ${this.state.headerColor};
+        --cb-user-bubble: ${this.state.userBubbleColor};
+        --cb-assistant-bubble: ${this.state.assistantBubbleColor};
+        --cb-text: ${this.state.textColor};
+        --cb-panel-width: ${this.state.width}px;
+        --cb-panel-height: ${this.state.height}px;
+        --cb-font-size: ${this.state.fontSize}px;
+        ${fontStack ? `--cb-font: ${fontStack};` : ''}
+      }
+    `;
+
+    // Avatar content: logo image > emoji icon > default SVG
+    const avatarContent = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-avatar-img">`
+      : icon
       ? `<span style="font-size:18px;line-height:1">${this.escapeHtml(icon)}</span>`
       : ICON_BOT;
 
     // Welcome icon
-    const welcomeIcon = icon ? this.escapeHtml(icon) : "💬";
+    const welcomeIcon = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
+      : icon ? this.escapeHtml(icon) : "💬";
+
+    // Toggle button content
+    const toggleContent = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-toggle-logo">`
+      : `<span class="cb-icon-chat">${ICON_CHAT}</span>`;
 
     this.shadow.innerHTML = `
-      <style>${WIDGET_STYLES}${posStyles}</style>
+      <style>${WIDGET_STYLES}${posStyles}${customStyles}</style>
 
-      <div class="cb-panel" role="dialog" aria-label="Chat widget">
+      <div class="cb-panel${position.includes('sidebar') ? ` sidebar sidebar-${position === 'left-sidebar' ? 'left' : 'right'}` : ''}" role="dialog" aria-label="Chat widget">
         <!-- Header -->
         <div class="cb-header">
           <div class="cb-header-avatar">${avatarContent}</div>
@@ -187,9 +270,16 @@ class ChatbotWidget extends HTMLElement {
         </div>
       </div>
 
+      <!-- Greeting bubbles -->
+      <div class="cb-greeting-bubbles" style="display:none">
+        ${this.state.greetingPrompts.map((gp, i) =>
+          `<div class="cb-greeting-bubble" data-greeting-index="${i}">${this.escapeHtml(gp.title)}</div>`
+        ).join('')}
+      </div>
+
       <!-- Toggle button -->
-      <button class="cb-toggle" aria-label="Open chat">
-        <span class="cb-icon-chat">${ICON_CHAT}</span>
+      <button class="cb-toggle${logoUrl ? ' has-logo' : ''}" aria-label="Open chat">
+        ${toggleContent}
         <span class="cb-icon-close">${ICON_CLOSE}</span>
       </button>
     `;
@@ -201,10 +291,68 @@ class ChatbotWidget extends HTMLElement {
     this.textarea = this.shadow.querySelector("textarea")!;
     this.sendBtn = this.shadow.querySelector(".cb-send-btn")!;
     this.newChatBtn = this.shadow.querySelector(".cb-new-chat-btn")!;
+    this.greetingsEl = this.shadow.querySelector(".cb-greeting-bubbles");
+
+    // Show greeting bubbles on initial load
+    if (this.state.greetingPrompts.length > 0 && this.greetingsEl) {
+      this.greetingsEl.style.display = '';
+      // Start auto-hide timer if duration is set
+      if (this.state.greetingPromptDuration > 0) {
+        this.greetingsTimer = setTimeout(() => {
+          if (this.greetingsEl && !this.greetingsDismissed) {
+            this.greetingsEl.classList.add('hidden');
+            setTimeout(() => {
+              if (this.greetingsEl?.classList.contains('hidden')) {
+                this.greetingsEl.style.display = 'none';
+              }
+            }, 400);
+          }
+          this.greetingsTimer = null;
+        }, this.state.greetingPromptDuration * 1000);
+      }
+    }
   }
 
   private bindEvents() {
     this.toggleBtn.addEventListener("click", () => this.toggle());
+
+    // Show greeting bubbles on toggle hover
+    if (this.state.greetingPrompts.length > 0) {
+      const showGreetings = () => {
+        if (!this.isOpen && !this.greetingsDismissed && this.greetingsEl) {
+          this.greetingsEl.style.display = '';
+          // Force reflow so the animation replays
+          void this.greetingsEl.offsetHeight;
+          this.greetingsEl.classList.remove('hidden');
+        }
+      };
+
+      const hideGreetings = () => {
+        if (this.greetingsEl && !this.greetingsDismissed) {
+          this.greetingsEl.classList.add('hidden');
+          setTimeout(() => {
+            // Only set display:none if still hidden (not re-hovered)
+            if (this.greetingsEl?.classList.contains('hidden')) {
+              this.greetingsEl.style.display = 'none';
+            }
+          }, 400);
+        }
+      };
+
+      this.toggleBtn.addEventListener("mouseenter", showGreetings);
+      this.toggleBtn.addEventListener("mouseleave", (e) => {
+        // Don't hide if mouse moved to the greeting bubbles
+        const related = e.relatedTarget as HTMLElement | null;
+        if (this.greetingsEl?.contains(related)) return;
+        hideGreetings();
+      });
+
+      // Keep bubbles visible when hovering over them
+      if (this.greetingsEl) {
+        this.greetingsEl.addEventListener("mouseenter", showGreetings);
+        this.greetingsEl.addEventListener("mouseleave", hideGreetings);
+      }
+    }
     this.sendBtn.addEventListener("click", () => this.send());
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
 
@@ -221,17 +369,132 @@ class ChatbotWidget extends HTMLElement {
       this.autoResize();
     });
 
-    // Quick prompt button clicks (event delegation on shadow root)
+    // Button clicks (event delegation on shadow root)
     this.shadow.addEventListener("click", (e) => {
+      // Greeting bubble clicks
+      const greetingBtn = (e.target as HTMLElement).closest(".cb-greeting-bubble") as HTMLElement | null;
+      if (greetingBtn) {
+        const index = Number(greetingBtn.dataset.greetingIndex);
+        const gp = this.state.greetingPrompts[index];
+        if (!gp) return;
+
+        // Dismiss all greeting bubbles
+        this.dismissGreetings();
+
+        // Open chat if not already open
+        if (!this.isOpen) {
+          this.toggle();
+        }
+
+        // Send the prompt as a user message
+        // Remove welcome screen if present
+        const welcome = this.messagesEl.querySelector(".cb-welcome");
+        if (welcome) welcome.remove();
+
+        // Hide input quick prompts
+        const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
+        if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
+
+        this.messages.push({ role: "user", content: gp.prompt });
+        this.appendMessage({ role: "user", content: gp.prompt });
+        this.saveMessages();
+
+        this.isLoading = true;
+        const typingEl = this.showTyping();
+        this.sendBtn.disabled = true;
+
+        sendMessage(this.state.apiUrl, this.state.chatbotId, gp.prompt, this.sessionId)
+          .then((data) => {
+            if (data.session_id) {
+              this.sessionId = data.session_id;
+              localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
+            }
+            typingEl.remove();
+            const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
+            this.messages.push(msg);
+            this.appendMessage(msg);
+            this.saveMessages();
+          })
+          .catch((err) => {
+            typingEl.remove();
+            this.showError(err instanceof Error ? err.message : "Something went wrong.");
+          })
+          .finally(() => {
+            this.isLoading = false;
+            this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+          });
+        return;
+      }
+
+      // Follow-up prompt button clicks
+      const fuBtn = (e.target as HTMLElement).closest(".cb-follow-up") as HTMLElement | null;
+      if (fuBtn) {
+        const msgIndex = Number(fuBtn.dataset.msgIndex);
+        const fuIndex = Number(fuBtn.dataset.fuIndex);
+        const msg = this.messages[msgIndex];
+        if (!msg?.followUpPrompts) return;
+        const fp = msg.followUpPrompts[fuIndex];
+        if (!fp) return;
+
+        // Remove the prompt row (buttons disappear)
+        const promptRow = fuBtn.closest(".cb-prompt-row");
+        if (promptRow) promptRow.remove();
+
+        if (fp.link) {
+          window.open(fp.link, "_blank", "noopener");
+        }
+        if (fp.prompt) {
+          this.messages.push({ role: "user", content: fp.prompt });
+          this.appendMessage({ role: "user", content: fp.prompt });
+          this.saveMessages();
+
+          this.isLoading = true;
+          const typingEl = this.showTyping();
+          this.sendBtn.disabled = true;
+
+          sendMessage(this.state.apiUrl, this.state.chatbotId, fp.prompt, this.sessionId)
+            .then((data) => {
+              if (data.session_id) {
+                this.sessionId = data.session_id;
+                localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
+              }
+              typingEl.remove();
+              const responseMsg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
+              this.messages.push(responseMsg);
+              this.appendMessage(responseMsg);
+              this.saveMessages();
+            })
+            .catch((err) => {
+              typingEl.remove();
+              this.showError(err instanceof Error ? err.message : "Something went wrong.");
+            })
+            .finally(() => {
+              this.isLoading = false;
+              this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+            });
+        }
+        return;
+      }
+
+      // Quick prompt button clicks
       const btn = (e.target as HTMLElement).closest(".cb-quick-prompt") as HTMLElement | null;
       if (!btn) return;
       const index = Number(btn.dataset.qpIndex);
       const qp = this.state.quickPrompts[index];
       if (!qp) return;
 
+      // Remove the prompt row (buttons disappear)
+      const promptRow = btn.closest(".cb-prompt-row");
+      if (promptRow) promptRow.remove();
+
+      // Hide quick prompts above input
+      const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
+      if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
+
       if (qp.link) {
         window.open(qp.link, "_blank", "noopener");
-      } else if (qp.prompt) {
+      }
+      if (qp.prompt) {
         // Remove welcome screen if present
         const welcome = this.messagesEl.querySelector(".cb-welcome");
         if (welcome) welcome.remove();
@@ -252,14 +515,10 @@ class ChatbotWidget extends HTMLElement {
               localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
             }
             typingEl.remove();
-            const msg: Message = { role: "assistant", content: data.response, sources: data.sources };
+            const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
             this.messages.push(msg);
             this.appendMessage(msg);
             this.saveMessages();
-
-            // Hide quick prompts above input after first message
-            const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
-            if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
           })
           .catch((err) => {
             typingEl.remove();
@@ -275,6 +534,12 @@ class ChatbotWidget extends HTMLElement {
 
   private toggle() {
     this.isOpen = !this.isOpen;
+
+    // Dismiss greeting bubbles when opening chat
+    if (this.isOpen) {
+      this.dismissGreetings();
+    }
+
     this.panel.classList.toggle("open", this.isOpen);
     this.toggleBtn.classList.toggle("open", this.isOpen);
     this.toggleBtn.setAttribute(
@@ -282,9 +547,52 @@ class ChatbotWidget extends HTMLElement {
       this.isOpen ? "Close chat" : "Open chat",
     );
 
+    // Push page content for sidebar mode
+    const isSidebar = this.state.position.includes('sidebar');
+    if (isSidebar) {
+      const side = this.state.position === 'left-sidebar' ? 'marginLeft' : 'marginRight';
+      document.body.style[side] = this.isOpen ? `${SIDEBAR_WIDTH}px` : '';
+    }
+
     if (this.isOpen) {
       setTimeout(() => this.textarea.focus(), 300);
     }
+  }
+
+  private injectHostTransition() {
+    if (this.hostStyleEl) return;
+    this.hostStyleEl = document.createElement('style');
+    this.hostStyleEl.id = 'cb-sidebar-transition';
+    this.hostStyleEl.textContent = `
+      body { transition: margin 0.3s cubic-bezier(0.25, 0.1, 0.25, 1); }
+    `;
+    document.head.appendChild(this.hostStyleEl);
+  }
+
+  private dismissGreetings() {
+    this.greetingsDismissed = true;
+    if (this.greetingsEl) {
+      this.greetingsEl.classList.add('hidden');
+      // Remove from DOM after fade-out animation
+      setTimeout(() => {
+        if (this.greetingsEl) this.greetingsEl.style.display = 'none';
+      }, 400);
+    }
+    if (this.greetingsTimer) {
+      clearTimeout(this.greetingsTimer);
+      this.greetingsTimer = null;
+    }
+  }
+
+  disconnectedCallback() {
+    if (this.greetingsTimer) {
+      clearTimeout(this.greetingsTimer);
+      this.greetingsTimer = null;
+    }
+    document.body.style.marginLeft = '';
+    document.body.style.marginRight = '';
+    this.hostStyleEl?.remove();
+    this.hostStyleEl = null;
   }
 
   private async send() {
@@ -322,6 +630,7 @@ class ChatbotWidget extends HTMLElement {
         role: "assistant",
         content: data.response,
         sources: data.sources,
+        followUpPrompts: data.follow_up_prompts,
       };
       this.messages.push(msg);
       this.appendMessage(msg);
@@ -368,6 +677,23 @@ class ChatbotWidget extends HTMLElement {
     }
 
     this.messagesEl.appendChild(div);
+
+    // Render follow-up prompts as a separate right-aligned row below the message
+    if (msg.followUpPrompts && msg.followUpPrompts.length > 0) {
+      const followUpsDiv = document.createElement("div");
+      followUpsDiv.className = "cb-prompt-row";
+      const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+      const chatIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+      followUpsDiv.innerHTML = msg.followUpPrompts
+        .map((fp, i) => {
+          const icon = fp.link ? linkIcon : chatIcon;
+          const style = fp.link ? 'cb-prompt-btn--outline' : '';
+          return `<button class="cb-prompt-btn ${style} cb-follow-up" data-fu-index="${i}" data-msg-index="${this.messages.length - 1}">${icon}${this.escapeHtml(fp.title)}</button>`;
+        })
+        .join("");
+      this.messagesEl.appendChild(followUpsDiv);
+    }
+
     this.scrollToBottom();
   }
 
@@ -415,8 +741,10 @@ class ChatbotWidget extends HTMLElement {
     localStorage.removeItem(`cb_messages_${this.state.chatbotId}`);
 
     // Reset messages area with welcome screen
-    const { title, icon, welcome } = this.state;
-    const welcomeIcon = icon ? this.escapeHtml(icon) : "💬";
+    const { title, icon, welcome, logoUrl } = this.state;
+    const welcomeIcon = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
+      : icon ? this.escapeHtml(icon) : "💬";
     this.messagesEl.innerHTML = `
       <div class="cb-welcome">
         <div class="cb-welcome-icon">${welcomeIcon}</div>
@@ -439,10 +767,11 @@ class ChatbotWidget extends HTMLElement {
     const buttons = this.state.quickPrompts
       .map((qp, i) => {
         const icon = qp.link ? linkIcon : chatIcon;
-        return `<button class="cb-quick-prompt" data-qp-index="${i}">${icon}${this.escapeHtml(qp.title)}</button>`;
+        const style = qp.link ? 'cb-prompt-btn--outline' : '';
+        return `<button class="cb-prompt-btn ${style} cb-quick-prompt" data-qp-index="${i}">${icon}${this.escapeHtml(qp.title)}</button>`;
       })
       .join('');
-    return `<div class="cb-quick-prompts">${buttons}</div>`;
+    return `<div class="cb-prompt-row">${buttons}</div>`;
   }
 
   private scrollToBottom() {

@@ -18,8 +18,16 @@ class ChatSource(BaseModel):
     title: str
 
 
+class FollowUpPrompt(BaseModel):
+    """A follow-up prompt suggested after an assistant response."""
+    title: str
+    link: str | None = None
+    prompt: str | None = None
+
+
 class ChatResponse(BaseModel):
     """Schema for the chat response from the agent service."""
     response: str
     sources: list[ChatSource] = []
     session_id: str | None = None
+    follow_up_prompts: list[FollowUpPrompt] = []

@@ -1,12 +1,25 @@
 /**
  * All widget styles live here. They're injected into the Shadow DOM
  * so they never leak into or get affected by the host page's CSS.
+ *
+ * CSS variables used for customizable properties:
+ *   --cb-accent          Header, toggle, send button, user bubble
+ *   --cb-accent-hover    Hover states
+ *   --cb-user-bubble     User message background (defaults to accent)
+ *   --cb-assistant-bubble  Assistant message background
+ *   --cb-text            Primary text color
+ *   --cb-font            Font family stack
+ *   --cb-panel-width     Chat panel width
+ *   --cb-panel-height    Chat panel height
+ *   --cb-font-size       Base font size
  */
 
 export const WIDGET_STYLES = /* css */ `
   :host {
     --cb-accent: #0071e3;
     --cb-accent-hover: #0077ed;
+    --cb-user-bubble: var(--cb-accent);
+    --cb-assistant-bubble: #f5f5f7;
     --cb-bg: #ffffff;
     --cb-bg-secondary: #f5f5f7;
     --cb-bg-tertiary: #e8e8ed;
@@ -17,13 +30,16 @@ export const WIDGET_STYLES = /* css */ `
     --cb-shadow: 0 20px 60px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.08);
     --cb-radius: 18px;
     --cb-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --cb-panel-width: 380px;
+    --cb-panel-height: 520px;
+    --cb-font-size: 14px;
 
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 999999;
     font-family: var(--cb-font);
-    font-size: 14px;
+    font-size: var(--cb-font-size);
     line-height: 1.5;
     color: var(--cb-text);
     -webkit-font-smoothing: antialiased;
@@ -54,6 +70,17 @@ export const WIDGET_STYLES = /* css */ `
     position: absolute;
     bottom: 0;
     right: 0;
+    overflow: hidden;
+  }
+
+  .cb-toggle.has-logo {
+    background: transparent;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .cb-toggle.has-logo:hover {
+    background: transparent;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2), 0 3px 12px rgba(0, 0, 0, 0.1);
   }
 
   .cb-toggle:hover {
@@ -94,8 +121,8 @@ export const WIDGET_STYLES = /* css */ `
     position: absolute;
     bottom: 72px;
     right: 0;
-    width: 380px;
-    height: 520px;
+    width: var(--cb-panel-width);
+    height: var(--cb-panel-height);
     background: var(--cb-bg);
     border-radius: var(--cb-radius);
     box-shadow: var(--cb-shadow);
@@ -116,10 +143,44 @@ export const WIDGET_STYLES = /* css */ `
     pointer-events: auto;
   }
 
+  /* ---- Sidebar Mode ---- */
+  .cb-panel.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    width: 300px;
+    transform: translateX(100%) scale(1);
+    opacity: 1;
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .cb-panel.sidebar.open {
+    transform: translateX(0) scale(1);
+  }
+
+  .cb-panel.sidebar-left {
+    left: 0;
+    right: auto;
+    transform: translateX(-100%) scale(1);
+  }
+
+  .cb-panel.sidebar-left.open {
+    transform: translateX(0) scale(1);
+  }
+
+  .cb-panel.sidebar-right {
+    right: 0;
+    left: auto;
+  }
+
   /* ---- Header ---- */
   .cb-header {
     padding: 18px 20px;
-    background: var(--cb-bg);
+    background: var(--cb-accent);
+    color: #fff;
     border-bottom: 1px solid var(--cb-border);
     display: flex;
     align-items: center;
@@ -131,11 +192,12 @@ export const WIDGET_STYLES = /* css */ `
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--cb-accent), #34c759);
+    background: rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .cb-header-avatar svg {
@@ -155,7 +217,7 @@ export const WIDGET_STYLES = /* css */ `
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: var(--cb-text-tertiary);
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -165,8 +227,8 @@ export const WIDGET_STYLES = /* css */ `
   }
 
   .cb-new-chat-btn:hover {
-    background: var(--cb-bg-secondary);
-    color: var(--cb-text);
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
   }
 
   .cb-new-chat-btn:active {
@@ -181,7 +243,7 @@ export const WIDGET_STYLES = /* css */ `
   .cb-header-title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--cb-text);
+    color: #fff;
     letter-spacing: -0.01em;
     white-space: nowrap;
     overflow: hidden;
@@ -190,7 +252,7 @@ export const WIDGET_STYLES = /* css */ `
 
   .cb-header-subtitle {
     font-size: 12px;
-    color: var(--cb-text-tertiary);
+    color: rgba(255, 255, 255, 0.7);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -253,7 +315,7 @@ export const WIDGET_STYLES = /* css */ `
     max-width: 82%;
     padding: 10px 14px;
     border-radius: 16px;
-    font-size: 14px;
+    font-size: inherit;
     line-height: 1.45;
     word-wrap: break-word;
     animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -272,14 +334,14 @@ export const WIDGET_STYLES = /* css */ `
 
   .cb-message.user {
     align-self: flex-end;
-    background: var(--cb-accent);
+    background: var(--cb-user-bubble);
     color: white;
     border-bottom-right-radius: 6px;
   }
 
   .cb-message.assistant {
     align-self: flex-start;
-    background: var(--cb-bg-secondary);
+    background: var(--cb-assistant-bubble);
     color: var(--cb-text);
     border-bottom-left-radius: 6px;
   }
@@ -359,7 +421,7 @@ export const WIDGET_STYLES = /* css */ `
     display: flex;
     gap: 4px;
     padding: 12px 16px;
-    background: var(--cb-bg-secondary);
+    background: var(--cb-assistant-bubble);
     border-radius: 16px;
     border-bottom-left-radius: 6px;
     animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -417,7 +479,7 @@ export const WIDGET_STYLES = /* css */ `
     border: none;
     background: transparent;
     font-family: var(--cb-font);
-    font-size: 14px;
+    font-size: inherit;
     color: var(--cb-text);
     resize: none;
     outline: none;
@@ -494,48 +556,68 @@ export const WIDGET_STYLES = /* css */ `
     animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
-  /* ---- Quick Prompts ---- */
-  .cb-quick-prompts {
+  /* ---- Prompt Buttons (shared by quick prompts & follow-ups) ---- */
+  .cb-prompt-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    padding: 0 16px 4px;
+    gap: 6px;
+    justify-content: flex-end;
+    padding: 4px 16px;
+    animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
-  .cb-quick-prompt {
+  .cb-prompt-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     padding: 8px 16px;
-    background: var(--cb-bg);
-    border: 1px solid var(--cb-border);
+    background: linear-gradient(135deg, var(--cb-accent), var(--cb-accent-hover));
+    border: none;
     border-radius: 100px;
     font-family: var(--cb-font);
     font-size: 13px;
     font-weight: 500;
-    color: var(--cb-text);
+    color: white;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
     letter-spacing: -0.01em;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+    transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.2s,
+                opacity 0.2s;
   }
 
-  .cb-quick-prompt:hover {
-    background: var(--cb-bg-secondary);
-    border-color: rgba(0, 0, 0, 0.1);
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  .cb-prompt-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
   }
 
-  .cb-quick-prompt:active {
-    transform: scale(0.97);
+  .cb-prompt-btn:active {
+    transform: scale(0.96);
   }
 
-  .cb-quick-prompt svg {
+  .cb-prompt-btn svg {
     width: 12px;
     height: 12px;
-    color: var(--cb-text-tertiary);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .cb-prompt-btn--outline {
+    background: var(--cb-bg);
+    color: var(--cb-accent);
+    border: 1.5px solid rgba(0, 113, 227, 0.25);
+    box-shadow: none;
+  }
+
+  .cb-prompt-btn--outline:hover {
+    background: rgba(0, 113, 227, 0.06);
+    border-color: rgba(0, 113, 227, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.1);
+  }
+
+  .cb-prompt-btn--outline svg {
+    color: var(--cb-accent);
+    opacity: 0.6;
   }
 
   .cb-input-prompts {
@@ -547,6 +629,103 @@ export const WIDGET_STYLES = /* css */ `
     display: none;
   }
 
+  /* ---- Logo Images ---- */
+  .cb-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .cb-welcome-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .cb-toggle-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  /* ---- Google Font loader ---- */
+  .cb-font-loader {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  /* ---- Greeting Bubbles ---- */
+  .cb-greeting-bubbles {
+    position: absolute;
+    bottom: 68px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    pointer-events: auto;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .cb-greeting-bubble {
+    padding: 10px 16px;
+    background: var(--cb-bg);
+    color: var(--cb-accent);
+    border-radius: 16px;
+    font-family: var(--cb-font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--cb-border);
+    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.2s,
+                background-color 0.2s;
+    animation: cb-greeting-in 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
+  }
+
+  .cb-greeting-bubble:nth-child(1) { animation-delay: 0.1s; }
+  .cb-greeting-bubble:nth-child(2) { animation-delay: 0.25s; }
+  .cb-greeting-bubble:nth-child(3) { animation-delay: 0.4s; }
+  .cb-greeting-bubble:nth-child(4) { animation-delay: 0.55s; }
+  .cb-greeting-bubble:nth-child(5) { animation-delay: 0.7s; }
+
+  .cb-greeting-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
+    background: var(--cb-bg-secondary);
+  }
+
+  .cb-greeting-bubble:active {
+    transform: scale(0.97);
+  }
+
+  @keyframes cb-greeting-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .cb-greeting-bubbles.hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
   /* ---- Responsive: full-screen on small viewports ---- */
   @media (max-width: 440px) {
     :host {
@@ -556,17 +735,26 @@ export const WIDGET_STYLES = /* css */ `
     }
 
     .cb-panel {
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
       bottom: 0;
       right: 0;
       border-radius: 0;
     }
 
+    .cb-panel.sidebar {
+      width: 100vw !important;
+    }
+
     .cb-panel.open ~ .cb-toggle {
       opacity: 0;
       pointer-events: none;
+    }
+
+    .cb-greeting-bubbles {
+      right: 16px;
+      bottom: 76px;
     }
   }
 `;

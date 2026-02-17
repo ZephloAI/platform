@@ -30,6 +30,18 @@ export interface Chatbot {
   widget_welcome: string | null;
   widget_position: string | null;
   quick_prompts?: QuickPrompt[] | null;
+  follow_up_prompts?: FollowUpPrompt[] | null;
+  greeting_prompts?: GreetingPrompt[] | null;
+  greeting_prompt_duration?: number | null;
+  widget_logo_url?: string | null;
+  widget_width?: number | null;
+  widget_height?: number | null;
+  widget_header_color?: string | null;
+  widget_user_bubble_color?: string | null;
+  widget_assistant_bubble_color?: string | null;
+  widget_font_family?: string | null;
+  widget_font_size?: number | null;
+  widget_text_color?: string | null;
 }
 
 /** A quick prompt button shown in the widget */
@@ -39,12 +51,38 @@ export interface QuickPrompt {
   prompt?: string;
 }
 
+/** A follow-up prompt the AI can suggest after responses */
+export interface FollowUpPrompt {
+  title: string;
+  description?: string;
+  link?: string;
+  prompt?: string;
+}
+
+/** A greeting prompt bubble shown before the chat opens */
+export interface GreetingPrompt {
+  title: string;
+  prompt: string;
+}
+
 /** Widget customization settings */
 export interface WidgetSettings {
   widget_icon: string | null;
   widget_welcome: string | null;
   widget_position: string | null;
   quick_prompts?: QuickPrompt[] | null;
+  follow_up_prompts?: FollowUpPrompt[] | null;
+  greeting_prompts?: GreetingPrompt[] | null;
+  greeting_prompt_duration?: number | null;
+  widget_logo_url?: string | null;
+  widget_width?: number | null;
+  widget_height?: number | null;
+  widget_header_color?: string | null;
+  widget_user_bubble_color?: string | null;
+  widget_assistant_bubble_color?: string | null;
+  widget_font_family?: string | null;
+  widget_font_size?: number | null;
+  widget_text_color?: string | null;
 }
 
 /** A crawl job that indexes a website's content */
@@ -68,4 +106,5 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   sources?: { url: string; title: string }[];
+  follow_up_prompts?: { title: string; link?: string; prompt?: string }[];
 }

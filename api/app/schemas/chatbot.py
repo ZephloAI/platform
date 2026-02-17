@@ -21,6 +21,20 @@ class QuickPrompt(BaseModel):
     prompt: str | None = None
 
 
+class FollowUpPrompt(BaseModel):
+    """A follow-up prompt the AI can suggest after responses."""
+    title: str
+    description: str | None = None  # Admin context for the LLM (not shown to end users)
+    link: str | None = None
+    prompt: str | None = None
+
+
+class GreetingPrompt(BaseModel):
+    """A greeting prompt bubble shown before the chat is opened."""
+    title: str
+    prompt: str
+
+
 class ChatbotResponse(BaseModel):
     """Schema for chatbot list/detail responses."""
     id: int
@@ -32,6 +46,18 @@ class ChatbotResponse(BaseModel):
     widget_welcome: str | None = None
     widget_position: str | None = None
     quick_prompts: list[QuickPrompt] | None = None
+    follow_up_prompts: list[FollowUpPrompt] | None = None
+    greeting_prompts: list[GreetingPrompt] | None = None
+    greeting_prompt_duration: int | None = None
+    widget_logo_url: str | None = None
+    widget_width: int | None = None
+    widget_height: int | None = None
+    widget_header_color: str | None = None
+    widget_user_bubble_color: str | None = None
+    widget_assistant_bubble_color: str | None = None
+    widget_font_family: str | None = None
+    widget_font_size: int | None = None
+    widget_text_color: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -47,6 +73,18 @@ class WidgetSettingsUpdate(BaseModel):
     widget_welcome: str | None = None
     widget_position: str | None = None
     quick_prompts: list[QuickPrompt] | None = None
+    follow_up_prompts: list[FollowUpPrompt] | None = None
+    greeting_prompts: list[GreetingPrompt] | None = None
+    greeting_prompt_duration: int | None = None
+    widget_logo_url: str | None = None
+    widget_width: int | None = None
+    widget_height: int | None = None
+    widget_header_color: str | None = None
+    widget_user_bubble_color: str | None = None
+    widget_assistant_bubble_color: str | None = None
+    widget_font_family: str | None = None
+    widget_font_size: int | None = None
+    widget_text_color: str | None = None
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -55,6 +93,18 @@ class WidgetSettingsResponse(BaseModel):
     widget_welcome: str | None = None
     widget_position: str | None = None
     quick_prompts: list[QuickPrompt] | None = None
+    follow_up_prompts: list[FollowUpPrompt] | None = None
+    greeting_prompts: list[GreetingPrompt] | None = None
+    greeting_prompt_duration: int | None = None
+    widget_logo_url: str | None = None
+    widget_width: int | None = None
+    widget_height: int | None = None
+    widget_header_color: str | None = None
+    widget_user_bubble_color: str | None = None
+    widget_assistant_bubble_color: str | None = None
+    widget_font_family: str | None = None
+    widget_font_size: int | None = None
+    widget_text_color: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,3 +117,15 @@ class PublicWidgetConfig(BaseModel):
     widget_welcome: str | None = None
     widget_position: str | None = None
     quick_prompts: list[QuickPrompt] | None = None
+    follow_up_prompts: list[FollowUpPrompt] | None = None
+    greeting_prompts: list[GreetingPrompt] | None = None
+    greeting_prompt_duration: int | None = None
+    widget_logo_url: str | None = None
+    widget_width: int | None = None
+    widget_height: int | None = None
+    widget_header_color: str | None = None
+    widget_user_bubble_color: str | None = None
+    widget_assistant_bubble_color: str | None = None
+    widget_font_family: str | None = None
+    widget_font_size: int | None = None
+    widget_text_color: str | None = None

@@ -54,6 +54,10 @@ services:
       CRAWLER_SERVICE_URL: http://crawler:8001
       AGENT_SERVICE_URL: http://agent:8002
       API_CALLBACK_URL: http://api:8000
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
     depends_on:
       postgres:
         condition: service_healthy

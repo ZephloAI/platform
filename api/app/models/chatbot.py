@@ -26,6 +26,20 @@ class Chatbot(Base):
     widget_welcome = Column(String, nullable=True)    # Welcome message
     widget_position = Column(String, nullable=True)   # "right" or "left"
     quick_prompts = Column(JSON, nullable=True, default=[])
+    follow_up_prompts = Column(JSON, nullable=True)
+    greeting_prompts = Column(JSON, nullable=True, default=[])
+    greeting_prompt_duration = Column(Integer, nullable=True)
+
+    # Widget styling
+    widget_logo_url = Column(String, nullable=True)
+    widget_width = Column(Integer, nullable=True)
+    widget_height = Column(Integer, nullable=True)
+    widget_header_color = Column(String, nullable=True)
+    widget_user_bubble_color = Column(String, nullable=True)
+    widget_assistant_bubble_color = Column(String, nullable=True)
+    widget_font_family = Column(String, nullable=True)
+    widget_font_size = Column(Integer, nullable=True)
+    widget_text_color = Column(String, nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="chatbots")

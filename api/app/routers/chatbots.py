@@ -10,7 +10,7 @@ Flow:
   -> Response returned to client
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -96,6 +96,47 @@ async def update_widget_settings(
     """Update widget customization settings for a chatbot."""
     service = ChatbotService(db)
     return await service.update_widget_settings(chatbot_id, user.id, body)
+
+
+@router.post("/{chatbot_id}/logo")
+async def upload_logo(
+    chatbot_id: int,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a logo image for the chatbot widget."""
+    # Validate file type
+    allowed_types = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be PNG, JPG, SVG, or WebP",
+        )
+
+    # Validate file size (2MB)
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be smaller than 2MB",
+        )
+    await file.seek(0)
+
+    # Verify ownership
+    service = ChatbotService(db)
+    await service.get_chatbot(chatbot_id, user.id)
+
+    # Upload to S3
+    from app.services.s3_storage import upload_logo as do_upload
+    url = await do_upload(file, chatbot_id)
+
+    # Update chatbot record
+    from app.repositories.chatbot_repository import ChatbotRepository
+    repo = ChatbotRepository(db)
+    await repo.update(chatbot_id, widget_logo_url=url)
+
+    return {"url": url}
 
 
 @router.delete("/{chatbot_id}")
