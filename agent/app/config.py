@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     TOP_K: int = 5  # Number of chunks to retrieve from vector search
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/chatbot_saas"
+    DATABASE_URL_ASYNCPG: str = "postgresql://postgres:postgres@localhost:5432/chatbot_saas"
+    JWT_SECRET: str = "your-secret-key-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
 
     class Config:
         env_file = ".env"

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useChat } from '../hooks/useChatbots';
+import { useChatSocket } from '../hooks/useChatSocket';
 import type { ChatMessage } from '../types';
 
 // ============================================================
@@ -26,7 +26,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
     return localStorage.getItem(`chat_session_${chatbotId}`);
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatMutation = useChat();
+  const { sendMessage, isPending, connectionStatus, resetSession } = useChatSocket(chatbotId);
 
   // Smooth scroll to latest message
   useEffect(() => {
@@ -45,42 +45,39 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
     setSessionId(null);
     localStorage.removeItem(`chat_session_${chatbotId}`);
     localStorage.removeItem(`chat_messages_${chatbotId}`);
-  }, [chatbotId]);
+    resetSession();
+  }, [chatbotId, resetSession]);
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || chatMutation.isPending) return;
+    if (!trimmed || isPending) return;
 
     const userMessage: ChatMessage = { role: 'user', content: trimmed };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    chatMutation.mutate(
-      { chatbot_id: chatbotId, message: trimmed, session_id: sessionId },
-      {
-        onSuccess: (data) => {
-          if (data.session_id) {
-            setSessionId(data.session_id);
-            localStorage.setItem(`chat_session_${chatbotId}`, data.session_id);
-          }
+    try {
+      const data = await sendMessage(chatbotId, trimmed, sessionId);
 
-          const assistantMessage: ChatMessage = {
-            role: 'assistant',
-            content: data.response,
-            sources: data.sources,
-            follow_up_prompts: data.follow_up_prompts,
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-        },
-        onError: () => {
-          const errorMessage: ChatMessage = {
-            role: 'assistant',
-            content: 'Something went wrong. Please try again.',
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-        },
+      if (data.session_id) {
+        setSessionId(data.session_id);
+        localStorage.setItem(`chat_session_${chatbotId}`, data.session_id);
       }
-    );
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.response,
+        sources: data.sources,
+        follow_up_prompts: data.follow_up_prompts,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch {
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Something went wrong. Please try again.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -94,7 +91,14 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
     <div className="flex flex-col h-[640px] glass-card overflow-hidden">
       {/* Header with new chat button */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-black/[0.06]">
-        <p className="text-[13px] font-medium text-label-secondary">Test your chatbot</p>
+        <div className="flex items-center gap-2">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            connectionStatus === 'connected' ? 'bg-green-500' :
+            connectionStatus === 'connecting' ? 'bg-yellow-500' :
+            'bg-gray-400'
+          }`} />
+          <p className="text-[13px] font-medium text-label-secondary">Test your chatbot</p>
+        </div>
         <button
           onClick={handleNewChat}
           title="New Chat"
@@ -198,7 +202,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
         ))}
 
         {/* Typing indicator */}
-        {chatMutation.isPending && (
+        {isPending && (
           <div className="flex justify-start animate-fade-in">
             <div className="bg-surface-secondary rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex items-center gap-1">
@@ -223,11 +227,11 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
             onKeyDown={handleKeyDown}
             placeholder="Message..."
             className="flex-1 bg-surface-secondary/80 border border-black/[0.04] rounded-full px-5 py-2.5 text-[14px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 focus:bg-white transition-all duration-250 ease-apple"
-            disabled={chatMutation.isPending}
+            disabled={isPending}
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || chatMutation.isPending}
+            disabled={!input.trim() || isPending}
             className="w-9 h-9 rounded-full bg-accent flex items-center justify-center transition-all duration-250 ease-apple hover:bg-accent-hover active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100 shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none">

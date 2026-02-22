@@ -10,5 +10,6 @@ from app.models.user import User
 from app.models.chatbot import Chatbot
 from app.models.crawl_job import CrawlJob
 from app.models.page import Page
+from app.models.chat_session import ChatSession
 
-__all__ = ["Base", "User", "Chatbot", "CrawlJob", "Page"]
+__all__ = ["Base", "User", "Chatbot", "CrawlJob", "Page", "ChatSession"]

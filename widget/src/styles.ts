@@ -258,12 +258,17 @@ export const WIDGET_STYLES = /* css */ `
     gap: 4px;
   }
 
-  .cb-online-dot {
+  .cb-status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #34c759;
+    display: inline-block;
+    margin-right: 4px;
+    transition: background-color 0.3s ease;
   }
+  .cb-status-dot.connected { background-color: #34c759; }
+  .cb-status-dot.connecting { background-color: #ffcc00; }
+  .cb-status-dot.disconnected { background-color: #8e8e93; }
 
   /* ---- Messages ---- */
   .cb-messages {

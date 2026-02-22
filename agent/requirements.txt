@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 openai==1.68.2
 psycopg[binary]==3.2.4
 sqlalchemy
+python-jose[cryptography]==3.3.0
+asyncpg

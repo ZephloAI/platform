@@ -13,7 +13,7 @@
  * settings from the dashboard.
  */
 
-import { sendMessage, fetchConfig, type ChatSource, type FollowUpPrompt } from "./api";
+import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type ConnectionStatus } from "./api";
 import { WIDGET_STYLES } from "./styles";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT } from "./icons";
 
@@ -81,6 +81,7 @@ class ChatbotWidget extends HTMLElement {
   private sendBtn!: HTMLButtonElement;
   private newChatBtn!: HTMLButtonElement;
   private hostStyleEl: HTMLStyleElement | null = null;
+  private chatSocket: ChatSocket | null = null;
   private greetingsEl: HTMLDivElement | null = null;
   private greetingsDismissed = false;
   private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -138,8 +139,26 @@ class ChatbotWidget extends HTMLElement {
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
     }
 
-    // Load existing session and messages from localStorage (if any)
-    this.sessionId = localStorage.getItem(`cb_session_${chatbotId}`);
+    // Create or reuse session, then create WebSocket client
+    let sessionId = localStorage.getItem(`cb_session_${chatbotId}`);
+    if (!sessionId) {
+      try {
+        sessionId = await createSession(apiUrl, chatbotId);
+        localStorage.setItem(`cb_session_${chatbotId}`, sessionId);
+      } catch {
+        // Session creation failed — will retry on first message
+      }
+    }
+    this.sessionId = sessionId;
+    this.chatSocket = sessionId
+      ? new ChatSocket(apiUrl, chatbotId, sessionId)
+      : null;
+
+    if (this.chatSocket) {
+      this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+    }
+
+    // Load existing messages from localStorage (if any)
     const savedMessages = localStorage.getItem(`cb_messages_${chatbotId}`);
     if (savedMessages) {
       try {
@@ -227,7 +246,7 @@ class ChatbotWidget extends HTMLElement {
           <div class="cb-header-info">
             <div class="cb-header-title">${this.escapeHtml(title)}</div>
             <div class="cb-header-subtitle">
-              <span class="cb-online-dot"></span>
+              <span class="cb-status-dot disconnected"></span>
               Ask me anything
             </div>
           </div>
@@ -403,12 +422,8 @@ class ChatbotWidget extends HTMLElement {
         const typingEl = this.showTyping();
         this.sendBtn.disabled = true;
 
-        sendMessage(this.state.apiUrl, this.state.chatbotId, gp.prompt, this.sessionId)
+        this.chatSocket!.sendMessage(gp.prompt)
           .then((data) => {
-            if (data.session_id) {
-              this.sessionId = data.session_id;
-              localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
-            }
             typingEl.remove();
             const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
             this.messages.push(msg);
@@ -452,12 +467,8 @@ class ChatbotWidget extends HTMLElement {
           const typingEl = this.showTyping();
           this.sendBtn.disabled = true;
 
-          sendMessage(this.state.apiUrl, this.state.chatbotId, fp.prompt, this.sessionId)
+          this.chatSocket!.sendMessage(fp.prompt)
             .then((data) => {
-              if (data.session_id) {
-                this.sessionId = data.session_id;
-                localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
-              }
               typingEl.remove();
               const responseMsg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
               this.messages.push(responseMsg);
@@ -508,12 +519,8 @@ class ChatbotWidget extends HTMLElement {
         const typingEl = this.showTyping();
         this.sendBtn.disabled = true;
 
-        sendMessage(this.state.apiUrl, this.state.chatbotId, qp.prompt, this.sessionId)
+        this.chatSocket!.sendMessage(qp.prompt)
           .then((data) => {
-            if (data.session_id) {
-              this.sessionId = data.session_id;
-              localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
-            }
             typingEl.remove();
             const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
             this.messages.push(msg);
@@ -584,7 +591,15 @@ class ChatbotWidget extends HTMLElement {
     }
   }
 
+  private updateStatusDot(status: ConnectionStatus) {
+    const dot = this.shadow.querySelector('.cb-status-dot') as HTMLElement | null;
+    if (!dot) return;
+    dot.className = `cb-status-dot ${status}`;
+  }
+
   disconnectedCallback() {
+    this.chatSocket?.close();
+    this.chatSocket = null;
     if (this.greetingsTimer) {
       clearTimeout(this.greetingsTimer);
       this.greetingsTimer = null;
@@ -599,6 +614,20 @@ class ChatbotWidget extends HTMLElement {
     const text = this.textarea.value.trim();
     if (!text || this.isLoading) return;
 
+    // Create session if we don't have one yet
+    if (!this.chatSocket) {
+      try {
+        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
+        this.sessionId = sessionId;
+        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
+        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+      } catch {
+        this.showError("Unable to connect. Please try again.");
+        return;
+      }
+    }
+
     this.messages.push({ role: "user", content: text });
     this.appendMessage({ role: "user", content: text });
     this.saveMessages();
@@ -611,18 +640,7 @@ class ChatbotWidget extends HTMLElement {
     const typingEl = this.showTyping();
 
     try {
-      const data = await sendMessage(
-        this.state.apiUrl,
-        this.state.chatbotId,
-        text,
-        this.sessionId,
-      );
-
-      // Persist the session_id so the conversation continues across page loads
-      if (data.session_id) {
-        this.sessionId = data.session_id;
-        localStorage.setItem(`cb_session_${this.state.chatbotId}`, data.session_id);
-      }
+      const data = await this.chatSocket!.sendMessage(text);
 
       typingEl.remove();
 
@@ -733,12 +751,27 @@ class ChatbotWidget extends HTMLElement {
     }
   }
 
-  private startNewChat() {
+  private async startNewChat() {
+    // Close existing WS
+    this.chatSocket?.close();
+    this.chatSocket = null;
+
     // Clear session and messages
     this.sessionId = null;
     this.messages = [];
     localStorage.removeItem(`cb_session_${this.state.chatbotId}`);
     localStorage.removeItem(`cb_messages_${this.state.chatbotId}`);
+
+    // Create a new session
+    try {
+      const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
+      this.sessionId = sessionId;
+      localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+      this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
+      this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+    } catch {
+      // Will retry on next message
+    }
 
     // Reset messages area with welcome screen
     const { title, icon, welcome, logoUrl } = this.state;

@@ -16,6 +16,7 @@ How the chat flow works:
 """
 
 import logging
+import re
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
@@ -26,6 +27,15 @@ from app.config import settings
 from app.rag import retrieve_context, format_context_for_llm
 
 logger = logging.getLogger(__name__)
+
+
+def clean_response(text: str) -> str:
+    """Strip leaked LLM tool-call syntax and internal reasoning from response text."""
+    text = re.sub(r"\n*human_thought:.*$", "", text, flags=re.MULTILINE).rstrip()
+    text = re.sub(r"\n*social_tool_call:.*$", "", text, flags=re.MULTILINE).rstrip()
+    text = re.sub(r"\n*tool_call:.*$", "", text, flags=re.MULTILINE).rstrip()
+    text = re.sub(r"\n*Follow-ups? set:.*$", "", text, flags=re.MULTILINE).rstrip()
+    return text
 
 # Single PostgresDb instance reused across requests.
 # Agno auto-creates the session table if it doesn't exist.
@@ -152,13 +162,14 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             "Keep responses concise and scannable. Use bullet points for lists.",
             *extra_instructions,
         ],
-        markdown=True,
+        markdown=False,
         tools=tools if tools else None,
         # PostgreSQL session storage - pass session_id so Agno loads history
         db=db,
         session_id=session_id,
         add_history_to_context=True,
         num_history_runs=5,
+        learning=True
     )
     return agent, follow_up_toolkit
 
@@ -208,9 +219,8 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
     response = agent.run(full_prompt)
     response_text = response.content
 
-    # Strip any tool result text that may leak into the response
-    import re
-    response_text = re.sub(r"\n*Follow-ups? set:.*$", "", response_text).rstrip()
+    # Strip any tool result text / LLM reasoning that may leak into the response
+    response_text = clean_response(response_text)
 
     # Step 6: Build a deduplicated list of source URLs
     seen_urls: set[str] = set()

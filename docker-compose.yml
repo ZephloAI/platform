@@ -81,6 +81,8 @@ services:
       CHUNK_SIZE: 500
       CHUNK_OVERLAP: 50
       EMBEDDING_MODEL: all-MiniLM-L6-v2
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
     depends_on:
       qdrant:
         condition: service_healthy
@@ -106,7 +108,12 @@ services:
       LLM_MODEL: ${OPENROUTER_MODEL}
       EMBEDDING_MODEL: all-MiniLM-L6-v2
       TOP_K: 5
+      JWT_SECRET: super-secret-change-in-production
+      JWT_ALGORITHM: HS256
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/chatbot_saas
+      DATABASE_URL_ASYNCPG: postgresql://postgres:postgres@postgres:5432/chatbot_saas
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
     depends_on:
       qdrant:
         condition: service_healthy
@@ -133,3 +140,4 @@ services:
 volumes:
   postgres_data:
   qdrant_data:
+  huggingface_cache:

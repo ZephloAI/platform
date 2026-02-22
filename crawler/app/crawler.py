@@ -121,7 +121,7 @@ async def discover_urls(website_url: str, max_pages: int = 50) -> list[dict]:
     to_visit = [website_url]
 
     browser_config = BrowserConfig(headless=True)
-    crawl_config = CrawlerRunConfig()
+    crawl_config = CrawlerRunConfig(page_timeout=15000)
 
     async with AsyncWebCrawler(config=browser_config) as crawler:
         while to_visit and len(discovered) < max_pages:

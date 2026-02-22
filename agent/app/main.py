@@ -14,7 +14,7 @@ Run locally with:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import chat
+from app.routers import chat, ws_chat
 
 # ──────────────────────────────────────────────────────────────────────
 # Create the FastAPI application
@@ -44,6 +44,7 @@ app.add_middleware(
 # ──────────────────────────────────────────────────────────────────────
 
 app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(ws_chat.router, tags=["websocket"])
 
 
 # ──────────────────────────────────────────────────────────────────────

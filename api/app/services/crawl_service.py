@@ -53,7 +53,7 @@ class CrawlService:
                         "website_url": website_url,
                         "max_pages": 50,
                     },
-                    timeout=120.0,
+                    timeout=300.0,
                 )
                 response.raise_for_status()
                 return response.json()

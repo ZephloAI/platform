@@ -190,28 +190,6 @@ export function useCrawlJob(id: number | null) {
 }
 
 /**
- * Send a chat message and get an AI response.
- * This is a mutation since each message is a new POST request.
- */
-export function useChat() {
-  return useMutation({
-    mutationFn: async (data: {
-      chatbot_id: number;
-      message: string;
-      session_id: string | null;
-    }): Promise<{
-      response: string;
-      sources: { url: string; title: string }[];
-      session_id: string | null;
-      follow_up_prompts?: { title: string; link?: string; prompt?: string }[];
-    }> => {
-      const res = await apiClient.post('/api/chat', data);
-      return res.data;
-    },
-  });
-}
-
-/**
  * Type helper for chat messages used in the ChatWidget
  */
 export type { ChatMessage };
