@@ -217,7 +217,17 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
 
     # Step 5: Run — the agent responds and optionally calls suggest_follow_up
     response = agent.run(full_prompt)
-    response_text = response.content
+
+    # content can be None when stop_after_tool_call fires.
+    # In that case, pull the text from the last assistant message.
+    response_text = response.content or ""
+    if not response_text and response.messages:
+        for msg in reversed(response.messages):
+            if msg.role == "assistant" and msg.content:
+                response_text = msg.content
+                break
+    if not isinstance(response_text, str):
+        response_text = str(response_text)
 
     # Strip any tool result text / LLM reasoning that may leak into the response
     response_text = clean_response(response_text)

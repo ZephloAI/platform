@@ -81,6 +81,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
   const [textColor, setTextColor] = useState(chatbot.widget_text_color || '#1d1d1f');
   const [width, setWidth] = useState(chatbot.widget_width || 380);
   const [height, setHeight] = useState(chatbot.widget_height || 520);
+  const [voiceEnabled, setVoiceEnabled] = useState(chatbot.voice_enabled || false);
 
   // Sync from chatbot when it updates (e.g. after save + refetch)
   useEffect(() => {
@@ -101,12 +102,13 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     if (chatbot.widget_text_color) setTextColor(chatbot.widget_text_color);
     if (chatbot.widget_width) setWidth(chatbot.widget_width);
     if (chatbot.widget_height) setHeight(chatbot.widget_height);
+    if (chatbot.voice_enabled !== undefined) setVoiceEnabled(chatbot.voice_enabled || false);
   }, [
     chatbot.widget_icon, chatbot.widget_welcome, chatbot.widget_position,
     chatbot.quick_prompts, chatbot.follow_up_prompts, chatbot.greeting_prompts, chatbot.greeting_prompt_duration, chatbot.widget_logo_url,
     chatbot.widget_header_color, chatbot.widget_user_bubble_color, chatbot.widget_assistant_bubble_color,
     chatbot.widget_font_family, chatbot.widget_font_size, chatbot.widget_text_color,
-    chatbot.widget_width, chatbot.widget_height,
+    chatbot.widget_width, chatbot.widget_height, chatbot.voice_enabled,
   ]);
 
   // Sync preview state to parent
@@ -128,7 +130,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
       width,
       height,
     });
-  }, [icon, welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, headerColor, userBubbleColor, assistantBubbleColor, fontFamily, fontSize, textColor, width, height]);
+  }, [icon, welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, headerColor, userBubbleColor, assistantBubbleColor, fontFamily, fontSize, textColor, width, height, voiceEnabled]);
 
   const hasChanges =
     icon !== (chatbot.widget_icon || '🤖') ||
@@ -146,7 +148,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     fontSize !== (chatbot.widget_font_size || 14) ||
     textColor !== (chatbot.widget_text_color || '#1d1d1f') ||
     width !== (chatbot.widget_width || 380) ||
-    height !== (chatbot.widget_height || 520);
+    height !== (chatbot.widget_height || 520) ||
+    voiceEnabled !== (chatbot.voice_enabled || false);
 
   const handleSave = () => {
     updateMutation.mutate({
@@ -168,6 +171,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
         widget_font_family: fontFamily || null,
         widget_font_size: fontSize,
         widget_text_color: textColor,
+        voice_enabled: voiceEnabled,
       },
     });
   };
@@ -535,6 +539,35 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
                 className="input-field resize-none"
                 placeholder="Hi! How can I help you today?"
               />
+            </div>
+          </div>
+
+          {/* Voice */}
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+                  Voice
+                </h3>
+                <p className="text-[12px] text-label-tertiary mt-1">
+                  Allow visitors to use their microphone to speak to the chatbot and hear spoken responses.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={voiceEnabled}
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className={`relative inline-flex h-[28px] w-[50px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  voiceEnabled ? 'bg-[#34c759]' : 'bg-surface-tertiary'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-[24px] w-[24px] transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    voiceEnabled ? 'translate-x-[22px]' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

@@ -461,9 +461,14 @@ export const WIDGET_STYLES = /* css */ `
     border-top: 1px solid var(--cb-border);
     background: var(--cb-bg);
     flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
   }
 
   .cb-input-row {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: flex-end;
     gap: 8px;
@@ -729,6 +734,218 @@ export const WIDGET_STYLES = /* css */ `
     opacity: 0;
     transform: translateY(8px);
     pointer-events: none;
+  }
+
+  /* ---- Mic Button (right of input row) ---- */
+  .cb-mic-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: var(--cb-accent);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.2s, width 0.2s, margin 0.2s, transform 0.15s, background-color 0.2s;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+  }
+
+  .cb-mic-btn:hover {
+    background: var(--cb-accent-hover);
+    transform: scale(1.06);
+  }
+
+  .cb-mic-btn:active {
+    transform: scale(0.92);
+  }
+
+  .cb-mic-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cb-mic-btn.recording {
+    background: #ff3b30;
+    color: white;
+    animation: cb-mic-pulse 1.5s ease-in-out infinite;
+  }
+
+  .cb-mic-btn.recording:hover {
+    background: #e0342b;
+    color: white;
+  }
+
+  .cb-mic-btn.cb-mic-hidden {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+    margin-left: -8px;
+  }
+
+  @keyframes cb-mic-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.06); }
+  }
+
+  /* ---- Voice Mode: compact panel ---- */
+  .cb-panel.cb-voice-active {
+    height: 80px;
+    background: transparent;
+    box-shadow: none;
+    border-color: transparent;
+    transition: height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                background 0.3s,
+                box-shadow 0.3s,
+                opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  /* ---- Voice Mode Overlay ---- */
+  .cb-voice-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+    background: linear-gradient(90deg, rgba(26, 26, 26, 0.2) 0%, rgba(26, 92, 92, 0.2) 50%, rgba(240, 240, 240, 0.2) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 10;
+    animation: cb-voice-in 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-radius: inherit;
+  }
+
+  @keyframes cb-voice-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .cb-voice-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 100px;
+    font-family: var(--cb-font);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cb-text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s, transform 0.15s;
+  }
+
+  .cb-voice-back-btn:hover {
+    background: rgba(0, 0, 0, 0.14);
+  }
+
+  .cb-voice-back-btn:active {
+    transform: scale(0.96);
+  }
+
+  .cb-voice-back-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .cb-voice-status {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cb-text);
+    text-align: center;
+  }
+
+  .cb-voice-mic-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: #1a1a1a;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+
+  .cb-voice-mic-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .cb-voice-mic-btn:active {
+    transform: scale(0.94);
+  }
+
+  .cb-voice-mic-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cb-voice-mic-btn.recording {
+    background: #ff3b30;
+    color: white;
+    animation: cb-voice-pulse 1.5s ease-in-out infinite;
+  }
+
+  .cb-voice-mic-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  @keyframes cb-voice-pulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3); transform: scale(1); }
+    50% { box-shadow: 0 4px 32px rgba(255, 59, 48, 0.5); transform: scale(1.06); }
+  }
+
+  /* ---- Speaker Button (replay audio) ---- */
+  .cb-speaker-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--cb-border);
+    border-radius: 12px;
+    font-family: var(--cb-font);
+    font-size: 11px;
+    color: var(--cb-text-tertiary);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .cb-speaker-btn:hover {
+    background: var(--cb-bg-secondary);
+    color: var(--cb-text-secondary);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .cb-speaker-btn:active {
+    transform: scale(0.96);
+  }
+
+  .cb-speaker-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .cb-speaker-btn.playing {
+    color: var(--cb-accent);
+    border-color: var(--cb-accent);
+    background: rgba(0, 113, 227, 0.06);
   }
 
   /* ---- Responsive: full-screen on small viewports ---- */

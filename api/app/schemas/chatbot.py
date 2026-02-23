@@ -58,6 +58,7 @@ class ChatbotResponse(BaseModel):
     widget_font_family: str | None = None
     widget_font_size: int | None = None
     widget_text_color: str | None = None
+    voice_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -85,6 +86,7 @@ class WidgetSettingsUpdate(BaseModel):
     widget_font_family: str | None = None
     widget_font_size: int | None = None
     widget_text_color: str | None = None
+    voice_enabled: bool = False
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -105,6 +107,7 @@ class WidgetSettingsResponse(BaseModel):
     widget_font_family: str | None = None
     widget_font_size: int | None = None
     widget_text_color: str | None = None
+    voice_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -129,3 +132,4 @@ class PublicWidgetConfig(BaseModel):
     widget_font_family: str | None = None
     widget_font_size: int | None = None
     widget_text_color: str | None = None
+    voice_enabled: bool = False

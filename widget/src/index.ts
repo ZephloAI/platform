@@ -15,7 +15,7 @@
 
 import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type ConnectionStatus } from "./api";
 import { WIDGET_STYLES } from "./styles";
-import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT } from "./icons";
+import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
 
@@ -26,6 +26,7 @@ interface Message {
   content: string;
   sources?: ChatSource[];
   followUpPrompts?: FollowUpPrompt[];
+  audio?: string | null;
 }
 
 interface WidgetState {
@@ -47,6 +48,7 @@ interface WidgetState {
   textColor: string;
   greetingPrompts: { title: string; prompt: string }[];
   greetingPromptDuration: number;
+  voiceEnabled: boolean;
 }
 
 // ---- Helper: detect initial config from the <script> tag ----
@@ -85,6 +87,16 @@ class ChatbotWidget extends HTMLElement {
   private greetingsEl: HTMLDivElement | null = null;
   private greetingsDismissed = false;
   private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
+  private micBtn: HTMLButtonElement | null = null;
+  private isRecording = false;
+  private recognition: any = null;  // SpeechRecognition instance
+  private audioMap: Map<number, string> = new Map();
+  private currentAudio: HTMLAudioElement | null = null;
+  private sessionRetried = false;  // prevent infinite retry loops
+  private voiceMode = false;
+  private voiceMicBtn: HTMLButtonElement | null = null;
+  private voiceOverlay: HTMLDivElement | null = null;
+  private voiceStatusEl: HTMLDivElement | null = null;
 
   constructor() {
     super();
@@ -114,6 +126,7 @@ class ChatbotWidget extends HTMLElement {
       textColor: "#1d1d1f",
       greetingPrompts: [],
       greetingPromptDuration: 0,
+      voiceEnabled: false,
     };
 
     // Fetch config from API to get user-customized settings
@@ -137,6 +150,7 @@ class ChatbotWidget extends HTMLElement {
       this.state.textColor = config.widget_text_color || "#1d1d1f";
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
+      this.state.voiceEnabled = config.voice_enabled || false;
     }
 
     // Create or reuse session, then create WebSocket client
@@ -281,6 +295,7 @@ class ChatbotWidget extends HTMLElement {
               ${ICON_SEND}
             </button>
           </div>
+          ${this.state.voiceEnabled && this.hasSpeechRecognition() ? `<button class="cb-mic-btn" aria-label="Voice mode">${ICON_MIC}</button>` : ''}
         </div>
 
         <!-- Footer -->
@@ -311,6 +326,7 @@ class ChatbotWidget extends HTMLElement {
     this.sendBtn = this.shadow.querySelector(".cb-send-btn")!;
     this.newChatBtn = this.shadow.querySelector(".cb-new-chat-btn")!;
     this.greetingsEl = this.shadow.querySelector(".cb-greeting-bubbles");
+    this.micBtn = this.shadow.querySelector(".cb-mic-btn");
 
     // Show greeting bubbles on initial load
     if (this.state.greetingPrompts.length > 0 && this.greetingsEl) {
@@ -386,10 +402,34 @@ class ChatbotWidget extends HTMLElement {
       this.sendBtn.disabled =
         this.textarea.value.trim().length === 0 || this.isLoading;
       this.autoResize();
+
+      // Hide/show mic button based on textarea content
+      if (this.micBtn) {
+        if (this.textarea.value.trim().length > 0) {
+          this.micBtn.classList.add('cb-mic-hidden');
+        } else {
+          this.micBtn.classList.remove('cb-mic-hidden');
+        }
+      }
     });
+
+    if (this.micBtn) {
+      this.micBtn.addEventListener("click", () => this.enterVoiceMode());
+    }
 
     // Button clicks (event delegation on shadow root)
     this.shadow.addEventListener("click", (e) => {
+      // Speaker button clicks (audio replay)
+      const speakerBtn = (e.target as HTMLElement).closest(".cb-speaker-btn") as HTMLElement | null;
+      if (speakerBtn) {
+        const audioIndex = Number(speakerBtn.dataset.audioIndex);
+        const audioData = this.audioMap.get(audioIndex);
+        if (audioData) {
+          this.playAudio(audioData, audioIndex);
+        }
+        return;
+      }
+
       // Greeting bubble clicks
       const greetingBtn = (e.target as HTMLElement).closest(".cb-greeting-bubble") as HTMLElement | null;
       if (greetingBtn) {
@@ -547,6 +587,16 @@ class ChatbotWidget extends HTMLElement {
       this.dismissGreetings();
     }
 
+    // Stop voice/audio when closing the widget
+    if (!this.isOpen) {
+      if (this.voiceMode) {
+        this.exitVoiceMode();
+      } else if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+    }
+
     this.panel.classList.toggle("open", this.isOpen);
     this.toggleBtn.classList.toggle("open", this.isOpen);
     this.toggleBtn.setAttribute(
@@ -604,10 +654,546 @@ class ChatbotWidget extends HTMLElement {
       clearTimeout(this.greetingsTimer);
       this.greetingsTimer = null;
     }
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    if (this.recognition) {
+      this.recognition.abort();
+      this.recognition = null;
+    }
+    this.voiceMode = false;
+    this.voiceOverlay = null;
+    this.voiceMicBtn = null;
+    this.voiceStatusEl = null;
     document.body.style.marginLeft = '';
     document.body.style.marginRight = '';
     this.hostStyleEl?.remove();
     this.hostStyleEl = null;
+  }
+
+  private hasSpeechRecognition(): boolean {
+    return !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
+  }
+
+  private toggleRecording() {
+    if (this.isRecording) {
+      this.stopRecording();
+    } else {
+      this.startRecording();
+    }
+  }
+
+  private startRecording() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = false;
+    this.recognition.interimResults = true;
+    this.recognition.lang = 'en-US';
+
+    this.recognition.onstart = () => {
+      this.isRecording = true;
+      if (this.micBtn) {
+        this.micBtn.classList.add('recording');
+        this.micBtn.innerHTML = ICON_STOP;
+      }
+    };
+
+    this.recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      this.textarea.value = transcript;
+      this.sendBtn.disabled = transcript.trim().length === 0 || this.isLoading;
+      this.autoResize();
+    };
+
+    this.recognition.onend = () => {
+      this.isRecording = false;
+      if (this.micBtn) {
+        this.micBtn.classList.remove('recording');
+        this.micBtn.innerHTML = ICON_MIC;
+      }
+      // Auto-send if there's text
+      const text = this.textarea.value.trim();
+      if (text && !this.isLoading) {
+        this.sendVoiceMessage(text);
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      this.isRecording = false;
+      if (this.micBtn) {
+        this.micBtn.classList.remove('recording');
+        this.micBtn.innerHTML = ICON_MIC;
+      }
+      // Only show errors for actual problems, not normal lifecycle events
+      if (event.error === 'not-allowed') {
+        this.showError('Microphone permission denied. Please allow microphone access and try again.');
+      } else if (event.error === 'network') {
+        this.showError('Speech recognition requires an internet connection.');
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        this.showError(`Voice input error: ${event.error}`);
+      }
+    };
+
+    this.recognition.start();
+  }
+
+  private stopRecording() {
+    if (this.recognition) {
+      this.recognition.stop();
+    }
+  }
+
+  private enterVoiceMode() {
+    this.voiceMode = true;
+
+    // Shrink panel to compact voice size
+    this.panel.classList.add('cb-voice-active');
+
+    // Hide normal panel content, show voice overlay
+    const header = this.shadow.querySelector('.cb-header') as HTMLElement;
+    const messages = this.messagesEl as HTMLElement;
+    const inputArea = this.shadow.querySelector('.cb-input-area') as HTMLElement;
+    const inputPrompts = this.shadow.querySelector('.cb-input-prompts') as HTMLElement;
+    const footer = this.shadow.querySelector('.cb-footer') as HTMLElement;
+    if (header) header.style.display = 'none';
+    if (messages) messages.style.display = 'none';
+    if (inputArea) inputArea.style.display = 'none';
+    if (inputPrompts) inputPrompts.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+
+    // Create voice overlay — horizontal layout: [back] [status] [mic]
+    const overlay = document.createElement('div');
+    overlay.className = 'cb-voice-overlay';
+    overlay.innerHTML = `
+      <button class="cb-voice-back-btn" aria-label="Back to chat">${ICON_KEYBOARD} Chat</button>
+      <div class="cb-voice-status"></div>
+      <button class="cb-voice-mic-btn" aria-label="Microphone">${ICON_MIC}</button>
+    `;
+    this.panel.appendChild(overlay);
+    this.voiceOverlay = overlay;
+    this.voiceStatusEl = overlay.querySelector('.cb-voice-status');
+    this.voiceMicBtn = overlay.querySelector('.cb-voice-mic-btn');
+
+    // Bind overlay events
+    const backBtn = overlay.querySelector('.cb-voice-back-btn')!;
+    backBtn.addEventListener('click', () => this.exitVoiceMode());
+
+    this.voiceMicBtn!.addEventListener('click', () => {
+      if (this.currentAudio) {
+        // Interrupt playback, start listening
+        this.currentAudio.pause();
+        this.currentAudio = null;
+        this.startVoiceRecognition();
+      } else if (!this.isRecording) {
+        this.startVoiceRecognition();
+      } else {
+        this.stopRecording();
+      }
+    });
+
+    // Start listening immediately
+    this.startVoiceRecognition();
+  }
+
+  private exitVoiceMode() {
+    this.voiceMode = false;
+
+    // Stop audio and recognition
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    if (this.recognition) {
+      this.recognition.abort();
+      this.recognition = null;
+    }
+    this.isRecording = false;
+
+    // Remove voice overlay and restore panel size
+    if (this.voiceOverlay) {
+      this.voiceOverlay.remove();
+      this.voiceOverlay = null;
+    }
+    this.voiceMicBtn = null;
+    this.voiceStatusEl = null;
+    this.panel.classList.remove('cb-voice-active');
+
+    // Restore normal panel content
+    const header = this.shadow.querySelector('.cb-header') as HTMLElement;
+    const messages = this.messagesEl as HTMLElement;
+    const inputArea = this.shadow.querySelector('.cb-input-area') as HTMLElement;
+    const footer = this.shadow.querySelector('.cb-footer') as HTMLElement;
+    if (header) header.style.display = '';
+    if (messages) messages.style.display = '';
+    if (inputArea) inputArea.style.display = '';
+    if (footer) footer.style.display = '';
+
+    // Show input prompts only if no messages exist
+    const inputPrompts = this.shadow.querySelector('.cb-input-prompts') as HTMLElement;
+    if (inputPrompts) {
+      inputPrompts.style.display = this.messages.length > 0 ? 'none' : '';
+    }
+
+    // Re-render messages in case new ones were added during voice mode
+    this.messagesEl.innerHTML = '';
+    if (this.messages.length === 0) {
+      const { title, icon, welcome, logoUrl } = this.state;
+      const welcomeIcon = logoUrl
+        ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
+        : icon ? this.escapeHtml(icon) : "\u{1F4AC}";
+      this.messagesEl.innerHTML = `
+        <div class="cb-welcome">
+          <div class="cb-welcome-icon">${welcomeIcon}</div>
+          <h3>${this.escapeHtml(title)}</h3>
+          <p>${this.escapeHtml(welcome)}</p>
+        </div>
+      `;
+    } else {
+      for (const msg of this.messages) {
+        this.appendMessage(msg);
+      }
+    }
+
+    this.scrollToBottom();
+  }
+
+  private setVoiceStatus(text: string) {
+    if (this.voiceStatusEl) {
+      this.voiceStatusEl.textContent = text;
+    }
+  }
+
+  private startVoiceRecognition() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (this.recognition) {
+      this.recognition.abort();
+      this.recognition = null;
+    }
+
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
+    this.recognition.lang = 'en-US';
+
+    this.recognition.onstart = () => {
+      this.isRecording = true;
+      this.setVoiceStatus('Listening...');
+      if (this.voiceMicBtn) {
+        this.voiceMicBtn.classList.add('recording');
+        this.voiceMicBtn.classList.remove('disabled');
+      }
+    };
+
+    this.recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (transcript.trim()) {
+        this.setVoiceStatus('Thinking...');
+        if (this.voiceMicBtn) {
+          this.voiceMicBtn.classList.remove('recording');
+          this.voiceMicBtn.classList.add('disabled');
+        }
+        this.sendVoiceModeMessage(transcript.trim());
+      }
+    };
+
+    this.recognition.onend = () => {
+      this.isRecording = false;
+      if (this.voiceMicBtn) {
+        this.voiceMicBtn.classList.remove('recording');
+      }
+      // Clear status when not actively listening (unless thinking/speaking)
+      if (this.voiceStatusEl) {
+        const current = this.voiceStatusEl.textContent || '';
+        if (current === 'Listening...') {
+          this.setVoiceStatus('');
+        }
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      this.isRecording = false;
+      if (this.voiceMicBtn) {
+        this.voiceMicBtn.classList.remove('recording');
+      }
+      if (event.error === 'not-allowed') {
+        this.setVoiceStatus('Microphone access denied');
+      } else if (event.error === 'no-speech') {
+        // Restart listening on no-speech (silence timeout)
+        if (this.voiceMode) {
+          this.startVoiceRecognition();
+        }
+      } else if (event.error !== 'aborted') {
+        this.setVoiceStatus('Error — tap mic to retry');
+        if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
+      }
+    };
+
+    this.recognition.start();
+  }
+
+  private async sendVoiceModeMessage(text: string) {
+    if (!this.voiceMode) return;
+
+    // Create session if needed
+    if (!this.chatSocket) {
+      try {
+        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
+        this.sessionId = sessionId;
+        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
+        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+      } catch {
+        this.setVoiceStatus('Connection failed');
+        if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
+        return;
+      }
+    }
+
+    // Push user message (stored but not rendered)
+    this.messages.push({ role: "user", content: text });
+    this.saveMessages();
+
+    try {
+      const data = await this.chatSocket!.sendMessage(text, true);
+      this.sessionRetried = false;
+
+      if (!this.voiceMode) return; // exited during request
+
+      const msg: Message = {
+        role: "assistant",
+        content: data.response,
+        sources: data.sources,
+        followUpPrompts: data.follow_up_prompts,
+        audio: data.audio,
+      };
+      this.messages.push(msg);
+      this.saveMessages();
+
+      if (data.audio && this.voiceMode) {
+        // Play TTS, then auto-restart mic
+        this.setVoiceStatus('Speaking...');
+        if (this.voiceMicBtn) {
+          this.voiceMicBtn.classList.remove('disabled');
+          this.voiceMicBtn.classList.remove('recording');
+        }
+
+        if (this.currentAudio) {
+          this.currentAudio.pause();
+          this.currentAudio = null;
+        }
+
+        const msgIndex = this.messages.length - 1;
+        this.audioMap.set(msgIndex, data.audio);
+
+        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+        this.currentAudio = audio;
+
+        audio.onended = () => {
+          this.currentAudio = null;
+          if (this.voiceMode) {
+            this.startVoiceRecognition();
+          }
+        };
+
+        audio.play().catch(() => {
+          // Autoplay blocked — restart mic
+          if (this.voiceMode) {
+            this.startVoiceRecognition();
+          }
+        });
+      } else if (this.voiceMode) {
+        // No audio — restart mic
+        this.startVoiceRecognition();
+      }
+    } catch (err) {
+      if (!this.sessionRetried) {
+        this.sessionRetried = true;
+        const recovered = await this.resetSession();
+        if (recovered && this.voiceMode) {
+          try {
+            const data = await this.chatSocket!.sendMessage(text, true);
+            this.sessionRetried = false;
+            if (!this.voiceMode) return;
+            const msg: Message = {
+              role: "assistant",
+              content: data.response,
+              sources: data.sources,
+              followUpPrompts: data.follow_up_prompts,
+              audio: data.audio,
+            };
+            this.messages.push(msg);
+            this.saveMessages();
+            if (data.audio && this.voiceMode) {
+              this.setVoiceStatus('Speaking...');
+              if (this.voiceMicBtn) {
+                this.voiceMicBtn.classList.remove('disabled');
+                this.voiceMicBtn.classList.remove('recording');
+              }
+              const msgIndex = this.messages.length - 1;
+              this.audioMap.set(msgIndex, data.audio);
+              const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+              this.currentAudio = audio;
+              audio.onended = () => {
+                this.currentAudio = null;
+                if (this.voiceMode) this.startVoiceRecognition();
+              };
+              audio.play().catch(() => {
+                if (this.voiceMode) this.startVoiceRecognition();
+              });
+            } else if (this.voiceMode) {
+              this.startVoiceRecognition();
+            }
+            return;
+          } catch {
+            // fall through
+          }
+        }
+      }
+      this.setVoiceStatus('Error — tap mic to retry');
+      if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
+    }
+  }
+
+  private async sendVoiceMessage(text: string) {
+    if (!text || this.isLoading) return;
+
+    // Create session if needed
+    if (!this.chatSocket) {
+      try {
+        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
+        this.sessionId = sessionId;
+        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
+        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+      } catch {
+        this.showError("Unable to connect. Please try again.");
+        return;
+      }
+    }
+
+    this.messages.push({ role: "user", content: text });
+    this.appendMessage({ role: "user", content: text });
+    this.saveMessages();
+
+    this.textarea.value = "";
+    this.sendBtn.disabled = true;
+    this.autoResize();
+
+    this.isLoading = true;
+    const typingEl = this.showTyping();
+
+    try {
+      const data = await this.chatSocket!.sendMessage(text, true);
+      this.sessionRetried = false;
+      typingEl.remove();
+
+      const msg: Message = {
+        role: "assistant",
+        content: data.response,
+        sources: data.sources,
+        followUpPrompts: data.follow_up_prompts,
+        audio: data.audio,
+      };
+      this.messages.push(msg);
+      this.appendMessage(msg);
+      this.saveMessages();
+
+      // Auto-play audio
+      if (data.audio) {
+        this.playAudio(data.audio, this.messages.length - 1);
+      }
+    } catch (err) {
+      // If this looks like a stale session, retry once with a fresh session
+      if (!this.sessionRetried) {
+        this.sessionRetried = true;
+        const recovered = await this.resetSession();
+        if (recovered) {
+          try {
+            const data = await this.chatSocket!.sendMessage(text, true);
+            this.sessionRetried = false;
+            typingEl.remove();
+            const msg: Message = {
+              role: "assistant",
+              content: data.response,
+              sources: data.sources,
+              followUpPrompts: data.follow_up_prompts,
+              audio: data.audio,
+            };
+            this.messages.push(msg);
+            this.appendMessage(msg);
+            this.saveMessages();
+            if (data.audio) {
+              this.playAudio(data.audio, this.messages.length - 1);
+            }
+            return;
+          } catch {
+            // Retry also failed — fall through to show error
+          }
+        }
+      }
+      typingEl.remove();
+      this.showError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      this.isLoading = false;
+      this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+    }
+  }
+
+  /** Invalidate current session and create a fresh one. */
+  private async resetSession(): Promise<boolean> {
+    if (this.chatSocket) {
+      this.chatSocket.close();
+      this.chatSocket = null;
+    }
+    localStorage.removeItem(`cb_session_${this.state.chatbotId}`);
+    try {
+      const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
+      this.sessionId = sessionId;
+      localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+      this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
+      this.chatSocket.onStatusChange = (status: ConnectionStatus) => this.updateStatusDot(status);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private playAudio(base64Audio: string, messageIndex: number) {
+    // Stop any currently playing audio
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+
+    // Store audio for replay
+    this.audioMap.set(messageIndex, base64Audio);
+
+    const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+    this.currentAudio = audio;
+
+    // Update speaker button state
+    const speakerBtn = this.shadow.querySelector(`[data-audio-index="${messageIndex}"]`) as HTMLElement;
+    if (speakerBtn) speakerBtn.classList.add('playing');
+
+    audio.onended = () => {
+      this.currentAudio = null;
+      if (speakerBtn) speakerBtn.classList.remove('playing');
+    };
+
+    audio.play().catch(() => {
+      // Autoplay may be blocked - user can click the speaker button
+    });
   }
 
   private async send() {
@@ -641,6 +1227,7 @@ class ChatbotWidget extends HTMLElement {
 
     try {
       const data = await this.chatSocket!.sendMessage(text);
+      this.sessionRetried = false;
 
       typingEl.remove();
 
@@ -654,6 +1241,30 @@ class ChatbotWidget extends HTMLElement {
       this.appendMessage(msg);
       this.saveMessages();
     } catch (err) {
+      // If this looks like a stale session (connection closed/error), retry once with a fresh session
+      if (!this.sessionRetried) {
+        this.sessionRetried = true;
+        const recovered = await this.resetSession();
+        if (recovered) {
+          try {
+            const data = await this.chatSocket!.sendMessage(text);
+            this.sessionRetried = false;
+            typingEl.remove();
+            const msg: Message = {
+              role: "assistant",
+              content: data.response,
+              sources: data.sources,
+              followUpPrompts: data.follow_up_prompts,
+            };
+            this.messages.push(msg);
+            this.appendMessage(msg);
+            this.saveMessages();
+            return;
+          } catch {
+            // Retry also failed — fall through to show error
+          }
+        }
+      }
       typingEl.remove();
       this.showError(
         err instanceof Error ? err.message : "Something went wrong.",
@@ -675,6 +1286,15 @@ class ChatbotWidget extends HTMLElement {
     const div = document.createElement("div");
     div.className = `cb-message ${msg.role}`;
     div.innerHTML = this.formatContent(msg.content);
+
+    // Add speaker button for messages with audio
+    if (msg.role === "assistant" && msg.audio) {
+      const msgIndex = this.messages.length - 1;
+      this.audioMap.set(msgIndex, msg.audio);
+      const speakerDiv = document.createElement("div");
+      speakerDiv.innerHTML = `<button class="cb-speaker-btn" data-audio-index="${msgIndex}" aria-label="Replay audio">${ICON_SPEAKER} Replay</button>`;
+      div.appendChild(speakerDiv);
+    }
 
     if (msg.sources && msg.sources.length > 0) {
       const sourcesDiv = document.createElement("div");

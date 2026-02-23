@@ -5,7 +5,7 @@ Represents a chatbot tied to a specific website.
 Status flow: pending -> crawling -> ready (or error)
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
@@ -40,6 +40,9 @@ class Chatbot(Base):
     widget_font_family = Column(String, nullable=True)
     widget_font_size = Column(Integer, nullable=True)
     widget_text_color = Column(String, nullable=True)
+
+    # Voice
+    voice_enabled = Column(Boolean, default=False, server_default="false")
 
     # Relationships
     user = relationship("User", back_populates="chatbots")

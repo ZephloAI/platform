@@ -54,4 +54,5 @@ async def get_widget_config(
         widget_font_family=chatbot.widget_font_family,
         widget_font_size=chatbot.widget_font_size,
         widget_text_color=chatbot.widget_text_color,
+        voice_enabled=chatbot.voice_enabled or False,
     )

@@ -42,6 +42,7 @@ export interface Chatbot {
   widget_font_family?: string | null;
   widget_font_size?: number | null;
   widget_text_color?: string | null;
+  voice_enabled?: boolean;
 }
 
 /** A quick prompt button shown in the widget */
@@ -83,6 +84,7 @@ export interface WidgetSettings {
   widget_font_family?: string | null;
   widget_font_size?: number | null;
   widget_text_color?: string | null;
+  voice_enabled?: boolean;
 }
 
 /** A crawl job that indexes a website's content */

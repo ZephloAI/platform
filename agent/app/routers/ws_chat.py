@@ -21,6 +21,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.config import settings
 from app.agent import create_agent, clean_response
 from app.rag import retrieve_context, format_context_for_llm
+from app.tts import text_to_speech
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,7 @@ async def ws_chat(ws: WebSocket):
             raw = await ws.receive_text()
             data = json.loads(raw)
             message: str = data.get("message", "")
+            voice: bool = data.get("voice", False)
 
             # Step 1: Retrieve relevant context from Qdrant
             contexts = retrieve_context(
@@ -106,9 +108,13 @@ async def ws_chat(ws: WebSocket):
             context_str = format_context_for_llm(contexts)
 
             # Step 3: Build the full prompt
+            voice_instruction = (
+                "Keep your answer to 1-2 short sentences. Be conversational and direct. "
+            ) if voice else ""
             full_prompt = (
                 f"Here is what you know:\n{context_str}\n\n"
                 f"The visitor asks: {message}\n\n"
+                f"{voice_instruction}"
                 "Respond naturally and confidently as a team member. "
                 "Do not mention sources or URLs in your answer."
             )
@@ -116,8 +122,14 @@ async def ws_chat(ws: WebSocket):
             # Step 4: Run the agent
             response = agent.run(full_prompt)
 
-            # Extract text — content can be None when stop_after_tool_call fires
-            raw_content = response.content if response.content else ""
+            # Extract text — content can be None when stop_after_tool_call fires.
+            # In that case, pull the text from the last assistant message.
+            raw_content = response.content or ""
+            if not raw_content and response.messages:
+                for msg in reversed(response.messages):
+                    if msg.role == "assistant" and msg.content:
+                        raw_content = msg.content
+                        break
             if not isinstance(raw_content, str):
                 raw_content = str(raw_content)
 
@@ -143,12 +155,18 @@ async def ws_chat(ws: WebSocket):
             if follow_up_toolkit:
                 follow_up_toolkit.selected = []
 
+            # Step 6.5: Generate audio if voice mode requested
+            audio = None
+            if voice:
+                audio = await text_to_speech(response_text)
+
             await ws.send_json(
                 {
                     "response": response_text,
                     "sources": sources,
                     "session_id": session_id,
                     "follow_up_prompts": selected,
+                    "audio": audio,
                 }
             )
 

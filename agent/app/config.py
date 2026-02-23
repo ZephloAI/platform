@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     DATABASE_URL_ASYNCPG: str = "postgresql://postgres:postgres@localhost:5432/chatbot_saas"
     JWT_SECRET: str = "your-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
+    ELEVEN_LABS_API_KEY: str = ""
+    ELEVEN_LABS_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
+    ELEVEN_LABS_MODEL_ID: str = "eleven_multilingual_v2"
 
     class Config:
         env_file = ".env"

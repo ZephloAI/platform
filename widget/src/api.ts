@@ -20,6 +20,7 @@ export interface ChatResponse {
   sources: ChatSource[];
   session_id: string | null;
   follow_up_prompts?: FollowUpPrompt[];
+  audio?: string | null;
 }
 
 export interface WidgetConfig {
@@ -40,6 +41,7 @@ export interface WidgetConfig {
   widget_font_family?: string | null;
   widget_font_size?: number | null;
   widget_text_color?: string | null;
+  voice_enabled?: boolean;
 }
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -112,8 +114,8 @@ export class ChatSocket {
     return `${proto}//${host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
   }
 
-  async sendMessage(message: string): Promise<ChatResponse> {
-    const payload = JSON.stringify({ message });
+  async sendMessage(message: string, voice?: boolean): Promise<ChatResponse> {
+    const payload = JSON.stringify({ message, ...(voice ? { voice: true } : {}) });
 
     // Reuse open connection
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
