@@ -30,11 +30,46 @@ logger = logging.getLogger(__name__)
 
 
 def clean_response(text: str) -> str:
-    """Strip leaked LLM tool-call syntax and internal reasoning from response text."""
+    """Strip leaked LLM tool-call syntax, internal reasoning, and instruction echo from response text."""
+    # Remove tool-call / reasoning leaks
     text = re.sub(r"\n*human_thought:.*$", "", text, flags=re.MULTILINE).rstrip()
     text = re.sub(r"\n*social_tool_call:.*$", "", text, flags=re.MULTILINE).rstrip()
     text = re.sub(r"\n*tool_call:.*$", "", text, flags=re.MULTILINE).rstrip()
     text = re.sub(r"\n*Follow-ups? set:.*$", "", text, flags=re.MULTILINE).rstrip()
+
+    # Remove leaked instruction/guideline blocks that the LLM sometimes echoes.
+    # These start with a markdown header like "# Response Content Guidelines"
+    # or bullet lines that look like system instructions.
+    text = re.sub(
+        r"^#\s+(Response|Task-Specific|Style|Content|Format).*?(?=\n[A-Z]|\n\n[A-Z]|\Z)",
+        "",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    ).strip()
+
+    # Remove lines that are clearly echoed system instructions
+    instruction_patterns = [
+        r"^-\s+Use the first person plural.*$",
+        r"^-\s+Be warm and (professional|conversational).*$",
+        r"^-\s+Use bullet points for lists.*$",
+        r"^-\s+End with a follow[- ]?up question.*$",
+        r"^-\s+Do not mention URLs.*$",
+        r"^-\s+Do not use markdown headers.*$",
+        r"^-\s+Keep responses concise.*$",
+        r"^-\s+Avoid sounding like a machine.*$",
+        r"^-\s+Be confident in your answers.*$",
+        r"^-\s+If information is missing.*$",
+        r"^-\s+Keep your answer to 1-2 short sentences.*$",
+        r"^-\s+Use the suggest_follow_ups tool.*$",
+        r'^-\s+"[^"]+"\s*$',  # bare follow-up titles like - "Book a trip"
+        r"^Use bullet points for lists\..*$",
+        r"^Use the suggest_follow_ups tool.*$",
+    ]
+    for pat in instruction_patterns:
+        text = re.sub(pat, "", text, flags=re.MULTILINE)
+
+    # Collapse multiple blank lines left by removals
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
     return text
 
 # Single PostgresDb instance reused across requests.
@@ -60,7 +95,6 @@ class FollowUpTools(Toolkit):
         super().__init__(
             name="follow_up_tools",
             tools=[self.suggest_follow_ups],
-            stop_after_tool_call_tools=["suggest_follow_ups"],
             show_result_tools=[],
         )
 
@@ -169,7 +203,6 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
         session_id=session_id,
         add_history_to_context=True,
         num_history_runs=5,
-        learning=True
     )
     return agent, follow_up_toolkit
 
@@ -218,14 +251,20 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
     # Step 5: Run — the agent responds and optionally calls suggest_follow_up
     response = agent.run(full_prompt)
 
-    # content can be None when stop_after_tool_call fires.
-    # In that case, pull the text from the last assistant message.
-    response_text = response.content or ""
-    if not response_text and response.messages:
-        for msg in reversed(response.messages):
-            if msg.role == "assistant" and msg.content:
-                response_text = msg.content
-                break
+    # Extract text — content can be empty when the agent made a tool call
+    # and the main response only contains the tool result.
+    # Walk assistant messages to collect any real text the LLM produced.
+    response_text = response.content if isinstance(response.content, str) else ""
+    if not clean_response(response_text).strip() and response.messages:
+        parts: list[str] = []
+        for msg in response.messages:
+            if msg.role == "assistant" and msg.content and isinstance(msg.content, str):
+                cleaned = clean_response(msg.content).strip()
+                if cleaned:
+                    parts.append(cleaned)
+        if parts:
+            response_text = parts[-1]
+
     if not isinstance(response_text, str):
         response_text = str(response_text)
 

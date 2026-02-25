@@ -122,14 +122,20 @@ async def ws_chat(ws: WebSocket):
             # Step 4: Run the agent
             response = agent.run(full_prompt)
 
-            # Extract text — content can be None when stop_after_tool_call fires.
-            # In that case, pull the text from the last assistant message.
-            raw_content = response.content or ""
-            if not raw_content and response.messages:
-                for msg in reversed(response.messages):
-                    if msg.role == "assistant" and msg.content:
-                        raw_content = msg.content
-                        break
+            # Extract text — content can be empty when the agent made a tool
+            # call and the main response only contains the tool result.
+            # Walk assistant messages to collect any real text the LLM produced.
+            raw_content = response.content if isinstance(response.content, str) else ""
+            if not clean_response(raw_content).strip() and response.messages:
+                parts: list[str] = []
+                for msg in response.messages:
+                    if msg.role == "assistant" and msg.content and isinstance(msg.content, str):
+                        cleaned = clean_response(msg.content).strip()
+                        if cleaned:
+                            parts.append(cleaned)
+                if parts:
+                    raw_content = parts[-1]
+
             if not isinstance(raw_content, str):
                 raw_content = str(raw_content)
 
@@ -141,6 +147,14 @@ async def ws_chat(ws: WebSocket):
             )
 
             response_text = clean_response(raw_content)
+
+            # Safety net: if the response is still empty, re-run without tools
+            if not response_text.strip():
+                logger.warning("Empty response after cleaning, re-running without tools")
+                retry = agent.run(full_prompt, tools=[])
+                retry_content = retry.content if isinstance(retry.content, str) else ""
+                if retry_content.strip():
+                    response_text = clean_response(retry_content)
 
             # Step 5: Build deduplicated source list
             seen_urls: set[str] = set()
@@ -157,7 +171,7 @@ async def ws_chat(ws: WebSocket):
 
             # Step 6.5: Generate audio if voice mode requested
             audio = None
-            if voice:
+            if voice and response_text.strip():
                 audio = await text_to_speech(response_text)
 
             await ws.send_json(
