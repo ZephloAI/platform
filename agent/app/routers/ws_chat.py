@@ -19,7 +19,7 @@ import asyncpg
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
-from app.agent import create_agent, clean_response
+from app.agent import create_agent, clean_response, connect_mcp_servers
 from app.rag import retrieve_context, format_context_for_llm
 from app.tts import text_to_speech
 
@@ -70,7 +70,7 @@ async def ws_chat(ws: WebSocket):
             return
 
         chatbot_row = await conn.fetchrow(
-            "SELECT name, follow_up_prompts FROM chatbots WHERE id = $1",
+            "SELECT name, follow_up_prompts, mcp_servers FROM chatbots WHERE id = $1",
             chatbot_id,
         )
     finally:
@@ -82,14 +82,19 @@ async def ws_chat(ws: WebSocket):
 
     chatbot_name = chatbot_row["name"]
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")
+    mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
 
     await ws.accept()
+
+    # --- Connect MCP servers ---
+    mcp_tools = await connect_mcp_servers(mcp_configs)
 
     # --- Create ONE agent for the lifetime of this connection ---
     agent, follow_up_toolkit = create_agent(
         chatbot_name=chatbot_name,
         session_id=session_id,
         follow_up_pool=follow_up_prompts,
+        mcp_tools=mcp_tools,
     )
 
     try:
@@ -119,8 +124,8 @@ async def ws_chat(ws: WebSocket):
                 "Do not mention sources or URLs in your answer."
             )
 
-            # Step 4: Run the agent
-            response = agent.run(full_prompt)
+            # Step 4: Run the agent (async for MCP tool support)
+            response = await agent.arun(full_prompt)
 
             # Extract text — content can be empty when the agent made a tool
             # call and the main response only contains the tool result.
@@ -151,7 +156,7 @@ async def ws_chat(ws: WebSocket):
             # Safety net: if the response is still empty, re-run without tools
             if not response_text.strip():
                 logger.warning("Empty response after cleaning, re-running without tools")
-                retry = agent.run(full_prompt, tools=[])
+                retry = await agent.arun(full_prompt, tools=[])
                 retry_content = retry.content if isinstance(retry.content, str) else ""
                 if retry_content.strip():
                     response_text = clean_response(retry_content)
@@ -185,10 +190,17 @@ async def ws_chat(ws: WebSocket):
             )
 
     except WebSocketDisconnect:
-        logger.info("Client disconnected (chatbot_id=%s)", chatbot_id)
+        logger.info(f"Client disconnected (chatbot_id={chatbot_id})")
     except Exception as e:
-        logger.exception("WebSocket error (chatbot_id=%s)", chatbot_id)
+        logger.exception(f"WebSocket error (chatbot_id={chatbot_id})")
         try:
             await ws.send_json({"error": str(e)})
         except Exception:
             pass
+    finally:
+        # Disconnect all MCP servers
+        for mcp in mcp_tools:
+            try:
+                await mcp.disconnect()
+            except Exception:
+                pass

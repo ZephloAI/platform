@@ -44,6 +44,9 @@ class Chatbot(Base):
     # Voice
     voice_enabled = Column(Boolean, default=False, server_default="false")
 
+    # MCP servers
+    mcp_servers = Column(JSON, nullable=True, default=[])
+
     # Relationships
     user = relationship("User", back_populates="chatbots")
     crawl_jobs = relationship(

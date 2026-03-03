@@ -14,6 +14,15 @@ class ChatbotCreate(BaseModel):
     name: str
 
 
+class MCPServer(BaseModel):
+    """An MCP server configuration for the chatbot."""
+    name: str
+    transport: str = "sse"  # "sse" or "streamable-http"
+    url: str
+    headers: dict[str, str] | None = None
+    enabled: bool = True
+
+
 class QuickPrompt(BaseModel):
     """A single quick prompt button for the widget."""
     title: str
@@ -59,6 +68,7 @@ class ChatbotResponse(BaseModel):
     widget_font_size: int | None = None
     widget_text_color: str | None = None
     voice_enabled: bool = False
+    mcp_servers: list[MCPServer] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -87,6 +97,7 @@ class WidgetSettingsUpdate(BaseModel):
     widget_font_size: int | None = None
     widget_text_color: str | None = None
     voice_enabled: bool = False
+    mcp_servers: list[MCPServer] | None = None
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -108,6 +119,7 @@ class WidgetSettingsResponse(BaseModel):
     widget_font_size: int | None = None
     widget_text_color: str | None = None
     voice_enabled: bool = False
+    mcp_servers: list[MCPServer] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

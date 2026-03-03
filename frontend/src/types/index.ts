@@ -43,6 +43,7 @@ export interface Chatbot {
   widget_font_size?: number | null;
   widget_text_color?: string | null;
   voice_enabled?: boolean;
+  mcp_servers?: MCPServer[] | null;
 }
 
 /** A quick prompt button shown in the widget */
@@ -66,6 +67,15 @@ export interface GreetingPrompt {
   prompt: string;
 }
 
+/** An MCP server connected to a chatbot */
+export interface MCPServer {
+  name: string;
+  transport: 'sse' | 'streamable-http';
+  url: string;
+  headers?: Record<string, string> | null;
+  enabled: boolean;
+}
+
 /** Widget customization settings */
 export interface WidgetSettings {
   widget_icon: string | null;
@@ -85,6 +95,7 @@ export interface WidgetSettings {
   widget_font_size?: number | null;
   widget_text_color?: string | null;
   voice_enabled?: boolean;
+  mcp_servers?: MCPServer[] | null;
 }
 
 /** A crawl job that indexes a website's content */

@@ -22,11 +22,51 @@ from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from agno.db.postgres import PostgresDb
 from agno.tools import Toolkit
+from agno.tools.mcp import MCPTools
+from agno.tools.mcp.params import SSEClientParams, StreamableHTTPClientParams
 
 from app.config import settings
 from app.rag import retrieve_context, format_context_for_llm
 
 logger = logging.getLogger(__name__)
+
+
+async def connect_mcp_servers(mcp_configs: list[dict]) -> list[MCPTools]:
+    """Connect to MCP servers from a list of config dicts.
+
+    Each config should have at least a ``url`` key. Optional keys:
+    ``name``, ``transport`` (default ``"sse"``), ``headers``, and
+    ``enabled`` (default ``True``).  Servers where ``enabled`` is
+    ``False`` are skipped.  Connection failures are logged and skipped
+    so one bad server doesn't block the agent.
+    """
+    connected: list[MCPTools] = []
+    for cfg in mcp_configs:
+        if not cfg.get("enabled", True):
+            continue
+        name = cfg.get("name", "unnamed")
+        try:
+            transport = cfg.get("transport", "sse")
+            url = cfg["url"]
+            headers = cfg.get("headers") or {}
+
+            if transport == "streamable-http":
+                params = StreamableHTTPClientParams(url=url, headers=headers)
+            else:
+                params = SSEClientParams(url=url, headers=headers)
+
+            mcp = MCPTools(
+                server_params=params,
+                url=url,
+                transport=transport,
+                timeout_seconds=60
+            )
+            await mcp.connect()
+            connected.append(mcp)
+            logger.info(f"MCP server connected: {name} ({url})")
+        except Exception:
+            logger.warning(f"MCP server failed to connect (skipping): {name}", exc_info=True)
+    return connected
 
 
 def clean_response(text: str) -> str:
@@ -142,6 +182,7 @@ def create_agent(
     chatbot_name: str = "Assistant",
     session_id: str | None = None,
     follow_up_pool: list[dict] | None = None,
+    mcp_tools: list | None = None,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
@@ -179,6 +220,9 @@ Choose one or more follow-ups from this list:\n{pool_text}
 Pass the exact titles comma-separated to the tool. The system handles the rest."""
         )
 
+    if mcp_tools:
+        tools.extend(mcp_tools)
+
     agent = Agent(
         model=OpenRouter(
             id=settings.LLM_MODEL,
@@ -213,6 +257,7 @@ async def chat_with_agent(
     chatbot_name: str = "",
     session_id: str | None = None,
     follow_up_prompts: list[dict] | None = None,
+    mcp_configs: list[dict] | None = None,
 ) -> dict:
     """
     Process a user's chat message using RAG + the Agno agent.
@@ -223,68 +268,83 @@ async def chat_with_agent(
         chatbot_name:      Name of the chatbot (used in collection name + persona).
         session_id:        UUID identifying the conversation thread.
         follow_up_prompts: Admin-configured pool of follow-up prompts.
+        mcp_configs:       MCP server configurations to connect.
 
     Returns:
         Dict with "response", "sources", "session_id", and "follow_up_prompts".
     """
-    # Step 1: Retrieve relevant context from Qdrant
-    contexts = retrieve_context(chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name)
+    mcp_tools: list[MCPTools] = []
+    try:
+        # Connect MCP servers if configured
+        if mcp_configs:
+            mcp_tools = await connect_mcp_servers(mcp_configs)
 
-    # Step 2: Format the retrieved chunks into a text block
-    context_str = format_context_for_llm(contexts)
+        # Step 1: Retrieve relevant context from Qdrant
+        contexts = retrieve_context(chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name)
 
-    # Step 3: Build the full prompt with context + user question
-    full_prompt = f"""Here is what you know:
+        # Step 2: Format the retrieved chunks into a text block
+        context_str = format_context_for_llm(contexts)
+
+        # Step 3: Build the full prompt with context + user question
+        full_prompt = f"""Here is what you know:
 {context_str}
 
 The visitor asks: {message}
 
 Respond naturally and confidently as a team member. Do not mention sources or URLs in your answer."""
 
-    # Step 4: Create agent with follow-up tool attached
-    agent, follow_up_toolkit = create_agent(
-        chatbot_name=chatbot_name or "Assistant",
-        session_id=session_id,
-        follow_up_pool=follow_up_prompts or [],
-    )
+        # Step 4: Create agent with follow-up tool and MCP tools attached
+        agent, follow_up_toolkit = create_agent(
+            chatbot_name=chatbot_name or "Assistant",
+            session_id=session_id,
+            follow_up_pool=follow_up_prompts or [],
+            mcp_tools=mcp_tools if mcp_tools else None,
+        )
 
-    # Step 5: Run — the agent responds and optionally calls suggest_follow_up
-    response = agent.run(full_prompt)
+        # Step 5: Run async — required when MCP tools are attached
+        response = await agent.arun(full_prompt)
 
-    # Extract text — content can be empty when the agent made a tool call
-    # and the main response only contains the tool result.
-    # Walk assistant messages to collect any real text the LLM produced.
-    response_text = response.content if isinstance(response.content, str) else ""
-    if not clean_response(response_text).strip() and response.messages:
-        parts: list[str] = []
-        for msg in response.messages:
-            if msg.role == "assistant" and msg.content and isinstance(msg.content, str):
-                cleaned = clean_response(msg.content).strip()
-                if cleaned:
-                    parts.append(cleaned)
-        if parts:
-            response_text = parts[-1]
+        # Extract text — content can be empty when the agent made a tool call
+        # and the main response only contains the tool result.
+        # Walk assistant messages to collect any real text the LLM produced.
+        response_text = response.content if isinstance(response.content, str) else ""
+        if not clean_response(response_text).strip() and response.messages:
+            parts: list[str] = []
+            for msg in response.messages:
+                if msg.role == "assistant" and msg.content and isinstance(msg.content, str):
+                    cleaned = clean_response(msg.content).strip()
+                    if cleaned:
+                        parts.append(cleaned)
+            if parts:
+                response_text = parts[-1]
 
-    if not isinstance(response_text, str):
-        response_text = str(response_text)
+        if not isinstance(response_text, str):
+            response_text = str(response_text)
 
-    # Strip any tool result text / LLM reasoning that may leak into the response
-    response_text = clean_response(response_text)
+        # Strip any tool result text / LLM reasoning that may leak into the response
+        response_text = clean_response(response_text)
 
-    # Step 6: Build a deduplicated list of source URLs
-    seen_urls: set[str] = set()
-    sources: list[dict] = []
-    for ctx in contexts:
-        if ctx["url"] not in seen_urls and ctx["score"] > 0.3:
-            seen_urls.add(ctx["url"])
-            sources.append({"url": ctx["url"], "title": ctx["title"]})
+        # Step 6: Build a deduplicated list of source URLs
+        seen_urls: set[str] = set()
+        sources: list[dict] = []
+        for ctx in contexts:
+            if ctx["url"] not in seen_urls and ctx["score"] > 0.3:
+                seen_urls.add(ctx["url"])
+                sources.append({"url": ctx["url"], "title": ctx["title"]})
 
-    # Step 7: Read follow-up selections from the toolkit
-    selected_follow_ups = follow_up_toolkit.selected if follow_up_toolkit else []
+        # Step 7: Read follow-up selections from the toolkit
+        selected_follow_ups = follow_up_toolkit.selected if follow_up_toolkit else []
 
-    return {
-        "response": response_text,
-        "sources": sources,
-        "session_id": session_id or response.session_id,
-        "follow_up_prompts": selected_follow_ups,
-    }
+        return {
+            "response": response_text,
+            "sources": sources,
+            "session_id": session_id or response.session_id,
+            "follow_up_prompts": selected_follow_ups,
+        }
+    finally:
+        # Disconnect all MCP servers
+        for mcp in mcp_tools:
+            try:
+                await mcp.disconnect()
+            except Exception:
+                pass
