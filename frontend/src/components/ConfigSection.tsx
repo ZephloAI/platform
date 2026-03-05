@@ -58,7 +58,7 @@ function ConfigSection({ chatbot, activeTab }: ConfigSectionProps) {
         <WidgetConfigurator chatbot={chatbot} activeTab={activeTab} onPreviewChange={setPreviewState} />
       </div>
       <div className="w-[340px] shrink-0">
-        <div className="sticky top-6">
+        <div className="sticky top-[5.5rem]">
           <WidgetPreview chatbotName={chatbot.name} state={previewState} />
         </div>
       </div>

@@ -2,12 +2,6 @@ import { Link } from 'react-router-dom';
 import { useChatbots, useDeleteChatbot } from '../hooks/useChatbots';
 import ChatbotCard from '../components/ChatbotCard';
 
-// ============================================================
-// DashboardPage
-// Apple-style dashboard with generous whitespace, clean grid,
-// and beautiful empty state. Cards use glass effect.
-// ============================================================
-
 function DashboardPage() {
   const { data: chatbots, isLoading, error } = useChatbots();
   const deleteMutation = useDeleteChatbot();
@@ -18,68 +12,137 @@ function DashboardPage() {
     }
   };
 
+  const totalChatbots = chatbots?.length || 0;
+  const readyChatbots = chatbots?.filter((c) => c.status === 'ready').length || 0;
+  const totalPages = chatbots?.reduce(
+    (sum, c) => sum + (c.crawl_jobs?.reduce((s, j) => s + j.pages_crawled, 0) || 0),
+    0
+  ) || 0;
+
   return (
-    <div className="animate-fade-in">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="section-title">Chatbots</h1>
-          <p className="text-[14px] text-label-tertiary mt-1">
-            Manage your website chatbots
-          </p>
+    <div className="animate-fade-in max-w-5xl">
+      {/* Page title */}
+      <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mb-8">
+        Home
+      </h1>
+
+      {/* Overview section */}
+      {!isLoading && chatbots && chatbots.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[17px] font-semibold text-label-primary">Overview</h2>
+          </div>
+
+          {/* Stats cards */}
+          <div className="grid grid-cols-3 gap-0 border border-black/[0.08] rounded-xl overflow-hidden">
+            <div className="p-5 border-r border-black/[0.08]">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[13px] text-label-secondary">Total chatbots</p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </div>
+              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
+                {totalChatbots}
+              </p>
+            </div>
+            <div className="p-5 border-r border-black/[0.08] border-t-2 border-t-accent">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[13px] text-label-secondary">Active chatbots</p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </div>
+              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
+                {readyChatbots}
+              </p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[13px] text-label-secondary">Pages indexed</p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </div>
+              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
+                {totalPages}
+              </p>
+            </div>
+          </div>
         </div>
-        <Link to="/chatbots/new" className="btn-primary">
-          Create New
-        </Link>
+      )}
+
+      {/* Chatbots section */}
+      <div>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[17px] font-semibold text-label-primary">Your Chatbots</h2>
+          {chatbots && chatbots.length > 0 && (
+            <Link
+              to="/chatbots/new"
+              className="text-[13px] text-accent font-medium hover:text-accent-hover transition-colors"
+            >
+              Create New
+            </Link>
+          )}
+        </div>
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
+              <p className="text-[13px] text-label-tertiary">Loading...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="border border-black/[0.08] rounded-xl p-6 text-center">
+            <p className="text-[14px] text-red-500">
+              Failed to load chatbots. Please try refreshing.
+            </p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {chatbots && chatbots.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-black/[0.03] flex items-center justify-center mb-5">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-label-tertiary" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <h2 className="text-[17px] font-semibold text-label-primary mb-1">
+              No chatbots yet
+            </h2>
+            <p className="text-[14px] text-label-tertiary mb-6 max-w-xs">
+              Create your first chatbot to start answering questions about your website.
+            </p>
+            <Link
+              to="/chatbots/new"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-[13px] font-semibold rounded-lg hover:bg-accent-hover transition-all duration-200"
+            >
+              Create Your First Chatbot
+            </Link>
+          </div>
+        )}
+
+        {/* Chatbot list */}
+        {chatbots && chatbots.length > 0 && (
+          <div className="border border-black/[0.08] rounded-xl overflow-hidden divide-y divide-black/[0.06]">
+            {chatbots.map((chatbot) => (
+              <ChatbotCard key={chatbot.id} chatbot={chatbot} onDelete={handleDelete} />
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-            <p className="text-[13px] text-label-tertiary">Loading...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error state */}
-      {error && (
-        <div className="glass-card p-6 text-center">
-          <p className="text-[14px] text-red-500">
-            Failed to load chatbots. Please try refreshing.
-          </p>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {chatbots && chatbots.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-3xl bg-accent/[0.06] flex items-center justify-center mb-5">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
-          <h2 className="text-[17px] font-semibold text-label-primary mb-1">
-            No chatbots yet
-          </h2>
-          <p className="text-[14px] text-label-tertiary mb-6 max-w-xs">
-            Create your first chatbot to start answering questions about your website.
-          </p>
-          <Link to="/chatbots/new" className="btn-primary">
-            Create Your First Chatbot
-          </Link>
-        </div>
-      )}
-
-      {/* Chatbot grid */}
-      {chatbots && chatbots.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {chatbots.map((chatbot) => (
-            <ChatbotCard key={chatbot.id} chatbot={chatbot} onDelete={handleDelete} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

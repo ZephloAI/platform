@@ -1,26 +1,19 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Chatbot } from '../types';
-
-// ============================================================
-// ChatbotCard Component
-// Premium glass card with Apple-style depth and transitions.
-// Subtle hover lift effect, pill-shaped status badges.
-// ============================================================
 
 interface ChatbotCardProps {
   chatbot: Chatbot;
   onDelete: (id: number) => void;
 }
 
-// Status badge CSS classes using our design system
-const STATUS_BADGES: Record<Chatbot['status'], string> = {
-  pending: 'badge badge-pending',
-  crawling: 'badge badge-crawling',
-  ready: 'badge badge-ready',
-  error: 'badge badge-error',
+const STATUS_COLORS: Record<Chatbot['status'], string> = {
+  pending: 'bg-amber-400',
+  crawling: 'bg-blue-500 animate-pulse-soft',
+  ready: 'bg-emerald-500',
+  error: 'bg-red-500',
 };
 
-// Friendly status labels
 const STATUS_LABELS: Record<Chatbot['status'], string> = {
   pending: 'Pending',
   crawling: 'Crawling',
@@ -29,46 +22,91 @@ const STATUS_LABELS: Record<Chatbot['status'], string> = {
 };
 
 function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
+  const pagesIndexed = chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   return (
-    <div className="glass-card p-6 animate-fade-in group">
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-4">
-        <Link
-          to={`/chatbots/${chatbot.id}`}
-          className="text-[17px] font-semibold text-label-primary tracking-tight group-hover:text-accent transition-colors duration-250"
-        >
+    <div className="flex items-center gap-4 px-5 py-4 hover:bg-black/[0.015] transition-colors group">
+      {/* Icon */}
+      <Link
+        to={`/chatbots/${chatbot.id}`}
+        className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/10 to-blue-50 flex items-center justify-center shrink-0"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </Link>
+
+      {/* Info - entire area is clickable */}
+      <Link to={`/chatbots/${chatbot.id}`} className="flex-1 min-w-0">
+        <p className="text-[14px] font-semibold text-label-primary group-hover:text-accent transition-colors">
           {chatbot.name}
-        </Link>
-        <span className={STATUS_BADGES[chatbot.status]}>
-          {chatbot.status === 'crawling' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse-soft" />
-          )}
+        </p>
+        <p className="text-[12px] text-label-tertiary truncate mt-0.5">
+          {chatbot.website_url || 'No website added'} {pagesIndexed > 0 && `· ${pagesIndexed} pages`}
+        </p>
+      </Link>
+
+      {/* Status */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[chatbot.status]}`} />
+        <span className="text-[12px] text-label-secondary font-medium">
           {STATUS_LABELS[chatbot.status]}
         </span>
       </div>
 
-      {/* URL or status hint */}
-      <p className="text-[13px] text-label-tertiary truncate mb-6">
-        {chatbot.website_url || 'No pages added yet'}
-      </p>
-
-      {/* Separator */}
-      <div className="divider mb-4" />
-
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <Link
-          to={`/chatbots/${chatbot.id}`}
-          className="text-[13px] text-accent font-medium hover:text-accent-hover transition-colors duration-200"
-        >
-          View Details
-        </Link>
+      {/* More menu */}
+      <div className="relative shrink-0" ref={menuRef}>
         <button
-          onClick={() => onDelete(chatbot.id)}
-          className="text-[13px] text-label-quaternary font-medium hover:text-red-500 transition-colors duration-200"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="w-7 h-7 rounded-md hover:bg-black/[0.04] flex items-center justify-center transition-colors"
         >
-          Remove
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-label-quaternary">
+            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+          </svg>
         </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-black/[0.08] rounded-lg shadow-lg overflow-hidden z-10 animate-fade-in">
+            <Link
+              to={`/chatbots/${chatbot.id}`}
+              className="block w-full text-left px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+            >
+              Open
+            </Link>
+            {chatbot.status === 'ready' && (
+              <Link
+                to={`/chatbots/${chatbot.id}/chat`}
+                className="block w-full text-left px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+              >
+                Chat
+              </Link>
+            )}
+            <div className="border-t border-black/[0.06]" />
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onDelete(chatbot.id);
+              }}
+              className="block w-full text-left px-3 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

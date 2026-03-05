@@ -16,17 +16,16 @@ export default {
         ],
       },
       colors: {
-        // Apple-inspired neutral palette with warmth
         surface: {
           primary: '#FBFBFD',
           secondary: '#F5F5F7',
           tertiary: '#EDEDF0',
         },
         accent: {
-          DEFAULT: '#0071E3',
-          hover: '#0077ED',
-          light: '#EBF5FF',
-          subtle: 'rgba(0, 113, 227, 0.08)',
+          DEFAULT: '#1B2559',
+          hover: '#141D47',
+          light: '#EEF0F8',
+          subtle: 'rgba(27, 37, 89, 0.08)',
         },
         label: {
           primary: '#1D1D1F',
@@ -34,6 +33,7 @@ export default {
           tertiary: '#86868B',
           quaternary: '#AEAEB2',
         },
+        separator: 'rgba(0, 0, 0, 0.06)',
       },
       borderRadius: {
         '2xl': '16px',
@@ -44,7 +44,6 @@ export default {
         'glass': '0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04)',
         'glass-hover': '0 0 0 1px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06)',
         'glass-lg': '0 0 0 1px rgba(0, 0, 0, 0.03), 0 4px 8px rgba(0, 0, 0, 0.04), 0 16px 48px rgba(0, 0, 0, 0.06)',
-        'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.5)',
       },
       backdropBlur: {
         'glass': '20px',
@@ -58,8 +57,8 @@ export default {
         '350': '350ms',
       },
       animation: {
-        'fade-in': 'fadeIn 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
-        'slide-up': 'slideUp 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
         'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {

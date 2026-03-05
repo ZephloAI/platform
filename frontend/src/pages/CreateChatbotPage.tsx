@@ -2,12 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateChatbot } from '../hooks/useChatbots';
 
-// ============================================================
-// CreateChatbotPage
-// Simplified creation form - only requires a name.
-// Website URL and page selection happen on the detail page.
-// ============================================================
-
 function CreateChatbotPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -37,25 +31,21 @@ function CreateChatbotPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="section-title">New Chatbot</h1>
-        <p className="text-[14px] text-label-tertiary mt-1">
-          Give your chatbot a name, then add pages to build its knowledge base.
-        </p>
-      </div>
+    <div className="max-w-lg animate-fade-in">
+      <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mb-1">
+        New Chatbot
+      </h1>
+      <p className="text-[14px] text-label-tertiary mb-8">
+        Give your chatbot a name, then add pages to build its knowledge base.
+      </p>
 
-      {/* Form card */}
-      <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
-        {/* Error */}
+      <form onSubmit={handleSubmit} className="border border-black/[0.08] rounded-xl p-6 space-y-5">
         {error && (
-          <div className="bg-red-500/[0.06] text-red-600 text-[13px] rounded-xl p-3.5 border border-red-500/10">
+          <div className="bg-red-50 text-red-600 text-[13px] rounded-lg p-3 border border-red-100">
             {error}
           </div>
         )}
 
-        {/* Name */}
         <div>
           <label htmlFor="name" className="input-label">Name</label>
           <input
@@ -72,8 +62,7 @@ function CreateChatbotPage() {
           </p>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           <button
             type="submit"
             disabled={createMutation.isPending}
