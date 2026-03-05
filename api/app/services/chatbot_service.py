@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chatbot import Chatbot
 from app.repositories.chatbot_repository import ChatbotRepository
-from app.schemas.chatbot import WidgetSettingsUpdate
+from app.schemas.chatbot import ChatbotUpdate, WidgetSettingsUpdate
 
 
 class ChatbotService:
@@ -21,12 +21,29 @@ class ChatbotService:
         """Get all chatbots owned by the given user."""
         return await self.chatbot_repo.get_all(user_id=user_id)
 
-    async def create_chatbot(self, user_id: int, name: str) -> Chatbot:
+    async def create_chatbot(
+        self, user_id: int, name: str, description: str | None = None, instructions: str | None = None
+    ) -> Chatbot:
         """Create a new chatbot for the given user."""
         return await self.chatbot_repo.create(
             user_id=user_id,
             name=name,
+            description=description,
+            instructions=instructions,
         )
+
+    async def update_chatbot(
+        self, chatbot_id: int, user_id: int, update: ChatbotUpdate
+    ) -> Chatbot:
+        """Update chatbot general settings with ownership check."""
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or chatbot.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbot not found",
+            )
+        update_data = update.model_dump(exclude_unset=True)
+        return await self.chatbot_repo.update(chatbot_id, **update_data)
 
     async def get_chatbot(self, chatbot_id: int, user_id: int) -> Chatbot:
         """

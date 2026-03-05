@@ -12,6 +12,15 @@ from app.schemas.crawl_job import CrawlJobResponse
 class ChatbotCreate(BaseModel):
     """Schema for creating a new chatbot. Only name is required."""
     name: str
+    description: str | None = None
+    instructions: str | None = None
+
+
+class ChatbotUpdate(BaseModel):
+    """Schema for updating chatbot general settings."""
+    name: str | None = None
+    description: str | None = None
+    instructions: str | None = None
 
 
 class MCPServer(BaseModel):
@@ -48,6 +57,8 @@ class ChatbotResponse(BaseModel):
     """Schema for chatbot list/detail responses."""
     id: int
     name: str
+    description: str | None = None
+    instructions: str | None = None
     website_url: str | None = None
     status: str
     created_at: datetime

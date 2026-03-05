@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useChatbot } from '../hooks/useChatbots';
+import GeneralSection from '../components/GeneralSection';
 import OverviewSection from '../components/OverviewSection';
 import KnowledgeSection from '../components/KnowledgeSection';
 import ConfigSection from '../components/ConfigSection';
@@ -14,11 +15,22 @@ import ToolsSection from '../components/ToolsSection';
 //   - Config: widget customization
 // ============================================================
 
-type Section = 'overview' | 'knowledge' | 'config' | 'tools';
+type Section = 'general' | 'overview' | 'knowledge' | 'config' | 'tools';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 type ToolsTab = 'mcp-servers';
 
 const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
+  {
+    key: 'general',
+    label: 'General',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+    ),
+  },
   {
     key: 'overview',
     label: 'Overview',
@@ -91,7 +103,7 @@ function ChatbotDetailPage() {
   const { id } = useParams<{ id: string }>();
   const chatbotId = Number(id);
   const { data: chatbot, isLoading, error } = useChatbot(chatbotId);
-  const [activeSection, setActiveSection] = useState<Section>('overview');
+  const [activeSection, setActiveSection] = useState<Section>('general');
   const [activeConfigTab, setActiveConfigTab] = useState<ConfigTab>('appearance');
   const [activeToolsTab, setActiveToolsTab] = useState<ToolsTab>('mcp-servers');
 
@@ -223,6 +235,7 @@ function ChatbotDetailPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
+          {activeSection === 'general' && <GeneralSection chatbot={chatbot} />}
           {activeSection === 'overview' && <OverviewSection chatbot={chatbot} />}
           {activeSection === 'knowledge' && <KnowledgeSection chatbot={chatbot} />}
           {activeSection === 'config' && <ConfigSection chatbot={chatbot} activeTab={activeConfigTab} />}

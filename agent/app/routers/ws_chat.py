@@ -74,7 +74,7 @@ async def ws_chat(ws: WebSocket):
             return
 
         chatbot_row = await conn.fetchrow(
-            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled FROM chatbots WHERE id = $1",
+            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions FROM chatbots WHERE id = $1",
             chatbot_id,
         )
     finally:
@@ -88,6 +88,7 @@ async def ws_chat(ws: WebSocket):
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")
     mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
     webmcp_enabled = chatbot_row["webmcp_enabled"] or False
+    custom_instructions = chatbot_row["instructions"] or None
 
     await ws.accept()
 
@@ -100,6 +101,7 @@ async def ws_chat(ws: WebSocket):
         session_id=session_id,
         follow_up_pool=follow_up_prompts,
         mcp_tools=mcp_tools,
+        custom_instructions=custom_instructions,
     )
     webmcp_initialized = False
 
@@ -124,6 +126,7 @@ async def ws_chat(ws: WebSocket):
                     session_id=session_id,
                     follow_up_pool=follow_up_prompts,
                     mcp_tools=all_tools,
+                    custom_instructions=custom_instructions,
                 )
                 webmcp_initialized = True
 

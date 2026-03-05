@@ -32,6 +32,7 @@ from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
 logger = logging.getLogger(__name__)
 
 
+
 async def connect_mcp_servers(mcp_configs: list[dict]) -> list[MCPTools]:
     """Connect to MCP servers from a list of config dicts.
 
@@ -184,6 +185,7 @@ def create_agent(
     session_id: str | None = None,
     follow_up_pool: list[dict] | None = None,
     mcp_tools: list | None = None,
+    custom_instructions: str | None = None,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
@@ -224,6 +226,13 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
     if mcp_tools:
         tools.extend(mcp_tools)
 
+    # Prepend custom chatbot instructions if provided
+    custom_instruction_lines = []
+    if custom_instructions:
+        custom_instruction_lines = [
+            f"IMPORTANT — Custom instructions from the chatbot owner:\n{custom_instructions}",
+        ]
+
     agent = Agent(
         model=OpenRouter(
             id=settings.LLM_MODEL,
@@ -231,6 +240,7 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
         ),
         description="You are a friendly and knowledgeable team member.",
         instructions=[
+            *custom_instruction_lines,
             "Speak confidently as a member of the team, not as an external tool.",
             "Answer questions using the provided context. Speak in first person plural ('we offer', 'our packages') as if you work there.",
             "NEVER say 'based on the website', 'according to the context', or reference your sources in the text. Just state the information directly and confidently.",
@@ -259,6 +269,7 @@ async def chat_with_agent(
     session_id: str | None = None,
     follow_up_prompts: list[dict] | None = None,
     mcp_configs: list[dict] | None = None,
+    custom_instructions: str | None = None,
 ) -> dict:
     """
     Process a user's chat message using RAG + the Agno agent.
@@ -300,6 +311,7 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
             session_id=session_id,
             follow_up_pool=follow_up_prompts or [],
             mcp_tools=mcp_tools if mcp_tools else None,
+            custom_instructions=custom_instructions,
         )
 
         # Step 5: Run async — required when MCP tools are attached

@@ -17,6 +17,8 @@ class Chatbot(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    instructions = Column(String, nullable=True)
     website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
     created_at = Column(DateTime, default=func.now())

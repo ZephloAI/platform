@@ -38,6 +38,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
     follow_up_prompts: list[dict] = []
+    instructions: str | None = None
 
 
 class ChatSource(BaseModel):
@@ -104,6 +105,7 @@ async def chat(request: ChatRequest):
             chatbot_name=request.chatbot_name,
             session_id=request.session_id,
             follow_up_prompts=request.follow_up_prompts,
+            custom_instructions=request.instructions,
         )
         return ChatResponse(**result)
     except Exception as e:

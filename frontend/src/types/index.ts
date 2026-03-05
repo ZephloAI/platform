@@ -22,6 +22,8 @@ export interface AuthState {
 export interface Chatbot {
   id: number;
   name: string;
+  description: string | null;
+  instructions: string | null;
   website_url: string | null;
   status: 'pending' | 'crawling' | 'ready' | 'error';
   created_at: string;

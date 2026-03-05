@@ -64,6 +64,31 @@ export function useCreateChatbot() {
 }
 
 /**
+ * Update a chatbot's name, description, and instructions.
+ * Invalidates the chatbot detail and list on success.
+ */
+export function useUpdateChatbot() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      chatbotId,
+      data,
+    }: {
+      chatbotId: number;
+      data: { name: string; description: string | null; instructions: string | null };
+    }): Promise<Chatbot> => {
+      const response = await apiClient.put(`/api/chatbots/${chatbotId}`, data);
+      return response.data;
+    },
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots });
+    },
+  });
+}
+
+/**
  * Delete a chatbot. Invalidates the chatbot list on success.
  */
 export function useDeleteChatbot() {

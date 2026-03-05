@@ -18,6 +18,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.chatbot import (
     ChatbotCreate,
+    ChatbotUpdate,
     ChatbotResponse,
     ChatbotDetailResponse,
     WidgetSettingsUpdate,
@@ -57,7 +58,21 @@ async def create_chatbot(
     return await service.create_chatbot(
         user_id=user.id,
         name=body.name,
+        description=body.description,
+        instructions=body.instructions,
     )
+
+
+@router.put("/{chatbot_id}", response_model=ChatbotResponse)
+async def update_chatbot(
+    chatbot_id: int,
+    body: ChatbotUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update chatbot general settings (name, description, instructions)."""
+    service = ChatbotService(db)
+    return await service.update_chatbot(chatbot_id, user.id, body)
 
 
 @router.get("/{chatbot_id}", response_model=ChatbotDetailResponse)
