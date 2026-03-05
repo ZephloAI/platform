@@ -11,5 +11,6 @@ from app.models.chatbot import Chatbot
 from app.models.crawl_job import CrawlJob
 from app.models.page import Page
 from app.models.chat_session import ChatSession
+from app.models.api_key import ApiKey
 
-__all__ = ["Base", "User", "Chatbot", "CrawlJob", "Page", "ChatSession"]
+__all__ = ["Base", "User", "Chatbot", "CrawlJob", "Page", "ChatSession", "ApiKey"]

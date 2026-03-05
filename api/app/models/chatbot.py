@@ -47,6 +47,9 @@ class Chatbot(Base):
     # MCP servers
     mcp_servers = Column(JSON, nullable=True, default=[])
 
+    # WebMCP (browser-side tool execution)
+    webmcp_enabled = Column(Boolean, default=False, server_default="false")
+
     # Relationships
     user = relationship("User", back_populates="chatbots")
     crawl_jobs = relationship(

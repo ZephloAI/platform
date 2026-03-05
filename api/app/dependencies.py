@@ -1,12 +1,12 @@
 """
 Shared FastAPI dependencies.
 
-Provides the `get_current_user` dependency used by protected endpoints.
-It extracts the JWT token from the Authorization header, decodes it,
-and returns the authenticated User object.
+Provides:
+- get_current_user: JWT auth for dashboard endpoints
+- validate_api_key: API key auth for public/widget endpoints
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,3 +40,39 @@ async def get_current_user(
             detail="Invalid or expired token",
         )
     return user
+
+
+async def validate_api_key(
+    x_api_key: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    FastAPI dependency: validate an optional X-API-Key header.
+
+    Returns the ApiKey record if a valid key is provided, or None if
+    the header is absent (allowing backward-compatible unauthenticated access).
+    Raises 401 if a key is provided but invalid or revoked.
+
+    Usage:
+        @router.get("/something")
+        async def endpoint(api_key = Depends(validate_api_key)):
+            ...
+    """
+    if x_api_key is None:
+        return None
+
+    from app.repositories.api_key_repository import ApiKeyRepository
+
+    repo = ApiKeyRepository(db)
+    api_key = await repo.get_by_key(x_api_key)
+
+    if not api_key or not api_key.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked API key",
+        )
+
+    # Update last used timestamp in the background
+    await repo.update_last_used(api_key.id)
+
+    return api_key

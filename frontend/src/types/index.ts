@@ -43,6 +43,7 @@ export interface Chatbot {
   widget_font_size?: number | null;
   widget_text_color?: string | null;
   voice_enabled?: boolean;
+  webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
 }
 
@@ -95,6 +96,7 @@ export interface WidgetSettings {
   widget_font_size?: number | null;
   widget_text_color?: string | null;
   voice_enabled?: boolean;
+  webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
 }
 
@@ -120,4 +122,20 @@ export interface ChatMessage {
   content: string;
   sources?: { url: string; title: string }[];
   follow_up_prompts?: { title: string; link?: string; prompt?: string }[];
+}
+
+/** An API key for authenticating SDK/widget requests */
+export interface ApiKey {
+  id: number;
+  chatbot_id: number;
+  key_prefix: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+/** Response when creating a new API key - includes full key shown once */
+export interface ApiKeyCreated extends ApiKey {
+  key: string;
 }

@@ -27,6 +27,7 @@ from agno.tools.mcp.params import SSEClientParams, StreamableHTTPClientParams
 
 from app.config import settings
 from app.rag import retrieve_context, format_context_for_llm
+from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
 
 logger = logging.getLogger(__name__)
 
@@ -302,7 +303,12 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
         )
 
         # Step 5: Run async — required when MCP tools are attached
+        install_patch()
+        collector = McpMetaCollector()
+        set_active_collector(collector)
         response = await agent.arun(full_prompt)
+        set_active_collector(None)
+        mcp_results = collector.drain() or None
 
         # Extract text — content can be empty when the agent made a tool call
         # and the main response only contains the tool result.
@@ -340,6 +346,7 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
             "sources": sources,
             "session_id": session_id or response.session_id,
             "follow_up_prompts": selected_follow_ups,
+            "mcp_results": mcp_results,
         }
     finally:
         # Disconnect all MCP servers

@@ -1,22 +1,25 @@
 import * as esbuild from "esbuild";
+import { cpSync } from "fs";
 
 const watch = process.argv.includes("--watch");
+const minify = !watch;
 
-const options = {
-  entryPoints: ["src/index.ts"],
-  bundle: true,
-  minify: !watch,
-  format: "iife",
-  target: ["es2020"],
-  outfile: "dist/chatbot-widget.js",
-  sourcemap: watch,
-};
+const builds = [
+  { entryPoints: ["src/index.ts"], format: "iife", outfile: "dist/chatbot-widget.js" },
+  { entryPoints: ["src/flunkie.ts"], format: "esm", outfile: "dist/flunkie.esm.js" },
+  { entryPoints: ["src/flunkie.ts"], format: "iife", globalName: "Flunkie", outfile: "dist/flunkie.js" },
+];
 
-if (watch) {
-  const ctx = await esbuild.context(options);
-  await ctx.watch();
-  console.log("Watching for changes...");
-} else {
-  await esbuild.build(options);
-  console.log("Built dist/chatbot-widget.js");
+for (const build of builds) {
+  const options = { ...build, bundle: true, minify, target: ["es2020"], sourcemap: watch };
+  if (watch) {
+    const ctx = await esbuild.context(options);
+    await ctx.watch();
+  } else {
+    await esbuild.build(options);
+  }
+  console.log(`Built ${build.outfile}`);
 }
+
+cpSync("src/types.d.ts", "dist/types.d.ts");
+console.log("Copied types.d.ts");

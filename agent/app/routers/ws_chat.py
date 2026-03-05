@@ -22,10 +22,14 @@ from app.config import settings
 from app.agent import create_agent, clean_response, connect_mcp_servers
 from app.rag import retrieve_context, format_context_for_llm
 from app.tts import text_to_speech
+from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
+from app.webmcp_tools import WebMcpToolkit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+install_patch()
 
 
 @router.websocket("/ws/chat")
@@ -70,7 +74,7 @@ async def ws_chat(ws: WebSocket):
             return
 
         chatbot_row = await conn.fetchrow(
-            "SELECT name, follow_up_prompts, mcp_servers FROM chatbots WHERE id = $1",
+            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled FROM chatbots WHERE id = $1",
             chatbot_id,
         )
     finally:
@@ -83,6 +87,7 @@ async def ws_chat(ws: WebSocket):
     chatbot_name = chatbot_row["name"]
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")
     mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
+    webmcp_enabled = chatbot_row["webmcp_enabled"] or False
 
     await ws.accept()
 
@@ -96,11 +101,32 @@ async def ws_chat(ws: WebSocket):
         follow_up_pool=follow_up_prompts,
         mcp_tools=mcp_tools,
     )
+    webmcp_initialized = False
 
     try:
         while True:
             raw = await ws.receive_text()
             data = json.loads(raw)
+
+            # Skip WebMCP tool results — handled inline by WebMcpToolkit
+            if data.get("type") == "webmcp_tool_result":
+                continue
+
+            # Initialize WebMCP tools on first message (if enabled and tools provided)
+            webmcp_tool_schemas = data.get("webmcp_tools", [])
+            if webmcp_enabled and webmcp_tool_schemas and not webmcp_initialized:
+                webmcp_toolkit = WebMcpToolkit(webmcp_tool_schemas, ws)
+                all_tools = list(mcp_tools) + [webmcp_toolkit]
+                if follow_up_toolkit:
+                    all_tools.append(follow_up_toolkit)
+                agent, follow_up_toolkit = create_agent(
+                    chatbot_name=chatbot_name,
+                    session_id=session_id,
+                    follow_up_pool=follow_up_prompts,
+                    mcp_tools=all_tools,
+                )
+                webmcp_initialized = True
+
             message: str = data.get("message", "")
             voice: bool = data.get("voice", False)
 
@@ -125,7 +151,11 @@ async def ws_chat(ws: WebSocket):
             )
 
             # Step 4: Run the agent (async for MCP tool support)
+            collector = McpMetaCollector()
+            set_active_collector(collector)
             response = await agent.arun(full_prompt)
+            set_active_collector(None)
+            mcp_results = collector.drain() or None
 
             # Extract text — content can be empty when the agent made a tool
             # call and the main response only contains the tool result.
@@ -186,6 +216,7 @@ async def ws_chat(ws: WebSocket):
                     "session_id": session_id,
                     "follow_up_prompts": selected,
                     "audio": audio,
+                    "mcp_results": mcp_results,
                 }
             )
 

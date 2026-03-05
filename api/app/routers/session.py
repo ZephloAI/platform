@@ -1,10 +1,15 @@
-"""Session router - creates chat sessions for widget/dashboard connections."""
+"""
+Session router - creates chat sessions for widget/dashboard connections.
+
+Supports optional X-API-Key header for authenticated access.
+"""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import validate_api_key
 from app.models.chat_session import ChatSession
 from app.repositories.chatbot_repository import ChatbotRepository
 
@@ -19,13 +24,22 @@ class CreateSessionRequest(BaseModel):
 async def create_session(
     body: CreateSessionRequest,
     db: AsyncSession = Depends(get_db),
+    api_key=Depends(validate_api_key),
 ):
     """
     Create a new chat session for a chatbot.
 
-    No authentication required - used by the public widget and dashboard preview.
-    Verifies the chatbot exists, then creates a session record and returns its UUID.
+    Accepts an optional X-API-Key header. If provided, the key must be
+    valid and belong to the requested chatbot. If absent, access is allowed
+    without authentication (backward compatible).
     """
+    # If an API key was provided, verify it belongs to this chatbot
+    if api_key and api_key.chatbot_id != body.chatbot_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key does not match this chatbot",
+        )
+
     chatbot = await ChatbotRepository(db).get_by_id(body.chatbot_id)
     if not chatbot:
         raise HTTPException(

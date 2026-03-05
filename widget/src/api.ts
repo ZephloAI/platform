@@ -4,6 +4,18 @@
  * Session-based auth: POST /api/session creates a session, then WS connects with session_id.
  */
 
+let _apiKey: string | undefined;
+
+export function setApiKey(key: string) {
+  _apiKey = key;
+}
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (_apiKey) headers["X-API-Key"] = _apiKey;
+  return headers;
+}
+
 export interface ChatSource {
   url: string;
   title: string;
@@ -15,12 +27,19 @@ export interface FollowUpPrompt {
   prompt?: string;
 }
 
+export interface McpToolResult {
+  tool_name: string;
+  meta: Record<string, unknown>;
+  content: string;
+}
+
 export interface ChatResponse {
   response: string;
   sources: ChatSource[];
   session_id: string | null;
   follow_up_prompts?: FollowUpPrompt[];
   audio?: string | null;
+  mcp_results?: McpToolResult[] | null;
 }
 
 export interface WidgetConfig {
@@ -42,6 +61,7 @@ export interface WidgetConfig {
   widget_font_size?: number | null;
   widget_text_color?: string | null;
   voice_enabled?: boolean;
+  webmcp_enabled?: boolean;
 }
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -54,7 +74,9 @@ export async function fetchConfig(
   chatbotId: number,
 ): Promise<WidgetConfig | null> {
   try {
-    const res = await fetch(`${apiUrl}/api/public/chatbots/${chatbotId}/config`);
+    const res = await fetch(`${apiUrl}/api/public/chatbots/${chatbotId}/config`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -71,7 +93,7 @@ export async function createSession(
 ): Promise<string> {
   const res = await fetch(`${apiUrl}/api/session`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ chatbot_id: chatbotId }),
   });
   if (!res.ok) throw new Error('Failed to create session');
@@ -91,6 +113,9 @@ export class ChatSocket {
   private sessionId: string;
   private pending: ((value: ChatResponse) => void) | null = null;
   private pendingReject: ((reason: Error) => void) | null = null;
+  private mcpListeners: ((results: McpToolResult[]) => void)[] = [];
+  private webMcpHandler: ((req: { tool_name: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
+  private webMcpToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -114,8 +139,20 @@ export class ChatSocket {
     return `${proto}//${host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
   }
 
+  setWebMcpHandler(handler: (req: { tool_name: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
+    this.webMcpHandler = handler;
+  }
+
+  setWebMcpTools(schemas: { name: string; description: string; inputSchema: Record<string, unknown> }[]): void {
+    this.webMcpToolSchemas = schemas;
+  }
+
   async sendMessage(message: string, voice?: boolean): Promise<ChatResponse> {
-    const payload = JSON.stringify({ message, ...(voice ? { voice: true } : {}) });
+    const payload = JSON.stringify({
+      message,
+      ...(voice ? { voice: true } : {}),
+      ...(this.webMcpToolSchemas.length > 0 ? { webmcp_tools: this.webMcpToolSchemas } : {}),
+    });
 
     // Reuse open connection
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -141,16 +178,39 @@ export class ChatSocket {
         this.ws!.send(payload);
       };
 
-      this.ws.onmessage = (event) => {
+      this.ws.onmessage = async (event) => {
+        let data: any;
         try {
-          const data = JSON.parse(event.data);
-          if (data.error) {
-            this.pendingReject?.(new Error(data.error));
-          } else {
-            this.pending?.(data as ChatResponse);
-          }
+          data = JSON.parse(event.data);
         } catch {
           this.pendingReject?.(new Error("Invalid response from server"));
+          this.pending = null;
+          this.pendingReject = null;
+          return;
+        }
+
+        // Handle intermediate webmcp tool call — do NOT resolve pending
+        if (data.type === "webmcp_tool_call" && this.webMcpHandler) {
+          const result = await this.webMcpHandler({
+            tool_name: data.tool_name,
+            arguments: data.arguments || {},
+          });
+          this.ws?.send(JSON.stringify({
+            type: "webmcp_tool_result",
+            call_id: data.call_id,
+            content: result.content,
+            error: result.error,
+          }));
+          return;
+        }
+
+        if (data.error) {
+          this.pendingReject?.(new Error(data.error));
+        } else {
+          if (data.mcp_results && data.mcp_results.length > 0) {
+            this.notifyMcpListeners(data.mcp_results);
+          }
+          this.pending?.(data as ChatResponse);
         }
         this.pending = null;
         this.pendingReject = null;
@@ -173,6 +233,19 @@ export class ChatSocket {
         this.ws = null;
       };
     });
+  }
+
+  onMcpResult(callback: (results: McpToolResult[]) => void): () => void {
+    this.mcpListeners.push(callback);
+    return () => {
+      this.mcpListeners = this.mcpListeners.filter(cb => cb !== callback);
+    };
+  }
+
+  private notifyMcpListeners(results: McpToolResult[]) {
+    for (const cb of this.mcpListeners) {
+      try { cb(results); } catch { /* listener error */ }
+    }
   }
 
   close() {

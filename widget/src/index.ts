@@ -13,7 +13,8 @@
  * settings from the dashboard.
  */
 
-import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type ConnectionStatus } from "./api";
+import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus } from "./api";
+import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { WIDGET_STYLES } from "./styles";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD } from "./icons";
 
@@ -67,7 +68,7 @@ function getScriptConfig(): { chatbotId: number; apiUrl: string } {
 
 // ---- Web Component ----
 
-class ChatbotWidget extends HTMLElement {
+export class ChatbotWidget extends HTMLElement {
   private shadow: ShadowRoot;
   private state!: WidgetState;
   private messages: Message[] = [];
@@ -93,10 +94,13 @@ class ChatbotWidget extends HTMLElement {
   private audioMap: Map<number, string> = new Map();
   private currentAudio: HTMLAudioElement | null = null;
   private sessionRetried = false;  // prevent infinite retry loops
+  private mcpUnsubscribe: (() => void) | null = null;
+  private mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
   private voiceMode = false;
   private voiceMicBtn: HTMLButtonElement | null = null;
   private voiceOverlay: HTMLDivElement | null = null;
   private voiceStatusEl: HTMLDivElement | null = null;
+  private webMcpEnabled = false;
 
   constructor() {
     super();
@@ -151,6 +155,7 @@ class ChatbotWidget extends HTMLElement {
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
       this.state.voiceEnabled = config.voice_enabled || false;
+      this.webMcpEnabled = config.webmcp_enabled || false;
     }
 
     // Create or reuse session, then create WebSocket client
@@ -170,6 +175,12 @@ class ChatbotWidget extends HTMLElement {
 
     if (this.chatSocket) {
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+      this.setupMcpListener();
+      if (this.webMcpEnabled) {
+        toolRegistry.discoverExternal();
+        this.chatSocket.setWebMcpHandler(async (req) => toolRegistry.execute(req.tool_name, req.arguments));
+        this.chatSocket.setWebMcpTools(toolRegistry.getSchemas());
+      }
     }
 
     // Load existing messages from localStorage (if any)
@@ -953,6 +964,7 @@ class ChatbotWidget extends HTMLElement {
         localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+        this.setupMcpListener();
       } catch {
         this.setVoiceStatus('Connection failed');
         if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
@@ -1076,6 +1088,7 @@ class ChatbotWidget extends HTMLElement {
         localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+        this.setupMcpListener();
       } catch {
         this.showError("Unable to connect. Please try again.");
         return;
@@ -1163,6 +1176,7 @@ class ChatbotWidget extends HTMLElement {
       localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status: ConnectionStatus) => this.updateStatusDot(status);
+      this.setupMcpListener();
       return true;
     } catch {
       return false;
@@ -1208,6 +1222,7 @@ class ChatbotWidget extends HTMLElement {
         localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+        this.setupMcpListener();
       } catch {
         this.showError("Unable to connect. Please try again.");
         return;
@@ -1389,6 +1404,7 @@ class ChatbotWidget extends HTMLElement {
       localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
+      this.setupMcpListener();
     } catch {
       // Will retry on next message
     }
@@ -1452,6 +1468,49 @@ class ChatbotWidget extends HTMLElement {
     div.textContent = str;
     return div.innerHTML;
   }
+
+  /**
+   * Attach an MCP result listener to the current chatSocket.
+   * Call this after creating a new ChatSocket instance.
+   */
+  private setupMcpListener() {
+    if (this.mcpUnsubscribe) {
+      this.mcpUnsubscribe();
+      this.mcpUnsubscribe = null;
+    }
+    if (!this.chatSocket) return;
+
+    this.mcpUnsubscribe = this.chatSocket.onMcpResult((results) => {
+      // Dispatch CustomEvent that crosses Shadow DOM
+      this.dispatchEvent(new CustomEvent("mcp-result", {
+        bubbles: true,
+        composed: true,
+        detail: { results },
+      }));
+      // Notify global listeners
+      for (const cb of this.mcpGlobalListeners) {
+        try { cb(results); } catch { /* listener error */ }
+      }
+    });
+  }
+
+  /**
+   * Register a WebMCP tool that can be invoked by the agent.
+   */
+  registerTool(tool: ToolDefinition): void {
+    toolRegistry.register(tool);
+  }
+
+  /**
+   * Register a global listener for MCP tool results.
+   * Returns an unsubscribe function.
+   */
+  onMcpResult(callback: (results: McpToolResult[]) => void): () => void {
+    this.mcpGlobalListeners.push(callback);
+    return () => {
+      this.mcpGlobalListeners = this.mcpGlobalListeners.filter(cb => cb !== callback);
+    };
+  }
 }
 
 // ---- Register and auto-inject ----
@@ -1460,6 +1519,24 @@ if (!customElements.get("chatbot-widget")) {
   customElements.define("chatbot-widget", ChatbotWidget);
 }
 
-if (!document.querySelector("chatbot-widget")) {
-  document.body.appendChild(document.createElement("chatbot-widget"));
+// Expose global API for host page integration
+declare global {
+  interface Window {
+    ChatbotWidget?: {
+      onMcpResult: (callback: (results: McpToolResult[]) => void) => () => void;
+    };
+  }
+}
+
+if (!(window as any).__FLUNKIE_SDK__) {
+  if (!document.querySelector("chatbot-widget")) {
+    document.body.appendChild(document.createElement("chatbot-widget"));
+  }
+
+  const widgetEl = document.querySelector("chatbot-widget") as ChatbotWidget | null;
+  if (widgetEl) {
+    window.ChatbotWidget = {
+      onMcpResult: (callback) => widgetEl.onMcpResult(callback),
+    };
+  }
 }

@@ -3,12 +3,17 @@ Public chat router - widget configuration endpoint.
 
 The embeddable widget fetches its config (name, icon, welcome message, etc.)
 from the GET endpoint here.
+
+Supports optional X-API-Key header for authenticated access.
+If a key is provided, it must be valid and match the chatbot_id.
+If no key is provided, the endpoint works without auth (backward compat).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import validate_api_key
 from app.schemas.chatbot import PublicWidgetConfig
 from app.repositories.chatbot_repository import ChatbotRepository
 
@@ -19,13 +24,22 @@ router = APIRouter(prefix="/api/public", tags=["public-chat"])
 async def get_widget_config(
     chatbot_id: int,
     db: AsyncSession = Depends(get_db),
+    api_key=Depends(validate_api_key),
 ):
     """
     Public endpoint returning widget configuration.
 
-    No authentication required. The embeddable widget calls this on init
-    to get the chatbot name, icon, welcome message, and position.
+    Accepts an optional X-API-Key header. If provided, the key must be
+    valid and belong to the requested chatbot. If absent, access is allowed
+    without authentication (backward compatible).
     """
+    # If an API key was provided, verify it belongs to this chatbot
+    if api_key and api_key.chatbot_id != chatbot_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key does not match this chatbot",
+        )
+
     chatbot_repo = ChatbotRepository(db)
     chatbot = await chatbot_repo.get_by_id(chatbot_id)
 
@@ -55,4 +69,5 @@ async def get_widget_config(
         widget_font_size=chatbot.widget_font_size,
         widget_text_color=chatbot.widget_text_color,
         voice_enabled=chatbot.voice_enabled or False,
+        webmcp_enabled=chatbot.webmcp_enabled or False,
     )

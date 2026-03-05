@@ -55,6 +55,14 @@ class FollowUpPrompt(BaseModel):
     prompt: str | None = None
 
 
+class McpToolResult(BaseModel):
+    """An MCP tool result containing _meta.ui_path for host-page rendering."""
+
+    tool_name: str
+    meta: dict
+    content: str
+
+
 class ChatResponse(BaseModel):
     """
     What the chat endpoint returns to the client.
@@ -64,12 +72,14 @@ class ChatResponse(BaseModel):
         sources:           List of source pages the answer was based on.
         session_id:        The session ID for this conversation thread.
         follow_up_prompts: Contextually selected follow-up prompts.
+        mcp_results:       MCP tool results with _meta.ui_path for host-page rendering.
     """
 
     response: str
     sources: list[ChatSource] = []
     session_id: str | None = None
     follow_up_prompts: list[FollowUpPrompt] = []
+    mcp_results: list[McpToolResult] | None = None
 
 
 # ──────────────────────────────────────────────────────────────────────
