@@ -14,7 +14,7 @@ How the chat flow works:
 6. If relevant, the agent calls suggest_follow_up to surface a contextual action button.
 7. The run is automatically persisted to Postgres under that session_id.
 """
-
+import inspect
 import logging
 import re
 
@@ -232,6 +232,8 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
         custom_instruction_lines = [
             f"IMPORTANT — Custom instructions from the chatbot owner:\n{custom_instructions}",
         ]
+
+    print(f"Registering Tools: {[inspect.signature(t) for t in tools]}")
 
     agent = Agent(
         model=OpenRouter(

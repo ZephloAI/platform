@@ -12,6 +12,9 @@ class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
 
   register(tool: ToolDefinition): void {
+    if (!tool.description) {
+      console.warn(`[Flunkie] Tool "${tool.name}" registered without a description. Add a description for better LLM tool usage.`);
+    }
     this.tools.set(tool.name, tool);
     if ((navigator as any).modelContext) {
       (navigator as any).modelContext.registerTool({

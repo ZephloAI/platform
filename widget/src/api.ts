@@ -114,8 +114,9 @@ export class ChatSocket {
   private pending: ((value: ChatResponse) => void) | null = null;
   private pendingReject: ((reason: Error) => void) | null = null;
   private mcpListeners: ((results: McpToolResult[]) => void)[] = [];
-  private webMcpHandler: ((req: { tool_name: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
-  private webMcpToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
+  private flunkieToolHandler: ((req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
+  private flunkieToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
+  private flunkieToolGetter: (() => { name: string; description: string; inputSchema: Record<string, unknown> }[]) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -139,19 +140,30 @@ export class ChatSocket {
     return `${proto}//${host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
   }
 
-  setWebMcpHandler(handler: (req: { tool_name: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
-    this.webMcpHandler = handler;
+  setFlunkieToolHandler(handler: (req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
+    this.flunkieToolHandler = handler;
   }
 
-  setWebMcpTools(schemas: { name: string; description: string; inputSchema: Record<string, unknown> }[]): void {
-    this.webMcpToolSchemas = schemas;
+  setFlunkieTools(schemasOrGetter: { name: string; description: string; inputSchema: Record<string, unknown> }[] | (() => { name: string; description: string; inputSchema: Record<string, unknown> }[])): void {
+    if (typeof schemasOrGetter === 'function') {
+      this.flunkieToolGetter = schemasOrGetter;
+    } else {
+      this.flunkieToolSchemas = schemasOrGetter;
+    }
+  }
+
+  private getFlunkieToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
+    if (this.flunkieToolGetter) {
+      return this.flunkieToolGetter();
+    }
+    return this.flunkieToolSchemas;
   }
 
   async sendMessage(message: string, voice?: boolean): Promise<ChatResponse> {
     const payload = JSON.stringify({
+      message_type: "chat",
       message,
       ...(voice ? { voice: true } : {}),
-      ...(this.webMcpToolSchemas.length > 0 ? { webmcp_tools: this.webMcpToolSchemas } : {}),
     });
 
     // Reuse open connection
@@ -175,6 +187,11 @@ export class ChatSocket {
 
       this.ws.onopen = () => {
         this.setStatus('connected');
+        // Always send init with tool schemas (empty array if none)
+        this.ws!.send(JSON.stringify({
+            message_type: "init",
+            flunkie_tools: this.getFlunkieToolSchemas(),
+        }));
         this.ws!.send(payload);
       };
 
@@ -189,14 +206,14 @@ export class ChatSocket {
           return;
         }
 
-        // Handle intermediate webmcp tool call — do NOT resolve pending
-        if (data.type === "webmcp_tool_call" && this.webMcpHandler) {
-          const result = await this.webMcpHandler({
-            tool_name: data.tool_name,
-            arguments: data.arguments || {},
+        // Handle tool call from agent
+        if (data.message_type === "web_tool_call" && this.flunkieToolHandler) {
+          const result = await this.flunkieToolHandler({
+            tool: data.details.tool,
+            arguments: data.details.arguments || {},
           });
           this.ws?.send(JSON.stringify({
-            type: "webmcp_tool_result",
+            message_type: "tool_result",
             call_id: data.call_id,
             content: result.content,
             error: result.error,
@@ -204,14 +221,19 @@ export class ChatSocket {
           return;
         }
 
-        if (data.error) {
+        // Handle error
+        if (data.message_type === "error") {
           this.pendingReject?.(new Error(data.error));
-        } else {
-          if (data.mcp_results && data.mcp_results.length > 0) {
-            this.notifyMcpListeners(data.mcp_results);
-          }
-          this.pending?.(data as ChatResponse);
+          this.pending = null;
+          this.pendingReject = null;
+          return;
         }
+
+        // Handle normal response
+        if (data.mcp_results && data.mcp_results.length > 0) {
+          this.notifyMcpListeners(data.mcp_results);
+        }
+        this.pending?.(data as ChatResponse);
         this.pending = null;
         this.pendingReject = null;
       };

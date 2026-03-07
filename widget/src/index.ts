@@ -100,7 +100,7 @@ export class ChatbotWidget extends HTMLElement {
   private voiceMicBtn: HTMLButtonElement | null = null;
   private voiceOverlay: HTMLDivElement | null = null;
   private voiceStatusEl: HTMLDivElement | null = null;
-  private webMcpEnabled = false;
+
 
   constructor() {
     super();
@@ -155,7 +155,7 @@ export class ChatbotWidget extends HTMLElement {
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
       this.state.voiceEnabled = config.voice_enabled || false;
-      this.webMcpEnabled = config.webmcp_enabled || false;
+
     }
 
     // Create or reuse session, then create WebSocket client
@@ -176,11 +176,6 @@ export class ChatbotWidget extends HTMLElement {
     if (this.chatSocket) {
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
       this.setupMcpListener();
-      if (this.webMcpEnabled) {
-        toolRegistry.discoverExternal();
-        this.chatSocket.setWebMcpHandler(async (req) => toolRegistry.execute(req.tool_name, req.arguments));
-        this.chatSocket.setWebMcpTools(toolRegistry.getSchemas());
-      }
     }
 
     // Load existing messages from localStorage (if any)
@@ -1470,7 +1465,7 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   /**
-   * Attach an MCP result listener to the current chatSocket.
+   * Wire up listeners and Flunkie tools on the current chatSocket.
    * Call this after creating a new ChatSocket instance.
    */
   private setupMcpListener() {
@@ -1479,6 +1474,11 @@ export class ChatbotWidget extends HTMLElement {
       this.mcpUnsubscribe = null;
     }
     if (!this.chatSocket) return;
+
+    // Wire Flunkie tool handler and schemas on every new socket
+    toolRegistry.discoverExternal();
+    this.chatSocket.setFlunkieToolHandler(async (req) => toolRegistry.execute(req.tool, req.arguments));
+    this.chatSocket.setFlunkieTools(() => toolRegistry.getSchemas());
 
     this.mcpUnsubscribe = this.chatSocket.onMcpResult((results) => {
       // Dispatch CustomEvent that crosses Shadow DOM

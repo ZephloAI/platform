@@ -23,7 +23,7 @@ from app.agent import create_agent, clean_response, connect_mcp_servers
 from app.rag import retrieve_context, format_context_for_llm
 from app.tts import text_to_speech
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
-from app.webmcp_tools import WebMcpToolkit
+from app.webmcp_tools import create_web_tools
 
 logger = logging.getLogger(__name__)
 
@@ -87,48 +87,40 @@ async def ws_chat(ws: WebSocket):
     chatbot_name = chatbot_row["name"]
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")
     mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
-    webmcp_enabled = chatbot_row["webmcp_enabled"] or False
     custom_instructions = chatbot_row["instructions"] or None
 
     await ws.accept()
 
+    # --- Wait for init message (always sent by widget on connect) ---
+    init_raw = await ws.receive_text()
+    init_data = json.loads(init_raw)
+    flunkie_tool_schemas = init_data.get("flunkie_tools", [])
+    print(init_data)
+
     # --- Connect MCP servers ---
     mcp_tools = await connect_mcp_servers(mcp_configs)
+
+    # --- Build web tool functions from schemas ---
+    web_tool_fns = create_web_tools(flunkie_tool_schemas, ws) if flunkie_tool_schemas else []
+    all_tools = list(mcp_tools) + web_tool_fns
 
     # --- Create ONE agent for the lifetime of this connection ---
     agent, follow_up_toolkit = create_agent(
         chatbot_name=chatbot_name,
         session_id=session_id,
         follow_up_pool=follow_up_prompts,
-        mcp_tools=mcp_tools,
+        mcp_tools=all_tools,
         custom_instructions=custom_instructions,
     )
-    webmcp_initialized = False
 
     try:
         while True:
             raw = await ws.receive_text()
             data = json.loads(raw)
 
-            # Skip WebMCP tool results — handled inline by WebMcpToolkit
-            if data.get("type") == "webmcp_tool_result":
+            # Skip tool results — handled inline by web tool functions
+            if data.get("message_type") == "tool_result":
                 continue
-
-            # Initialize WebMCP tools on first message (if enabled and tools provided)
-            webmcp_tool_schemas = data.get("webmcp_tools", [])
-            if webmcp_enabled and webmcp_tool_schemas and not webmcp_initialized:
-                webmcp_toolkit = WebMcpToolkit(webmcp_tool_schemas, ws)
-                all_tools = list(mcp_tools) + [webmcp_toolkit]
-                if follow_up_toolkit:
-                    all_tools.append(follow_up_toolkit)
-                agent, follow_up_toolkit = create_agent(
-                    chatbot_name=chatbot_name,
-                    session_id=session_id,
-                    follow_up_pool=follow_up_prompts,
-                    mcp_tools=all_tools,
-                    custom_instructions=custom_instructions,
-                )
-                webmcp_initialized = True
 
             message: str = data.get("message", "")
             voice: bool = data.get("voice", False)
@@ -214,6 +206,7 @@ async def ws_chat(ws: WebSocket):
 
             await ws.send_json(
                 {
+                    "message_type": "response",
                     "response": response_text,
                     "sources": sources,
                     "session_id": session_id,
@@ -228,7 +221,7 @@ async def ws_chat(ws: WebSocket):
     except Exception as e:
         logger.exception(f"WebSocket error (chatbot_id={chatbot_id})")
         try:
-            await ws.send_json({"error": str(e)})
+            await ws.send_json({"message_type": "error", "error": str(e)})
         except Exception:
             pass
     finally:

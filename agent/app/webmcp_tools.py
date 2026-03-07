@@ -1,16 +1,17 @@
 """
-WebMCP Toolkit — bridges browser-side tools into the Agno agent.
+Flunkie web tools — creates plain async functions from tool schemas.
 
-When the LLM decides to call a browser tool, execution routes through
-the WebSocket: send request → wait for browser response → return result.
+Each function's signature is built dynamically from inputSchema.properties
+using inspect.Parameter + inspect.Signature. When the LLM calls a tool,
+execution routes through the WebSocket to the browser widget.
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import uuid
 
-from agno.tools import Toolkit
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
@@ -18,51 +19,77 @@ logger = logging.getLogger(__name__)
 MAX_TOOLS = 20
 TOOL_TIMEOUT = 30
 
+JSON_TYPE_MAP = {
+    "string": str, "integer": int, "number": float,
+    "boolean": bool, "array": list, "object": dict,
+}
 
-class WebMcpToolkit(Toolkit):
-    """Wraps browser-side WebMCP tools as Agno toolkit functions.
 
-    Each tool sends a call request over WebSocket and waits for the
-    browser to execute it and return the result.
+def _build_parameters(schema: dict) -> list[inspect.Parameter]:
+    """Build inspect.Parameter list from inputSchema properties."""
+    properties = schema.get("inputSchema", {}).get("properties", {})
+    required = set(schema.get("inputSchema", {}).get("required", []))
+    params = []
+    for prop_name, prop_def in properties.items():
+        py_type = JSON_TYPE_MAP.get(prop_def.get("type", "string"), str)
+        if prop_name in required:
+            param = inspect.Parameter(
+                prop_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=py_type
+            )
+        else:
+            default = (
+                "" if py_type is str
+                else 0 if py_type in (int, float)
+                else False if py_type is bool
+                else None
+            )
+            param = inspect.Parameter(
+                prop_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                default=default, annotation=py_type,
+            )
+        params.append(param)
+    return params
+
+
+def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
+    """Create plain async functions from tool schemas.
+
+    Each returned function has a proper signature built from inputSchema,
+    and forwards calls to the browser widget via WebSocket.
     """
-
-    def __init__(self, tool_schemas: list[dict], ws: WebSocket):
-        super().__init__(name="webmcp")
-        self.ws = ws
-        for schema in tool_schemas[:MAX_TOOLS]:
-            self._register_tool(schema)
-
-    def _register_tool(self, schema: dict):
+    tools = []
+    for schema in tool_schemas[:MAX_TOOLS]:
         tool_name = schema["name"]
         description = schema.get("description", f"Browser tool: {tool_name}")
-        ws = self.ws
+        sig_params = _build_parameters(schema)
 
-        async def call_browser_tool(params: str = "{}") -> str:
-            """Call a browser-side WebMCP tool. Pass arguments as a JSON string."""
+        async def call_tool(*args, _name=tool_name, _params=sig_params, **kwargs) -> str:
+            arguments = {}
+            for i, param in enumerate(_params):
+                if i < len(args):
+                    arguments[param.name] = args[i]
+            arguments.update(kwargs)
+
             call_id = str(uuid.uuid4())
-            try:
-                parsed_params = json.loads(params)
-            except json.JSONDecodeError:
-                parsed_params = {}
-
             await ws.send_text(json.dumps({
-                "type": "webmcp_tool_call",
+                "message_type": "web_tool_call",
                 "call_id": call_id,
-                "tool_name": tool_name,
-                "arguments": parsed_params,
+                "details": {"tool": _name, "arguments": arguments},
             }))
 
-            # Wait for matching response
             while True:
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=TOOL_TIMEOUT)
                 data = json.loads(raw)
-                if data.get("type") == "webmcp_tool_result" and data.get("call_id") == call_id:
+                if data.get("message_type") == "tool_result" and data.get("call_id") == call_id:
                     if data.get("error"):
                         return f"Error: {data['error']}"
                     return data.get("content", "")
-                # Not our response — only tool results come during tool execution. Log and skip.
-                logger.debug(f"Skipping non-matching message during tool wait: {data.get('type')}")
+                logger.debug(f"Skipping non-matching message during tool wait: {data.get('message_type')}")
 
-        call_browser_tool.__name__ = tool_name
-        call_browser_tool.__doc__ = description
-        self.register(call_browser_tool)
+        call_tool.__name__ = tool_name
+        call_tool.__doc__ = description
+        call_tool.__signature__ = inspect.Signature(parameters=sig_params, return_annotation=str, _name=tool_name)
+        call_tool.__annotations__ = {p.name: p.annotation for p in sig_params}
+        call_tool.__annotations__["return"] = str
+        tools.append(call_tool)
+    return tools
