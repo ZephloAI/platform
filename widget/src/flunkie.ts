@@ -2,6 +2,7 @@ import { setApiKey } from "./api";
 import type { McpToolResult } from "./api";
 import { toolRegistry } from "./webmcp";
 import type { ToolDefinition } from "./webmcp";
+import { FormScanner } from "./form-scanner";
 
 // Set flag BEFORE the custom element auto-injects
 (window as any).__FLUNKIE_SDK__ = true;
@@ -20,6 +21,7 @@ export interface FlunkieInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
+  scanForms(): void;
   destroy(): void;
 }
 
@@ -39,6 +41,11 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
   const widget = document.createElement("chatbot-widget") as ChatbotWidget;
   document.body.appendChild(widget);
 
+  // Auto-scan HTML forms with flunkie-tool-name attributes
+  const formScanner = new FormScanner();
+  formScanner.scan();
+  formScanner.observe();
+
   return {
     onToolResult(cb) {
       return widget.onMcpResult(cb);
@@ -49,7 +56,11 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
     webMcpTools() {
       return toolRegistry.getSchemas();
     },
+    scanForms() {
+      formScanner.scan();
+    },
     destroy() {
+      formScanner.disconnect();
       widget.remove();
       scriptEl.remove();
     },

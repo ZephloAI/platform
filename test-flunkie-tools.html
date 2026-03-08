@@ -54,6 +54,16 @@
         <p>Search products on the current page</p>
         <span class="badge">query: string (required), max_results: int</span>
       </div>
+      <div class="tool-card" style="border-left: 3px solid #0071e3;">
+        <h3>search_flights</h3>
+        <p>Declarative form &mdash; auto-submit</p>
+        <span class="badge">origin, destination, date, passengers, cabin, direct</span>
+      </div>
+      <div class="tool-card" style="border-left: 3px solid #1d1d1f;">
+        <h3>find_house</h3>
+        <p>Declarative form &mdash; fill-only</p>
+        <span class="badge">location, type, price, beds, baths, amenities</span>
+      </div>
     </div>
   </div>
 
@@ -62,12 +72,167 @@
     <div id="log" class="log">Waiting for widget to initialize...\n</div>
   </div>
 
+  <!-- Declarative Form Tools (no JS needed for registration) -->
+
+  <div class="card">
+    <h2>Declarative Form: Flight Search</h2>
+    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">This form is auto-registered as a tool via <code>flunkie-tool-name</code>. Uses <code>flunkie-auto-submit</code> so the agent fills AND submits.</p>
+    <form
+      flunkie-tool-name="search_flights"
+      flunkie-tool-description="Search for available flights between two cities"
+      flunkie-auto-submit
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"
+    >
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Origin</label>
+        <input name="origin" type="text" required placeholder="e.g. JFK"
+          flunkie-param-description="Departure airport code (e.g. JFK, LAX)"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Destination</label>
+        <input name="destination" type="text" required placeholder="e.g. LHR"
+          flunkie-param-description="Arrival airport code (e.g. LHR, NRT)"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Departure Date</label>
+        <input name="departure_date" type="date" required
+          flunkie-param-description="Departure date"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Return Date</label>
+        <input name="return_date" type="date"
+          flunkie-param-description="Return date (leave empty for one-way)"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Passengers</label>
+        <input name="passengers" type="number" min="1" max="9" required value="1"
+          flunkie-param-description="Number of passengers"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Cabin Class</label>
+        <select name="cabin_class"
+          flunkie-param-description="Cabin class preference"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
+          <option value="economy">Economy</option>
+          <option value="business">Business</option>
+          <option value="first">First Class</option>
+        </select>
+      </div>
+      <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px;">
+        <input name="direct_only" type="checkbox"
+          flunkie-param-description="Only show direct flights"
+          style="width: 18px; height: 18px;" />
+        <label style="font-size: 13px; font-weight: 500;">Direct flights only</label>
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <button type="submit" style="padding: 10px 24px; background: #0071e3; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer;">Search Flights</button>
+      </div>
+    </form>
+    <div id="flight-results" style="margin-top: 12px; font-size: 13px; color: #86868b;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Declarative Form: House Search</h2>
+    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">Fill-only mode (no <code>flunkie-auto-submit</code>). The agent populates the fields and the user reviews before submitting.</p>
+    <form
+      flunkie-tool-name="find_house"
+      flunkie-tool-description="Search for houses available for sale or rent"
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"
+    >
+      <div style="grid-column: 1 / -1;">
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Location</label>
+        <input name="location" type="text" required placeholder="e.g. San Francisco, CA"
+          flunkie-param-description="City, neighborhood, or zip code to search in"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Listing Type</label>
+        <select name="listing_type" required
+          flunkie-param-description="Whether to buy or rent"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
+          <option value="buy">Buy</option>
+          <option value="rent">Rent</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Property Type</label>
+        <select name="property_type"
+          flunkie-param-description="Type of property"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
+          <option value="house">House</option>
+          <option value="apartment">Apartment</option>
+          <option value="condo">Condo</option>
+          <option value="townhouse">Townhouse</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Min Price ($)</label>
+        <input name="min_price" type="number" min="0"
+          flunkie-param-description="Minimum price in dollars"
+          placeholder="e.g. 200000"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Max Price ($)</label>
+        <input name="max_price" type="number" min="0"
+          flunkie-param-description="Maximum price in dollars"
+          placeholder="e.g. 800000"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Bedrooms</label>
+        <input name="bedrooms" type="number" min="1" max="10"
+          flunkie-param-description="Minimum number of bedrooms"
+          placeholder="e.g. 3"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div>
+        <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Bathrooms</label>
+        <input name="bathrooms" type="number" min="1" max="10"
+          flunkie-param-description="Minimum number of bathrooms"
+          placeholder="e.g. 2"
+          style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
+      </div>
+      <div style="grid-column: 1 / -1; display: flex; gap: 16px;">
+        <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+          <input name="has_garage" type="checkbox"
+            flunkie-param-description="Must have a garage"
+            style="width: 18px; height: 18px;" />
+          Garage
+        </label>
+        <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+          <input name="has_pool" type="checkbox"
+            flunkie-param-description="Must have a pool"
+            style="width: 18px; height: 18px;" />
+          Pool
+        </label>
+        <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+          <input name="pet_friendly" type="checkbox"
+            flunkie-param-description="Must be pet friendly"
+            style="width: 18px; height: 18px;" />
+          Pet Friendly
+        </label>
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <button type="submit" style="padding: 10px 24px; background: #1d1d1f; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer;">Find Houses</button>
+      </div>
+    </form>
+    <div id="house-results" style="margin-top: 12px; font-size: 13px; color: #86868b;"></div>
+  </div>
+
   <div class="test-hint">
     <strong>Try these prompts to trigger tool calls:</strong>
     &bull; "What page am I on?" &rarr; triggers <code>get_page_title</code><br>
     &bull; "Add 3 wireless headphones to my cart" &rarr; triggers <code>add_to_cart</code><br>
     &bull; "What timezone am I in?" &rarr; triggers <code>get_user_location</code><br>
-    &bull; "Search for laptops" &rarr; triggers <code>search_products</code>
+    &bull; "Search for laptops" &rarr; triggers <code>search_products</code><br>
+    &bull; "Find me a flight from JFK to LHR on March 15" &rarr; triggers <code>search_flights</code> (auto-submit)<br>
+    &bull; "Find a 3 bedroom house in San Francisco under $800k" &rarr; triggers <code>find_house</code> (fill-only)
   </div>
 
   <!-- Load the widget — change data-chatbot-id to match your chatbot -->
@@ -176,11 +341,68 @@
         },
       });
 
-      log(`4 tools registered successfully`, 'info');
+      log(`4 JS tools registered. 2 declarative form tools auto-scanned.`, 'info');
       log('Open the chat widget and try the suggested prompts!', 'info');
     }
 
     waitForWidget();
+
+    // --- Flight search form: submit handler with respondWith() ---
+    document.querySelector('form[flunkie-tool-name="search_flights"]').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const origin = fd.get('origin');
+      const dest = fd.get('destination');
+      const date = fd.get('departure_date');
+      const passengers = fd.get('passengers');
+      const cabin = fd.get('cabin_class');
+      const direct = fd.get('direct_only') ? 'Yes' : 'No';
+
+      const resultsEl = document.getElementById('flight-results');
+
+      // Fake flight results
+      const flights = [
+        { airline: 'BA117', price: 450, duration: '7h 20m' },
+        { airline: 'AA100', price: 520, duration: '7h 45m' },
+        { airline: 'VS3',   price: 480, duration: '7h 30m' },
+      ];
+
+      const resultText = `Found ${flights.length} ${cabin} flights from ${origin} to ${dest} on ${date} for ${passengers} passenger(s). ` +
+        `Direct only: ${direct}. ` +
+        flights.map(f => `${f.airline}: $${f.price} (${f.duration})`).join(' | ');
+
+      resultsEl.textContent = resultText;
+      resultsEl.style.color = '#30d158';
+      log(`FORM SUBMIT: search_flights → ${resultText}`, 'tool');
+
+      // If agent triggered this, return the result
+      if (e.agentInvoked && e.respondWith) {
+        e.respondWith(Promise.resolve(resultText));
+      }
+    });
+
+    // --- House search form: regular submit (fill-only, user submits manually) ---
+    document.querySelector('form[flunkie-tool-name="find_house"]').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const resultsEl = document.getElementById('house-results');
+
+      // Fake house results
+      const houses = [
+        { address: '742 Evergreen Terrace', beds: 3, baths: 2, price: 650000 },
+        { address: '221B Baker Street',     beds: 4, baths: 3, price: 780000 },
+        { address: '1600 Pennsylvania Ave',  beds: 5, baths: 4, price: 750000 },
+      ];
+
+      const location = fd.get('location');
+      const type = fd.get('listing_type');
+      const resultText = `Found ${houses.length} houses to ${type} in ${location}. ` +
+        houses.map(h => `${h.address}: ${h.beds}bd/${h.baths}ba $${h.price.toLocaleString()}`).join(' | ');
+
+      resultsEl.textContent = resultText;
+      resultsEl.style.color = '#30d158';
+      log(`FORM SUBMIT: find_house → ${resultText}`, 'tool');
+    });
   </script>
 
 </body>

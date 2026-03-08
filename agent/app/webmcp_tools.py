@@ -26,16 +26,22 @@ JSON_TYPE_MAP = {
 
 
 def _build_parameters(schema: dict) -> list[inspect.Parameter]:
-    """Build inspect.Parameter list from inputSchema properties."""
+    """Build inspect.Parameter list from inputSchema properties.
+
+    Required params are placed first so that Python's inspect.Signature
+    doesn't raise 'non-default argument follows default argument'.
+    """
     properties = schema.get("inputSchema", {}).get("properties", {})
     required = set(schema.get("inputSchema", {}).get("required", []))
-    params = []
+    required_params = []
+    optional_params = []
     for prop_name, prop_def in properties.items():
         py_type = JSON_TYPE_MAP.get(prop_def.get("type", "string"), str)
         if prop_name in required:
             param = inspect.Parameter(
                 prop_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=py_type
             )
+            required_params.append(param)
         else:
             default = (
                 "" if py_type is str
@@ -47,8 +53,44 @@ def _build_parameters(schema: dict) -> list[inspect.Parameter]:
                 prop_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 default=default, annotation=py_type,
             )
-        params.append(param)
-    return params
+            optional_params.append(param)
+    return required_params + optional_params
+
+
+def _build_docstring(schema: dict) -> str:
+    """Build a detailed docstring from tool description and inputSchema.
+
+    Includes parameter descriptions, enum values, and numeric constraints
+    so the LLM knows what valid values look like.
+    """
+    description = schema.get("description", "")
+    properties = schema.get("inputSchema", {}).get("properties", {})
+    required = set(schema.get("inputSchema", {}).get("required", []))
+
+    if not properties:
+        return description
+
+    lines = [description, "", "Args:"]
+    for prop_name, prop_def in properties.items():
+        prop_type = prop_def.get("type", "string")
+        prop_desc = prop_def.get("description", "")
+        constraints = []
+
+        if "enum" in prop_def:
+            constraints.append(f"one of: {', '.join(str(v) for v in prop_def['enum'])}")
+        if "minimum" in prop_def:
+            constraints.append(f"min: {prop_def['minimum']}")
+        if "maximum" in prop_def:
+            constraints.append(f"max: {prop_def['maximum']}")
+
+        is_required = prop_name in required
+        req_label = "required" if is_required else "optional"
+        parts = [f"    {prop_name} ({prop_type}, {req_label}): {prop_desc}"]
+        if constraints:
+            parts[0] += f" ({'; '.join(constraints)})"
+        lines.append(parts[0])
+
+    return "\n".join(lines)
 
 
 def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
@@ -60,7 +102,7 @@ def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
     tools = []
     for schema in tool_schemas[:MAX_TOOLS]:
         tool_name = schema["name"]
-        description = schema.get("description", f"Browser tool: {tool_name}")
+        docstring = _build_docstring(schema)
         sig_params = _build_parameters(schema)
 
         async def call_tool(*args, _name=tool_name, _params=sig_params, **kwargs) -> str:
@@ -87,8 +129,8 @@ def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
                 logger.debug(f"Skipping non-matching message during tool wait: {data.get('message_type')}")
 
         call_tool.__name__ = tool_name
-        call_tool.__doc__ = description
-        call_tool.__signature__ = inspect.Signature(parameters=sig_params, return_annotation=str, _name=tool_name)
+        call_tool.__doc__ = docstring
+        call_tool.__signature__ = inspect.Signature(parameters=sig_params, return_annotation=str)
         call_tool.__annotations__ = {p.name: p.annotation for p in sig_params}
         call_tool.__annotations__["return"] = str
         tools.append(call_tool)

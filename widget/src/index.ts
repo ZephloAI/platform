@@ -15,6 +15,7 @@
 
 import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus } from "./api";
 import { toolRegistry, type ToolDefinition } from "./webmcp";
+import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD } from "./icons";
 
@@ -191,6 +192,11 @@ export class ChatbotWidget extends HTMLElement {
     this.render();
     this.bindEvents();
     this.restoreMessages();
+
+    // Auto-scan HTML forms with flunkie-tool-name attributes
+    const formScanner = new FormScanner();
+    formScanner.scan();
+    formScanner.observe();
 
     if (this.state.position.includes('sidebar')) {
       this.injectHostTransition();
