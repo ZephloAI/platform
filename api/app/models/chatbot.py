@@ -2,7 +2,7 @@
 Chatbot model.
 
 Represents a chatbot tied to a specific website.
-Status flow: pending -> crawling -> ready (or error)
+Status tracks crawl state. is_active controls whether the widget accepts chat.
 """
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func
@@ -21,6 +21,7 @@ class Chatbot(Base):
     instructions = Column(String, nullable=True)
     website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
+    is_active = Column(Boolean, default=True, server_default="true")
     created_at = Column(DateTime, default=func.now())
 
     # Widget customization

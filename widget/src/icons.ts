@@ -59,6 +59,20 @@ export const ICON_SPEAKER = `
   <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
 </svg>`;
 
+export const ICON_SIDEBAR_LEFT_HIDE = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="2"/>
+  <line x1="9" y1="3" x2="9" y2="21"/>
+  <polyline points="15 9 12 12 15 15"/>
+</svg>`;
+
+export const ICON_SIDEBAR_RIGHT_HIDE = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="2"/>
+  <line x1="15" y1="3" x2="15" y2="21"/>
+  <polyline points="9 9 12 12 9 15"/>
+</svg>`;
+
 export const ICON_KEYBOARD = `
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>

@@ -66,7 +66,10 @@ export const WIDGET_STYLES = /* css */ `
     box-shadow: 0 4px 20px rgba(0, 113, 227, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
                 box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
-                background-color 0.2s;
+                background-color 0.2s,
+                left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                right 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                margin 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     position: absolute;
     bottom: 0;
     right: 0;
@@ -81,6 +84,22 @@ export const WIDGET_STYLES = /* css */ `
   .cb-toggle.has-logo:hover {
     background: transparent;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2), 0 3px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* When open with a logo, revert to accent color and hide the logo */
+  .cb-toggle.has-logo.open {
+    background: var(--cb-accent);
+    box-shadow: 0 4px 20px rgba(0, 113, 227, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .cb-toggle.has-logo.open:hover {
+    background: var(--cb-accent-hover);
+    box-shadow: 0 6px 24px rgba(0, 113, 227, 0.4), 0 3px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .cb-toggle.has-logo.open .cb-toggle-logo {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
   }
 
   .cb-toggle:hover {
@@ -114,6 +133,15 @@ export const WIDGET_STYLES = /* css */ `
   .cb-toggle.open .cb-icon-close {
     opacity: 1;
     transform: rotate(0deg) scale(1);
+  }
+
+  /* Sidebar toggle: no rotation for sidebar hide icons */
+  .cb-toggle.sidebar-toggle .cb-icon-close {
+    transform: scale(0.6);
+  }
+
+  .cb-toggle.sidebar-toggle.open .cb-icon-close {
+    transform: scale(1);
   }
 
   /* ---- Chat Panel ---- */
@@ -174,6 +202,35 @@ export const WIDGET_STYLES = /* css */ `
   .cb-panel.sidebar-right {
     right: 0;
     left: auto;
+  }
+
+  /* Sidebar toggle: animate to the outer edge of the sidebar when open */
+  .cb-panel.sidebar ~ .cb-toggle {
+    position: fixed;
+    bottom: 20px;
+    transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
+                box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
+                background-color 0.2s,
+                left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                right 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .cb-panel.sidebar-left ~ .cb-toggle {
+    left: 20px;
+    right: auto;
+  }
+
+  .cb-panel.sidebar-left.open ~ .cb-toggle {
+    left: 312px;
+  }
+
+  .cb-panel.sidebar-right ~ .cb-toggle {
+    right: 20px;
+    left: auto;
+  }
+
+  .cb-panel.sidebar-right.open ~ .cb-toggle {
+    right: 312px;
   }
 
   /* ---- Header ---- */
@@ -659,6 +716,8 @@ export const WIDGET_STYLES = /* css */ `
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+    transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+                transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   /* ---- Google Font loader ---- */

@@ -47,6 +47,12 @@ async def create_session(
             detail="Chatbot not found",
         )
 
+    if not chatbot.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chatbot is currently inactive",
+        )
+
     session = ChatSession(chatbot_id=chatbot.id)
     db.add(session)
     await db.flush()

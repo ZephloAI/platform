@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Chatbot, ApiKey, ApiKeyCreated } from '../types';
 import apiClient from '../api/client';
 
@@ -9,17 +10,13 @@ import apiClient from '../api/client';
 // ============================================================
 
 const STATUS_BADGES: Record<string, string> = {
-  pending: 'badge badge-pending',
-  crawling: 'badge badge-crawling',
-  ready: 'badge badge-ready',
-  error: 'badge badge-error',
+  active: 'badge badge-ready',
+  inactive: 'badge badge-error',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  crawling: 'Crawling',
-  ready: 'Ready',
-  error: 'Error',
+  active: 'Active',
+  inactive: 'Inactive',
 };
 
 type EmbedTab = 'script' | 'npm' | 'legacy';
@@ -29,6 +26,7 @@ interface OverviewSectionProps {
 }
 
 function OverviewSection({ chatbot }: OverviewSectionProps) {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [embedTab, setEmbedTab] = useState<EmbedTab>('script');
 
@@ -58,6 +56,19 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
   useEffect(() => {
     fetchKeys();
   }, [fetchKeys]);
+
+  // Toggle active state
+  const handleToggleActive = async () => {
+    try {
+      await apiClient.put(`/api/chatbots/${chatbot.id}`, {
+        is_active: !chatbot.is_active,
+      });
+      queryClient.invalidateQueries({ queryKey: ['chatbots', chatbot.id] });
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+    } catch {
+      // silently ignore
+    }
+  };
 
   // Create a new API key
   const createKey = async () => {
@@ -157,24 +168,36 @@ Flunkie.initialize({
               })}
             </p>
           </div>
-          <span className={STATUS_BADGES[chatbot.status] || 'badge'}>
-            {chatbot.status === 'crawling' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse-soft" />
-            )}
-            {STATUS_LABELS[chatbot.status] || chatbot.status}
+          <span className={STATUS_BADGES[chatbot.is_active ? 'active' : 'inactive'] || 'badge'}>
+            {STATUS_LABELS[chatbot.is_active ? 'active' : 'inactive']}
           </span>
         </div>
 
-        {chatbot.status === 'crawling' && (
-          <div className="flex items-center gap-2.5 pt-2 border-t border-black/[0.04]">
-            <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-            <span className="text-[13px] font-medium text-label-secondary">
-              Crawling in progress...
-            </span>
+        {/* Active Toggle */}
+        <div className="flex items-center justify-between pt-3 mt-3 border-t border-black/[0.04]">
+          <div>
+            <p className="text-[13px] font-medium text-label-primary">
+              {chatbot.is_active ? 'Active' : 'Inactive'}
+            </p>
+            <p className="text-[11px] text-label-quaternary">
+              {chatbot.is_active ? 'Widget is accepting conversations' : 'Widget is hidden from visitors'}
+            </p>
           </div>
-        )}
+          <button
+            onClick={handleToggleActive}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+              chatbot.is_active ? 'bg-accent' : 'bg-black/[0.12]'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                chatbot.is_active ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
 
-        {chatbot.status === 'ready' && (
+        {chatbot.is_active && (
           <div className="pt-2 border-t border-black/[0.04]">
             <Link to={`/chatbots/${chatbot.id}/chat`} className="btn-primary">
               Open Chat

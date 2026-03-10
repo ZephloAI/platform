@@ -25,7 +25,8 @@ export interface Chatbot {
   description: string | null;
   instructions: string | null;
   website_url: string | null;
-  status: 'pending' | 'crawling' | 'ready' | 'error';
+  status: 'pending' | 'crawling' | 'ready' | 'error' | 'active';
+  is_active: boolean;
   created_at: string;
   crawl_jobs?: CrawlJob[];
   widget_icon: string | null;

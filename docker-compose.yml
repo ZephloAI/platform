@@ -136,6 +136,9 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "80:80"
+    environment:
+      - ASSISTANT_CHATBOT_ID=${ASSISTANT_CHATBOT_ID}
+      - ASSISTANT_API_KEY=${ASSISTANT_API_KEY}
     depends_on:
       - api
     restart: unless-stopped

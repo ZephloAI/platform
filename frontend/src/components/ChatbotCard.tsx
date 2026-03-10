@@ -7,22 +7,19 @@ interface ChatbotCardProps {
   onDelete: (id: number) => void;
 }
 
-const STATUS_COLORS: Record<Chatbot['status'], string> = {
-  pending: 'bg-amber-400',
-  crawling: 'bg-blue-500 animate-pulse-soft',
-  ready: 'bg-emerald-500',
-  error: 'bg-red-500',
+const STATUS_COLORS: Record<string, string> = {
+  active: 'bg-emerald-500',
+  inactive: 'bg-gray-400',
 };
 
-const STATUS_LABELS: Record<Chatbot['status'], string> = {
-  pending: 'Pending',
-  crawling: 'Crawling',
-  ready: 'Ready',
-  error: 'Error',
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Active',
+  inactive: 'Inactive',
 };
 
 function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
   const pagesIndexed = chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0;
+  const displayStatus = chatbot.is_active === false ? 'inactive' : 'active';
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -60,9 +57,9 @@ function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
 
       {/* Status */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[chatbot.status]}`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[displayStatus]}`} />
         <span className="text-[12px] text-label-secondary font-medium">
-          {STATUS_LABELS[chatbot.status]}
+          {STATUS_LABELS[displayStatus]}
         </span>
       </div>
 
@@ -87,7 +84,7 @@ function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
             >
               Open
             </Link>
-            {chatbot.status === 'ready' && (
+            {chatbot.is_active !== false && (
               <Link
                 to={`/chatbots/${chatbot.id}/chat`}
                 className="block w-full text-left px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"

@@ -14,7 +14,6 @@ How the chat flow works:
 6. If relevant, the agent calls suggest_follow_up to surface a contextual action button.
 7. The run is automatically persisted to Postgres under that session_id.
 """
-import inspect
 import logging
 import re
 
@@ -233,8 +232,6 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             f"IMPORTANT — Custom instructions from the chatbot owner:\n{custom_instructions}",
         ]
 
-    print(f"Registering Tools: {[inspect.signature(t) for t in tools]}")
-
     agent = Agent(
         model=OpenRouter(
             id=settings.LLM_MODEL,
@@ -323,6 +320,12 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
         response = await agent.arun(full_prompt)
         set_active_collector(None)
         mcp_results = collector.drain() or None
+
+        # Log tool calls
+        if response.messages:
+            for msg in response.messages:
+                if msg.tool_name:
+                    logger.info(f"Tool call: {msg.tool_name}({msg.tool_args})")
 
         # Extract text — content can be empty when the agent made a tool call
         # and the main response only contains the tool result.

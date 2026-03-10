@@ -3,22 +3,11 @@ import { Outlet, Link, useParams, useNavigate, useSearchParams } from 'react-rou
 import { useAuth } from '../hooks/useAuth';
 import { useChatbot, useChatbots } from '../hooks/useChatbots';
 
-type Section = 'general' | 'overview' | 'knowledge' | 'config' | 'tools';
+type Section = 'overview' | 'details' | 'knowledge' | 'config' | 'tools';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 type ToolsTab = 'mcp-servers';
 
 const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
-  {
-    key: 'general',
-    label: 'General',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-    ),
-  },
   {
     key: 'overview',
     label: 'Overview',
@@ -28,6 +17,17 @@ const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    key: 'details',
+    label: 'Details',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
     ),
   },
@@ -82,7 +82,7 @@ function ChatbotLayout() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeSection = (searchParams.get('section') as Section) || 'general';
+  const activeSection = (searchParams.get('section') as Section) || 'overview';
   const activeConfigTab = (searchParams.get('configTab') as ConfigTab) || 'appearance';
   const activeToolsTab = (searchParams.get('toolsTab') as ToolsTab) || 'mcp-servers';
 

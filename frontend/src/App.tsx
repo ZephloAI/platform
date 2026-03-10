@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ChatbotLayout from './components/ChatbotLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardAssistant from './components/DashboardAssistant';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -11,6 +12,7 @@ import ChatPreviewPage from './pages/ChatPreviewPage';
 
 function App() {
   return (
+    <>
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
@@ -43,6 +45,8 @@ function App() {
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    <DashboardAssistant />
+    </>
   );
 }
 

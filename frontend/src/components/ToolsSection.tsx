@@ -218,8 +218,8 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             }`}
           >
             <span
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                webMcpEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                webMcpEnabled ? 'translate-x-[16px]' : 'translate-x-0'
               }`}
             />
           </button>
@@ -318,8 +318,8 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                      server.enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      server.enabled ? 'translate-x-[16px]' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -458,8 +458,8 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
               }`}
             >
               <span
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                  formEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  formEnabled ? 'translate-x-[16px]' : 'translate-x-0'
                 }`}
               />
             </button>

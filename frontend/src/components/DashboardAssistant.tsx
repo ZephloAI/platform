@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ const WIDGET_SCRIPT_PATH = '/widget/flunkie.js';
 
 function DashboardAssistant() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const instanceRef = useRef<FlunkieInstance | null>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
 
@@ -55,8 +57,13 @@ function DashboardAssistant() {
 
     if (!CHATBOT_ID || !API_KEY) return;
 
-    // Avoid loading twice
-    if (instanceRef.current) return;
+    // Guard against double-mount (React StrictMode remounts components)
+    if (document.querySelector(`script[src="${WIDGET_SCRIPT_PATH}"]`)) return;
+
+    // Set the SDK flag before loading the script so the widget's
+    // auto-inject code (which checks this flag) is skipped.
+    // initialize() will create the widget element itself.
+    (window as any).__FLUNKIE_SDK__ = true;
 
     const script = document.createElement('script');
     script.src = WIDGET_SCRIPT_PATH;
@@ -83,26 +90,32 @@ function DashboardAssistant() {
 
     document.head.appendChild(script);
 
-    return () => {
-      instanceRef.current?.destroy();
-      instanceRef.current = null;
-      if (scriptRef.current) {
-        scriptRef.current.remove();
-        scriptRef.current = null;
-      }
-    };
+    // No cleanup — the widget stays alive for the entire session.
+    // Removing it on unmount causes a second instance under React StrictMode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Helper: optional show_user property for tool schemas
+  const showUserProp = {
+    show_user: {
+      type: 'boolean',
+      description: 'If true, navigate the user to see the result in the dashboard',
+    },
+  } as const;
 
   function registerTools(bot: FlunkieInstance) {
     // ---- list_chatbots ----
     bot.registerTool({
       name: 'list_chatbots',
       description: 'List all chatbots for the current user. Returns name, id, status, and website URL for each.',
-      inputSchema: { type: 'object', properties: {} },
-      execute: async () => {
+      inputSchema: {
+        type: 'object',
+        properties: { ...showUserProp },
+      },
+      execute: async (params) => {
         const res = await apiClient.get('/api/chatbots');
         const chatbots = res.data as { id: number; name: string; status: string; website_url: string | null }[];
+        if (params.show_user) navigate('/dashboard');
         if (chatbots.length === 0) return 'No chatbots found. The user can create one.';
         return chatbots
           .map((c) => `- ${c.name} (ID: ${c.id}, status: ${c.status}${c.website_url ? `, url: ${c.website_url}` : ''})`)
@@ -116,13 +129,16 @@ function DashboardAssistant() {
       description: 'Get full details of a specific chatbot by its ID, including crawl jobs, widget settings, and MCP servers.',
       inputSchema: {
         type: 'object',
-        properties: { chatbot_id: { type: 'number', description: 'The chatbot ID' } },
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          ...showUserProp,
+        },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         const res = await apiClient.get(`/api/chatbots/${params.chatbot_id}`);
-        const c = res.data;
-        return JSON.stringify(c, null, 2);
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=overview`);
+        return JSON.stringify(res.data, null, 2);
       },
     });
 
@@ -132,39 +148,18 @@ function DashboardAssistant() {
       description: 'Create a new chatbot. Only a name is required.',
       inputSchema: {
         type: 'object',
-        properties: { name: { type: 'string', description: 'Name for the new chatbot' } },
+        properties: {
+          name: { type: 'string', description: 'Name for the new chatbot' },
+          ...showUserProp,
+        },
         required: ['name'],
       },
       execute: async (params) => {
         const res = await apiClient.post('/api/chatbots', { name: params.name });
-        const c = res.data;
-        return `Created chatbot "${c.name}" with ID ${c.id}. Navigate to /chatbots/${c.id} to configure it.`;
-      },
-    });
-
-    // ---- navigate_to ----
-    bot.registerTool({
-      name: 'navigate_to',
-      description: [
-        'Navigate the user to a page in the dashboard.',
-        'Available routes:',
-        '  /dashboard - Home page with all chatbots',
-        '  /chatbots/new - Create a new chatbot',
-        '  /chatbots/{id} - Chatbot detail page (general info)',
-        '  /chatbots/{id}?section=knowledge - Knowledge / crawl settings',
-        '  /chatbots/{id}?section=config - Widget configuration',
-        '  /chatbots/{id}?section=tools - MCP server tools',
-        '  /chatbots/{id}/chat - Chat preview / test',
-      ].join('\n'),
-      inputSchema: {
-        type: 'object',
-        properties: { path: { type: 'string', description: 'The route path to navigate to, e.g. /chatbots/5?section=config' } },
-        required: ['path'],
-      },
-      execute: (params) => {
-        const path = params.path as string;
-        navigate(path);
-        return `Navigated to ${path}`;
+        const chatbot = res.data;
+        queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+        if (params.show_user) navigate(`/chatbots/${chatbot.id}`);
+        return JSON.stringify({ id: chatbot.id, name: chatbot.name, status: chatbot.status });
       },
     });
 
@@ -179,12 +174,12 @@ function DashboardAssistant() {
           name: { type: 'string', description: 'New name (optional)' },
           description: { type: 'string', description: 'New description (optional)' },
           instructions: { type: 'string', description: 'Custom instructions for the AI (optional)' },
+          ...showUserProp,
         },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
-        const chatbotId = params.chatbot_id;
-        // Fetch current values first so we only override what's provided
+        const chatbotId = params.chatbot_id as number;
         const current = (await apiClient.get(`/api/chatbots/${chatbotId}`)).data;
         const data = {
           name: (params.name as string) || current.name,
@@ -192,7 +187,10 @@ function DashboardAssistant() {
           instructions: params.instructions !== undefined ? params.instructions : current.instructions,
         };
         await apiClient.put(`/api/chatbots/${chatbotId}`, data);
-        return `Updated chatbot ${chatbotId} successfully.`;
+        queryClient.invalidateQueries({ queryKey: ['chatbots', chatbotId] });
+        queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+        if (params.show_user) navigate(`/chatbots/${chatbotId}?section=details`);
+        return JSON.stringify({ id: chatbotId, ...data });
       },
     });
 
@@ -202,38 +200,242 @@ function DashboardAssistant() {
       description: 'Delete a chatbot by its ID. This is irreversible — always confirm with the user first.',
       inputSchema: {
         type: 'object',
-        properties: { chatbot_id: { type: 'number', description: 'The chatbot ID to delete' } },
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID to delete' },
+          ...showUserProp,
+        },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         await apiClient.delete(`/api/chatbots/${params.chatbot_id}`);
-        navigate('/dashboard');
-        return `Deleted chatbot ${params.chatbot_id} and navigated to dashboard.`;
+        queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+        if (params.show_user) navigate('/dashboard');
+        return `Deleted chatbot ${params.chatbot_id}.`;
       },
     });
 
-    // ---- start_crawl ----
+    // ---- navigate_to ----
     bot.registerTool({
-      name: 'start_crawl',
-      description: 'Start crawling a website to index its content for a chatbot.',
+      name: 'navigate_to',
+      description: [
+        'Navigate the user to a page in the dashboard.',
+        'Available routes:',
+        '  /dashboard - Home page with all chatbots',
+        '  /chatbots/new - Create a new chatbot',
+        '  /chatbots/{id} - Chatbot detail page (general info)',
+        '  /chatbots/{id}?section=overview - Overview with status, embed code, API keys',
+        '  /chatbots/{id}?section=knowledge - Knowledge / crawl settings',
+        '  /chatbots/{id}?section=config - Widget configuration',
+        '  /chatbots/{id}?section=tools - MCP server tools',
+        '  /chatbots/{id}/chat - Chat preview / test',
+      ].join('\n'),
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'The route path to navigate to, e.g. /chatbots/5?section=config' },
+        },
+        required: ['path'],
+      },
+      execute: (params) => {
+        const path = params.path as string;
+        navigate(path);
+        return `Navigated to ${path}`;
+      },
+    });
+
+    // ---- discover_pages ----
+    bot.registerTool({
+      name: 'discover_pages',
+      description: 'Discover all pages on a website without crawling them. Returns a list of URLs found.',
       inputSchema: {
         type: 'object',
         properties: {
           chatbot_id: { type: 'number', description: 'The chatbot ID' },
-          website_url: { type: 'string', description: 'The website URL to crawl' },
+          website_url: { type: 'string', description: 'The website URL to discover pages from' },
+          ...showUserProp,
         },
         required: ['chatbot_id', 'website_url'],
       },
       execute: async (params) => {
-        // First discover URLs, then crawl all of them
-        const discover = await apiClient.post(`/api/chatbots/${params.chatbot_id}/discover`, {
+        const res = await apiClient.post(`/api/chatbots/${params.chatbot_id}/discover`, {
           website_url: params.website_url,
         });
-        const urls = (discover.data.urls as { url: string }[]).map((u) => u.url);
-        const res = await apiClient.post(`/api/chatbots/${params.chatbot_id}/crawl`, {
+        const urls = (res.data.urls as { url: string }[]).map((u) => u.url);
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=knowledge`);
+        return JSON.stringify({ count: urls.length, urls });
+      },
+    });
+
+    // ---- crawl_pages ----
+    bot.registerTool({
+      name: 'crawl_pages',
+      description: 'Start crawling specific URLs (or all discovered URLs) to index content for a chatbot.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          website_url: { type: 'string', description: 'The website URL — discovers and crawls all pages' },
+          selected_urls: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Specific URLs to crawl (optional — if omitted, discovers all pages first)',
+          },
+          ...showUserProp,
+        },
+        required: ['chatbot_id'],
+      },
+      execute: async (params) => {
+        const chatbotId = params.chatbot_id as number;
+        let urls = params.selected_urls as string[] | undefined;
+
+        // If no specific URLs provided, discover first
+        if (!urls || urls.length === 0) {
+          const discover = await apiClient.post(`/api/chatbots/${chatbotId}/discover`, {
+            website_url: params.website_url,
+          });
+          urls = (discover.data.urls as { url: string }[]).map((u) => u.url);
+        }
+
+        const res = await apiClient.post(`/api/chatbots/${chatbotId}/crawl`, {
           selected_urls: urls,
         });
-        return `Crawl started (job ID: ${res.data.id}). Found ${urls.length} pages to index.`;
+        queryClient.invalidateQueries({ queryKey: ['chatbots', chatbotId] });
+        if (params.show_user) navigate(`/chatbots/${chatbotId}?section=knowledge`);
+        return JSON.stringify({ job_id: res.data.id, pages_count: urls.length });
+      },
+    });
+
+    // ---- get_crawl_status ----
+    bot.registerTool({
+      name: 'get_crawl_status',
+      description: 'Get the status of a crawl job for a chatbot.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID to check crawl status for' },
+          ...showUserProp,
+        },
+        required: ['chatbot_id'],
+      },
+      execute: async (params) => {
+        const res = await apiClient.get(`/api/chatbots/${params.chatbot_id}`);
+        const chatbot = res.data;
+        const jobs = chatbot.crawl_jobs || [];
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=knowledge`);
+        if (jobs.length === 0) return 'No crawl jobs found for this chatbot.';
+        return JSON.stringify(
+          jobs.map((j: any) => ({
+            id: j.id,
+            status: j.status,
+            pages_crawled: j.pages_crawled,
+            created_at: j.created_at,
+          }))
+        );
+      },
+    });
+
+    // ---- create_api_key ----
+    bot.registerTool({
+      name: 'create_api_key',
+      description: 'Create a new API key for a chatbot. The full key is only shown once.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          name: { type: 'string', description: 'A name for this API key (e.g. "Production")' },
+          ...showUserProp,
+        },
+        required: ['chatbot_id', 'name'],
+      },
+      execute: async (params) => {
+        const res = await apiClient.post(`/api/chatbots/${params.chatbot_id}/api-keys`, {
+          name: params.name,
+        });
+        await navigator.clipboard.writeText(res.data.key);
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=overview`);
+        return `Created API key "${res.data.name}" and copied it to the user's clipboard. This is the only time the full key is available.`;
+      },
+    });
+
+    // ---- list_api_keys ----
+    bot.registerTool({
+      name: 'list_api_keys',
+      description: 'List all API keys for a chatbot. Only key prefixes are shown (full keys are not stored).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          ...showUserProp,
+        },
+        required: ['chatbot_id'],
+      },
+      execute: async (params) => {
+        const res = await apiClient.get(`/api/chatbots/${params.chatbot_id}/api-keys`);
+        const keys = res.data as { id: number; name: string; key_prefix: string; is_active: boolean; created_at: string }[];
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=overview`);
+        if (keys.length === 0) return 'No API keys found for this chatbot.';
+        return JSON.stringify(
+          keys.map((k) => ({
+            id: k.id,
+            name: k.name,
+            prefix: `${k.key_prefix}••••`,
+            active: k.is_active,
+            created: k.created_at,
+          }))
+        );
+      },
+    });
+
+    // ---- revoke_api_key ----
+    bot.registerTool({
+      name: 'revoke_api_key',
+      description: 'Revoke an API key for a chatbot. This is irreversible.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          key_id: { type: 'number', description: 'The API key ID to revoke' },
+          ...showUserProp,
+        },
+        required: ['chatbot_id', 'key_id'],
+      },
+      execute: async (params) => {
+        await apiClient.delete(`/api/chatbots/${params.chatbot_id}/api-keys/${params.key_id}`);
+        if (params.show_user) navigate(`/chatbots/${params.chatbot_id}?section=overview`);
+        return `Revoked API key ${params.key_id}.`;
+      },
+    });
+
+    // ---- get_embed_code ----
+    bot.registerTool({
+      name: 'get_embed_code',
+      description: 'Get the embed code snippet for adding the Flunkie widget to a website.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatbot_id: { type: 'number', description: 'The chatbot ID' },
+          format: {
+            type: 'string',
+            enum: ['script', 'npm', 'legacy'],
+            description: 'Embed format: "script" (default), "npm", or "legacy"',
+          },
+          ...showUserProp,
+        },
+        required: ['chatbot_id'],
+      },
+      execute: async (params) => {
+        const chatbotId = params.chatbot_id;
+        const format = (params.format as string) || 'script';
+        const origin = window.location.origin;
+
+        const snippets: Record<string, string> = {
+          script: `<script src="${origin}/widget/flunkie.js"></script>\n<script>\n  Flunkie.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: ${chatbotId}\n  });\n</script>`,
+          npm: `npm install flunkie\n\nimport Flunkie from "flunkie";\n\nFlunkie.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: ${chatbotId}\n});`,
+          legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${chatbotId}"\n></script>`,
+        };
+
+        if (params.show_user) navigate(`/chatbots/${chatbotId}?section=overview`);
+        return (snippets[format] || snippets.script) as string;
       },
     });
   }

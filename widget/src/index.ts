@@ -17,7 +17,7 @@ import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpP
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
-import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD } from "./icons";
+import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
 
@@ -51,6 +51,7 @@ interface WidgetState {
   greetingPrompts: { title: string; prompt: string }[];
   greetingPromptDuration: number;
   voiceEnabled: boolean;
+  isActive: boolean;
 }
 
 // ---- Helper: detect initial config from the <script> tag ----
@@ -132,6 +133,7 @@ export class ChatbotWidget extends HTMLElement {
       greetingPrompts: [],
       greetingPromptDuration: 0,
       voiceEnabled: false,
+      isActive: true,
     };
 
     // Fetch config from API to get user-customized settings
@@ -156,7 +158,14 @@ export class ChatbotWidget extends HTMLElement {
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
       this.state.voiceEnabled = config.voice_enabled || false;
+      this.state.isActive = config.is_active !== false;
 
+    }
+
+    // Hide widget entirely if inactive
+    if (!this.state.isActive) {
+      this.style.display = 'none';
+      return;
     }
 
     // Create or reuse session, then create WebSocket client
@@ -312,7 +321,7 @@ export class ChatbotWidget extends HTMLElement {
 
         <!-- Footer -->
         <div class="cb-footer">
-          Powered by <a href="#" target="_blank">Chatbot</a>
+          Powered by <a href="#" target="_blank">Flunkie</a>
         </div>
       </div>
 
@@ -324,9 +333,9 @@ export class ChatbotWidget extends HTMLElement {
       </div>
 
       <!-- Toggle button -->
-      <button class="cb-toggle${logoUrl ? ' has-logo' : ''}" aria-label="Open chat">
+      <button class="cb-toggle${logoUrl ? ' has-logo' : ''}${position.includes('sidebar') ? ' sidebar-toggle' : ''}" aria-label="Open chat">
         ${toggleContent}
-        <span class="cb-icon-close">${ICON_CLOSE}</span>
+        <span class="cb-icon-close">${position === 'left-sidebar' ? ICON_SIDEBAR_LEFT_HIDE : position === 'right-sidebar' ? ICON_SIDEBAR_RIGHT_HIDE : ICON_CLOSE}</span>
       </button>
     `;
 

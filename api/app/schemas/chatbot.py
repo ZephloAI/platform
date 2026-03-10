@@ -21,6 +21,7 @@ class ChatbotUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     instructions: str | None = None
+    is_active: bool | None = None
 
 
 class MCPServer(BaseModel):
@@ -61,6 +62,7 @@ class ChatbotResponse(BaseModel):
     instructions: str | None = None
     website_url: str | None = None
     status: str
+    is_active: bool = True
     created_at: datetime
     widget_icon: str | None = None
     widget_welcome: str | None = None
@@ -142,6 +144,7 @@ class PublicWidgetConfig(BaseModel):
     """Public config returned to the embeddable widget. No sensitive data."""
     chatbot_id: int
     name: str
+    is_active: bool = True
     widget_icon: str | None = None
     widget_welcome: str | None = None
     widget_position: str | None = None

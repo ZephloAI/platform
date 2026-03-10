@@ -39,7 +39,7 @@ function ChatbotDetailPage() {
 
   return (
     <div className="animate-fade-in max-w-3xl">
-      {activeSection === 'general' && <GeneralSection chatbot={chatbot} />}
+      {activeSection === 'details' && <GeneralSection chatbot={chatbot} />}
       {activeSection === 'overview' && <OverviewSection chatbot={chatbot} />}
       {activeSection === 'knowledge' && <KnowledgeSection chatbot={chatbot} />}
       {activeSection === 'config' && <ConfigSection chatbot={chatbot} activeTab={activeConfigTab as 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts'} />}

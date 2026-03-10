@@ -52,6 +52,7 @@ async def get_widget_config(
     return PublicWidgetConfig(
         chatbot_id=chatbot.id,
         name=chatbot.name,
+        is_active=chatbot.is_active if chatbot.is_active is not None else True,
         widget_icon=chatbot.widget_icon,
         widget_welcome=chatbot.widget_welcome,
         widget_position=chatbot.widget_position,
