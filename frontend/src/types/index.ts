@@ -52,6 +52,7 @@ export interface Chatbot {
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
+  person_mode_enabled?: boolean;
 }
 
 /** A quick prompt button shown in the widget */
@@ -105,6 +106,7 @@ export interface WidgetSettings {
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
+  person_mode_enabled?: boolean;
 }
 
 /** A crawl job that indexes a website's content */
@@ -174,4 +176,38 @@ export interface ApiKey {
 /** Response when creating a new API key - includes full key shown once */
 export interface ApiKeyCreated extends ApiKey {
   key: string;
+}
+
+/** A message in a conversation */
+export interface ConversationMessage {
+  id: number;
+  session_id: string;
+  role: 'user' | 'assistant' | 'admin';
+  content: string;
+  created_at: string;
+}
+
+/** A conversation session in the list view */
+export interface ConversationSession {
+  id: string;
+  chatbot_id: number;
+  mode: 'ai' | 'person';
+  is_unread: boolean;
+  created_at: string;
+  updated_at: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+  message_count: number;
+}
+
+/** Full conversation detail with messages */
+export interface ConversationDetail {
+  id: string;
+  chatbot_id: number;
+  mode: 'ai' | 'person';
+  is_unread: boolean;
+  admin_id: number | null;
+  created_at: string;
+  updated_at: string | null;
+  messages: ConversationMessage[];
 }

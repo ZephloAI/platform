@@ -15,6 +15,12 @@ class UserCreate(BaseModel):
     last_name: str
 
 
+class LoginRequest(BaseModel):
+    """Schema for user login — only email and password required."""
+    email: EmailStr
+    password: str
+
+
 class UserResponse(BaseModel):
     """Schema for returning user data (no password)."""
     id: int

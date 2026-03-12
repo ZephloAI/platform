@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../api/client';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, CrawlJob, ChatMessage, DiscoveredUrl, WidgetSettings } from '../types';
+import type { Chatbot, CrawlJob, ChatMessage, WidgetSettings } from '../types';
+import * as chatbotApi from '../api/chatbots';
 
 // ============================================================
 // React Query Hooks for Chatbot Operations
-// Each hook wraps an API call with caching and invalidation.
+// Each hook wraps a chatbot API call with caching and invalidation.
 // ============================================================
 
 // --- Query Keys ---
@@ -25,11 +25,7 @@ export function useChatbots() {
 
   return useQuery({
     queryKey: QUERY_KEYS.chatbots(orgId),
-    queryFn: async (): Promise<Chatbot[]> => {
-      const params = orgId ? { organization_id: orgId } : {};
-      const response = await apiClient.get('/api/chatbots', { params });
-      return response.data;
-    },
+    queryFn: (): Promise<Chatbot[]> => chatbotApi.listChatbots(),
     enabled: !!localStorage.getItem('token'),
   });
 }
@@ -40,10 +36,7 @@ export function useChatbots() {
 export function useChatbot(id: number) {
   return useQuery({
     queryKey: QUERY_KEYS.chatbot(id),
-    queryFn: async (): Promise<Chatbot> => {
-      const response = await apiClient.get(`/api/chatbots/${id}`);
-      return response.data;
-    },
+    queryFn: (): Promise<Chatbot> => chatbotApi.getChatbot(id),
     // Re-fetch every 5 seconds so crawl progress updates automatically
     refetchInterval: 5000,
   });
@@ -57,12 +50,7 @@ export function useCreateChatbot() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { name: string }): Promise<Chatbot> => {
-      const activeOrg = useOrgStore.getState().activeOrganization;
-      const body = activeOrg ? { ...data, organization_id: activeOrg.id } : data;
-      const response = await apiClient.post('/api/chatbots', body);
-      return response.data;
-    },
+    mutationFn: (data: { name: string }): Promise<Chatbot> => chatbotApi.createChatbot(data),
     onSuccess: () => {
       const orgId = useOrgStore.getState().activeOrganization?.id;
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots(orgId) });
@@ -78,16 +66,13 @@ export function useUpdateChatbot() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       chatbotId,
       data,
     }: {
       chatbotId: number;
       data: { name: string; description: string | null; instructions: string | null };
-    }): Promise<Chatbot> => {
-      const response = await apiClient.put(`/api/chatbots/${chatbotId}`, data);
-      return response.data;
-    },
+    }): Promise<Chatbot> => chatbotApi.updateChatbot(chatbotId, data),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
       queryClient.invalidateQueries({ queryKey: ['chatbots'] });
@@ -102,9 +87,7 @@ export function useDeleteChatbot() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number): Promise<void> => {
-      await apiClient.delete(`/api/chatbots/${id}`);
-    },
+    mutationFn: (id: number): Promise<void> => chatbotApi.deleteChatbot(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatbots'] });
     },
@@ -116,18 +99,13 @@ export function useDeleteChatbot() {
  */
 export function useDiscoverUrls() {
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       chatbotId,
       websiteUrl,
     }: {
       chatbotId: number;
       websiteUrl: string;
-    }): Promise<{ urls: DiscoveredUrl[] }> => {
-      const response = await apiClient.post(`/api/chatbots/${chatbotId}/discover`, {
-        website_url: websiteUrl,
-      });
-      return response.data;
-    },
+    }) => chatbotApi.discoverUrls(chatbotId, websiteUrl),
   });
 }
 
@@ -139,18 +117,13 @@ export function useStartCrawl() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       chatbotId,
       selectedUrls,
     }: {
       chatbotId: number;
       selectedUrls: string[];
-    }): Promise<CrawlJob> => {
-      const response = await apiClient.post(`/api/chatbots/${chatbotId}/crawl`, {
-        selected_urls: selectedUrls,
-      });
-      return response.data;
-    },
+    }): Promise<CrawlJob> => chatbotApi.startCrawl(chatbotId, selectedUrls),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },
@@ -165,14 +138,8 @@ export function useUploadLogo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ chatbotId, file }: { chatbotId: number; file: File }): Promise<{ url: string }> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await apiClient.post(`/api/chatbots/${chatbotId}/logo`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return response.data;
-    },
+    mutationFn: ({ chatbotId, file }: { chatbotId: number; file: File }) =>
+      chatbotApi.uploadLogo(chatbotId, file),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },
@@ -187,19 +154,13 @@ export function useUpdateWidgetSettings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       chatbotId,
       settings,
     }: {
       chatbotId: number;
       settings: WidgetSettings;
-    }): Promise<WidgetSettings> => {
-      const response = await apiClient.put(
-        `/api/chatbots/${chatbotId}/widget-settings`,
-        settings,
-      );
-      return response.data;
-    },
+    }): Promise<WidgetSettings> => chatbotApi.updateWidgetSettings(chatbotId, settings),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },
@@ -212,10 +173,7 @@ export function useUpdateWidgetSettings() {
 export function useCrawlJob(id: number | null) {
   return useQuery({
     queryKey: QUERY_KEYS.crawlJob(id!),
-    queryFn: async (): Promise<CrawlJob> => {
-      const response = await apiClient.get(`/api/crawl-jobs/${id}`);
-      return response.data;
-    },
+    queryFn: (): Promise<CrawlJob> => chatbotApi.getCrawlJob(id!),
     enabled: id !== null,
     refetchInterval: 3000,
   });

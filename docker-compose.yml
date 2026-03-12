@@ -115,6 +115,7 @@ services:
       ELEVEN_LABS_API_KEY: ${ELEVEN_LABS_API_KEY:-sk_97d75efebba2be48540cfdb8e4212c4939eb6885c7348809}
       ELEVEN_LABS_VOICE_ID: ${ELEVEN_LABS_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
       ELEVEN_LABS_MODEL_ID: ${ELEVEN_LABS_MODEL_ID:-eleven_multilingual_v2}
+      API_CALLBACK_URL: http://api:8000
     volumes:
       - huggingface_cache:/root/.cache/huggingface
     depends_on:

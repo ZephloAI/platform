@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     ELEVEN_LABS_API_KEY: str = ""
     ELEVEN_LABS_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
     ELEVEN_LABS_MODEL_ID: str = "eleven_multilingual_v2"
+    API_CALLBACK_URL: str = "http://localhost:8000"
 
     class Config:
         env_file = ".env"

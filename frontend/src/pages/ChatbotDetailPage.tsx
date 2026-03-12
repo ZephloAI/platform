@@ -5,6 +5,7 @@ import OverviewSection from '../components/OverviewSection';
 import KnowledgeSection from '../components/KnowledgeSection';
 import ConfigSection from '../components/ConfigSection';
 import ToolsSection from '../components/ToolsSection';
+import ConversationsSection from '../components/ConversationsSection';
 
 interface ChatbotContext {
   activeSection: string;
@@ -33,6 +34,14 @@ function ChatbotDetailPage() {
     return (
       <div className="border border-black/[0.08] rounded-xl p-6 text-center max-w-lg mx-auto">
         <p className="text-[14px] text-red-500">Failed to load chatbot details.</p>
+      </div>
+    );
+  }
+
+  if (activeSection === 'conversations') {
+    return (
+      <div className="animate-fade-in h-full">
+        <ConversationsSection />
       </div>
     );
   }

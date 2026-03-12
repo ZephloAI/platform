@@ -85,6 +85,7 @@ class ChatbotResponse(BaseModel):
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
+    person_mode_enabled: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -115,6 +116,7 @@ class WidgetSettingsUpdate(BaseModel):
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
+    person_mode_enabled: bool = True
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -138,6 +140,7 @@ class WidgetSettingsResponse(BaseModel):
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
+    person_mode_enabled: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -165,3 +168,4 @@ class PublicWidgetConfig(BaseModel):
     widget_text_color: str | None = None
     voice_enabled: bool = False
     webmcp_enabled: bool = False
+    person_mode_enabled: bool = True

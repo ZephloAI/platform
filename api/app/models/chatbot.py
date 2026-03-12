@@ -53,6 +53,9 @@ class Chatbot(Base):
     # WebMCP (browser-side tool execution)
     webmcp_enabled = Column(Boolean, default=False, server_default="false")
 
+    # Person mode (allow visitors to request live chat)
+    person_mode_enabled = Column(Boolean, default=True, server_default="true")
+
     # Organization (nullable initially for migration, then required)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
 

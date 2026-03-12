@@ -417,6 +417,36 @@ export const WIDGET_STYLES = /* css */ `
     text-decoration: underline;
   }
 
+  /* Admin / Team messages */
+  .cb-message.admin {
+    background: #e8f5e9;
+    border-left: 3px solid #4caf50;
+  }
+
+  .cb-admin-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4caf50;
+    margin-bottom: 4px;
+  }
+
+  .cb-admin-label svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Message sent status */
+  .cb-message-status {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--cb-text-tertiary);
+    padding: 2px 8px;
+    animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
   /* Sources */
   .cb-sources {
     margin-top: 10px;

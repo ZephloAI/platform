@@ -9,10 +9,12 @@ Endpoint:
     POST /api/chat  ->  { chatbot_id, message, session_id? }  ->  { response, sources, session_id }
 """
 
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.agent import chat_with_agent
+from app.config import settings
 
 router = APIRouter()
 
@@ -107,6 +109,23 @@ async def chat(request: ChatRequest):
             follow_up_prompts=request.follow_up_prompts,
             custom_instructions=request.instructions,
         )
+
+        # Store messages via API callback
+        session_id = result.get("session_id")
+        if session_id:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(
+                        f"{settings.API_CALLBACK_URL}/api/internal/messages",
+                        json={"session_id": session_id, "role": "user", "content": request.message},
+                    )
+                    await client.post(
+                        f"{settings.API_CALLBACK_URL}/api/internal/messages",
+                        json={"session_id": session_id, "role": "assistant", "content": result.get("response", "")},
+                    )
+            except Exception:
+                pass  # Don't fail the response if callback fails
+
         return ChatResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")

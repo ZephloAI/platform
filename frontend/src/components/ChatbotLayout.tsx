@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChatbot, useChatbots } from '../hooks/useChatbots';
+import { useConversations } from '../hooks/useConversations';
 import { useOrgStore } from '../stores/orgStore';
 
-type Section = 'overview' | 'details' | 'knowledge' | 'config' | 'tools';
+type Section = 'overview' | 'details' | 'knowledge' | 'config' | 'tools' | 'conversations';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 type ToolsTab = 'mcp-servers';
 
@@ -18,6 +19,15 @@ const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    key: 'conversations',
+    label: 'Conversations',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
     ),
   },
@@ -81,6 +91,8 @@ function ChatbotLayout() {
   const chatbotId = Number(id);
   const { data: chatbot } = useChatbot(chatbotId);
   const { data: chatbots } = useChatbots();
+  const { data: conversations } = useConversations(chatbotId);
+  const unreadCount = conversations?.filter(c => c.is_unread).length || 0;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -131,7 +143,7 @@ function ChatbotLayout() {
     }`;
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="h-screen bg-white flex overflow-hidden">
       {/* Sidebar */}
       <aside className="w-[220px] shrink-0 border-r border-black/[0.06] flex flex-col h-screen sticky top-0">
         {/* Chatbot switcher */}
@@ -233,6 +245,11 @@ function ChatbotLayout() {
                   {item.icon}
                 </span>
                 <span className="flex-1 text-left">{item.label}</span>
+                {item.key === 'conversations' && unreadCount > 0 && (
+                  <span className="bg-accent text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
                 {(item.key === 'config' || item.key === 'tools') && (
                   <svg
                     width="12"
@@ -377,10 +394,16 @@ function ChatbotLayout() {
         </header>
 
         {/* Centered content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-8 py-8">
-            <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
-          </div>
+        <main className={`flex-1 ${activeSection === 'conversations' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          {activeSection === 'conversations' ? (
+            <div className="h-full">
+              <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
+            </div>
+          ) : (
+            <div className="max-w-3xl mx-auto px-8 py-8">
+              <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
+            </div>
+          )}
         </main>
       </div>
     </div>

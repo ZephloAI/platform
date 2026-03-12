@@ -117,6 +117,9 @@ export class ChatSocket {
   private flunkieToolHandler: ((req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
   private flunkieToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
   private flunkieToolGetter: (() => { name: string; description: string; inputSchema: Record<string, unknown> }[]) | null = null;
+  private adminMessageHandler: ((content: string) => void) | null = null;
+  private modeChangedHandler: ((mode: string) => void) | null = null;
+  private waitingHandler: (() => void) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -150,6 +153,24 @@ export class ChatSocket {
     } else {
       this.flunkieToolSchemas = schemasOrGetter;
     }
+  }
+
+  sendRaw(data: object): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    }
+  }
+
+  onAdminMessage(handler: (content: string) => void): void {
+    this.adminMessageHandler = handler;
+  }
+
+  onModeChanged(handler: (mode: string) => void): void {
+    this.modeChangedHandler = handler;
+  }
+
+  onWaiting(handler: () => void): void {
+    this.waitingHandler = handler;
   }
 
   private getFlunkieToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
@@ -201,6 +222,29 @@ export class ChatSocket {
           data = JSON.parse(event.data);
         } catch {
           this.pendingReject?.(new Error("Invalid response from server"));
+          this.pending = null;
+          this.pendingReject = null;
+          return;
+        }
+
+        // Handle admin message from live chat
+        if (data.message_type === "admin_message") {
+          this.adminMessageHandler?.(data.content);
+          return;
+        }
+        if (data.message_type === "mode_changed") {
+          this.modeChangedHandler?.(data.mode);
+          return;
+        }
+        if (data.message_type === "waiting") {
+          this.waitingHandler?.();
+          // Resolve the pending promise so the UI doesn't hang
+          this.pending?.({
+            response: "",
+            sources: [],
+            session_id: data.session_id || null,
+            follow_up_prompts: [],
+          });
           this.pending = null;
           this.pendingReject = null;
           return;

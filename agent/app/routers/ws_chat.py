@@ -16,6 +16,7 @@ import logging
 import uuid
 
 import asyncpg
+import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
@@ -30,6 +31,85 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 install_patch()
+
+# Active visitor WebSocket connections: session_id -> WebSocket
+active_connections: dict[str, WebSocket] = {}
+
+
+async def store_message(session_id: str, role: str, content: str):
+    """Store a message via the API internal endpoint."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{settings.API_CALLBACK_URL}/api/internal/messages",
+                json={"session_id": session_id, "role": role, "content": content},
+            )
+    except Exception:
+        logger.warning(f"Failed to store message for session {session_id}")
+
+
+async def check_session_mode(session_id: str, chatbot_id: int) -> str:
+    """Check the current mode of a session from the database."""
+    try:
+        conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
+        try:
+            row = await conn.fetchrow(
+                "SELECT mode FROM chat_sessions WHERE id = $1 AND chatbot_id = $2",
+                uuid.UUID(session_id), chatbot_id,
+            )
+            return row["mode"] if row else "ai"
+        finally:
+            await conn.close()
+    except Exception:
+        logger.warning(f"Failed to check session mode for {session_id}, defaulting to ai")
+        return "ai"
+
+
+async def mark_session_unread(session_id: str):
+    """Mark session as unread via API internal endpoint."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.put(
+                f"{settings.API_CALLBACK_URL}/api/internal/conversations/{session_id}/unread",
+            )
+    except Exception:
+        logger.warning(f"Failed to mark session unread: {session_id}")
+
+
+async def fetch_message_history(session_id: str) -> list[dict]:
+    """Fetch message history from API for context."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                f"{settings.API_CALLBACK_URL}/api/internal/messages/{session_id}",
+            )
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        logger.warning(f"Failed to fetch message history for {session_id}")
+    return []
+
+
+@router.post("/api/internal/push")
+async def push_to_visitor(request_data: dict):
+    """Push an admin message to a connected visitor WebSocket."""
+    session_id = request_data.get("session_id")
+    content = request_data.get("content")
+    logger.info(f"Push request: session={session_id}, active_connections={list(active_connections.keys())}")
+    if session_id and session_id in active_connections:
+        ws = active_connections[session_id]
+        try:
+            await ws.send_json({
+                "message_type": "admin_message",
+                "content": content,
+            })
+            logger.info(f"Pushed admin message to visitor: session={session_id}")
+            return {"ok": True}
+        except Exception as e:
+            logger.error(f"Failed to push to visitor: session={session_id}, error={e}")
+            return {"ok": False, "error": "Failed to send"}
+    logger.warning(f"No active connection for session={session_id}")
+    return {"ok": False, "error": "No active connection"}
 
 
 @router.websocket("/ws/chat")
@@ -74,7 +154,7 @@ async def ws_chat(ws: WebSocket):
             return
 
         chatbot_row = await conn.fetchrow(
-            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions FROM chatbots WHERE id = $1",
+            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled FROM chatbots WHERE id = $1",
             chatbot_id,
         )
     finally:
@@ -88,8 +168,10 @@ async def ws_chat(ws: WebSocket):
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")
     mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
     custom_instructions = chatbot_row["instructions"] or None
+    person_mode_enabled = chatbot_row["person_mode_enabled"] if chatbot_row["person_mode_enabled"] is not None else True
 
     await ws.accept()
+    active_connections[session_id] = ws
 
     # --- Wait for init message (always sent by widget on connect) ---
     init_raw = await ws.receive_text()
@@ -122,8 +204,43 @@ async def ws_chat(ws: WebSocket):
             if data.get("message_type") == "tool_result":
                 continue
 
+            # Handle switch to person mode
+            if data.get("message_type") == "switch_to_person":
+                conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
+                try:
+                    await conn.execute(
+                        "UPDATE chat_sessions SET mode = 'person', updated_at = now() WHERE id = $1",
+                        uuid.UUID(session_id),
+                    )
+                finally:
+                    await conn.close()
+                await ws.send_json({
+                    "message_type": "mode_changed",
+                    "mode": "person",
+                    "session_id": session_id,
+                })
+                continue
+
             message: str = data.get("message", "")
             voice: bool = data.get("voice", False)
+            logger.info(f"Processing message: session={session_id}, msg_type={data.get('message_type')}, message={message[:100] if message else ''}")
+
+            # Check session mode
+            session_mode = await check_session_mode(session_id, chatbot_id)
+            logger.info(f"Session mode: {session_mode}")
+
+            if session_mode == "person":
+                # In person mode: store the user message and notify admin, skip AI
+                await store_message(session_id, "user", message)
+                await mark_session_unread(session_id)
+                await ws.send_json({
+                    "message_type": "waiting",
+                    "response": "",
+                    "sources": [],
+                    "session_id": session_id,
+                    "follow_up_prompts": [],
+                })
+                continue
 
             # Step 1: Retrieve relevant context from Qdrant
             contexts = retrieve_context(
@@ -134,10 +251,24 @@ async def ws_chat(ws: WebSocket):
             context_str = format_context_for_llm(contexts)
 
             # Step 3: Build the full prompt
+            # If returning from person mode, prepend admin conversation context
+            admin_context = ""
+            history = await fetch_message_history(session_id)
+            admin_messages = [m for m in history if m.get("role") == "admin"]
+            if admin_messages:
+                context_lines = []
+                for m in history[-10:]:  # Last 10 messages for context
+                    if m["role"] in ("admin", "user"):
+                        label = "Admin" if m["role"] == "admin" else "Visitor"
+                        context_lines.append(f"{label}: {m['content']}")
+                if context_lines:
+                    admin_context = "Previous conversation with a human team member:\n" + "\n".join(context_lines) + "\n\n"
+
             voice_instruction = (
                 "Keep your answer to 1-2 short sentences. Be conversational and direct. "
             ) if voice else ""
             full_prompt = (
+                f"{admin_context}"
                 f"Here is what you know:\n{context_str}\n\n"
                 f"The visitor asks: {message}\n\n"
                 f"{voice_instruction}"
@@ -199,6 +330,13 @@ async def ws_chat(ws: WebSocket):
             if follow_up_toolkit:
                 follow_up_toolkit.selected = []
 
+            # Inject "Talk to a person" if person mode is enabled and not already in person mode
+            if person_mode_enabled and session_mode == "ai":
+                selected.append({
+                    "title": "Talk to a real person",
+                    "prompt": "__switch_to_person__",
+                })
+
             # Step 6.5: Generate audio if voice mode requested
             audio = None
             if voice and response_text.strip():
@@ -216,6 +354,10 @@ async def ws_chat(ws: WebSocket):
                 }
             )
 
+            # Store messages via API callback
+            await store_message(session_id, "user", message)
+            await store_message(session_id, "assistant", response_text)
+
     except WebSocketDisconnect:
         logger.info(f"Client disconnected (chatbot_id={chatbot_id})")
     except Exception as e:
@@ -225,6 +367,8 @@ async def ws_chat(ws: WebSocket):
         except Exception:
             pass
     finally:
+        # Remove from active connections
+        active_connections.pop(session_id, None)
         # Disconnect all MCP servers
         for mcp in mcp_tools:
             try:

@@ -113,6 +113,7 @@ def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
             arguments.update(kwargs)
 
             call_id = str(uuid.uuid4())
+            logger.info(f"Web tool call: {_name}({arguments}), call_id={call_id}")
             await ws.send_text(json.dumps({
                 "message_type": "web_tool_call",
                 "call_id": call_id,
@@ -123,10 +124,12 @@ def create_web_tools(tool_schemas: list[dict], ws: WebSocket) -> list:
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=TOOL_TIMEOUT)
                 data = json.loads(raw)
                 if data.get("message_type") == "tool_result" and data.get("call_id") == call_id:
+                    result_content = data.get("content", "")
+                    logger.info(f"Web tool result: {_name}, call_id={call_id}, content_len={len(result_content)}, error={data.get('error')}")
                     if data.get("error"):
                         return f"Error: {data['error']}"
-                    return data.get("content", "")
-                logger.debug(f"Skipping non-matching message during tool wait: {data.get('message_type')}")
+                    return result_content
+                logger.info(f"Skipping non-matching message during tool wait: type={data.get('message_type')}, expected call_id={call_id}")
 
         call_tool.__name__ = tool_name
         call_tool.__doc__ = docstring

@@ -8,7 +8,7 @@ Run with: uvicorn app.main:app --reload
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding
+from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin
 
 # Create the FastAPI application
 app = FastAPI(
@@ -36,6 +36,9 @@ app.include_router(api_keys.router)
 app.include_router(organizations.router)
 app.include_router(organizations.accept_router)
 app.include_router(onboarding.router)
+app.include_router(conversations.router)
+app.include_router(internal.router)
+app.include_router(ws_admin.router)
 
 
 @app.get("/health")

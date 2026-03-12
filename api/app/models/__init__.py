@@ -11,6 +11,7 @@ from app.models.chatbot import Chatbot
 from app.models.crawl_job import CrawlJob
 from app.models.page import Page
 from app.models.chat_session import ChatSession
+from app.models.message import Message
 from app.models.api_key import ApiKey
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
@@ -23,6 +24,7 @@ __all__ = [
     "CrawlJob",
     "Page",
     "ChatSession",
+    "Message",
     "ApiKey",
     "Organization",
     "OrganizationMember",

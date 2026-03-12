@@ -17,7 +17,7 @@ import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpP
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
-import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE } from "./icons";
+import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE, ICON_PERSON } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
 
@@ -29,6 +29,7 @@ interface Message {
   sources?: ChatSource[];
   followUpPrompts?: FollowUpPrompt[];
   audio?: string | null;
+  isAdminMessage?: boolean;
 }
 
 interface WidgetState {
@@ -98,6 +99,7 @@ export class ChatbotWidget extends HTMLElement {
   private sessionRetried = false;  // prevent infinite retry loops
   private mcpUnsubscribe: (() => void) | null = null;
   private mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
+  private personMode = false;
   private voiceMode = false;
   private voiceMicBtn: HTMLButtonElement | null = null;
   private voiceOverlay: HTMLDivElement | null = null;
@@ -515,6 +517,23 @@ export class ChatbotWidget extends HTMLElement {
         // Remove the prompt row (buttons disappear)
         const promptRow = fuBtn.closest(".cb-prompt-row");
         if (promptRow) promptRow.remove();
+
+        // Handle switch to person mode
+        if (fp.prompt === "__switch_to_person__") {
+          this.chatSocket?.sendRaw({ message_type: "switch_to_person" });
+          const switchMsg: Message = {
+            role: "assistant",
+            content: "You're now connected with our team. We'll reply shortly.",
+            isAdminMessage: true,
+          };
+          this.messages.push(switchMsg);
+          this.appendMessage(switchMsg);
+          this.saveMessages();
+          this.personMode = true;
+          this.updateHeaderForMode();
+          this.updateInputPlaceholder();
+          return;
+        }
 
         if (fp.link) {
           window.open(fp.link, "_blank", "noopener");
@@ -1309,8 +1328,19 @@ export class ChatbotWidget extends HTMLElement {
     if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
 
     const div = document.createElement("div");
-    div.className = `cb-message ${msg.role}`;
-    div.innerHTML = this.formatContent(msg.content);
+    div.className = `cb-message ${msg.role}${msg.isAdminMessage ? ' admin' : ''}`;
+
+    // Add team label for admin messages
+    if (msg.isAdminMessage) {
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "cb-admin-label";
+      labelDiv.innerHTML = `${ICON_PERSON}<span>Team</span>`;
+      div.appendChild(labelDiv);
+    }
+
+    const contentDiv = document.createElement("div");
+    contentDiv.innerHTML = this.formatContent(msg.content);
+    div.appendChild(contentDiv);
 
     // Add speaker button for messages with audio
     if (msg.role === "assistant" && msg.audio) {
@@ -1401,9 +1431,12 @@ export class ChatbotWidget extends HTMLElement {
     this.chatSocket?.close();
     this.chatSocket = null;
 
-    // Clear session and messages
+    // Clear session, messages, and person mode
     this.sessionId = null;
     this.messages = [];
+    this.personMode = false;
+    this.updateHeaderForMode();
+    this.updateInputPlaceholder();
     localStorage.removeItem(`cb_session_${this.state.chatbotId}`);
     localStorage.removeItem(`cb_messages_${this.state.chatbotId}`);
 
@@ -1453,6 +1486,30 @@ export class ChatbotWidget extends HTMLElement {
     return `<div class="cb-prompt-row">${buttons}</div>`;
   }
 
+  private updateHeaderForMode() {
+    const titleEl = this.shadow.querySelector('.cb-header-title');
+    if (titleEl) {
+      titleEl.textContent = this.personMode ? "Chatting with our team" : this.state.title;
+    }
+    const avatarEl = this.shadow.querySelector('.cb-header-avatar');
+    if (avatarEl) {
+      if (this.personMode) {
+        avatarEl.innerHTML = ICON_PERSON;
+      } else {
+        const { icon, logoUrl } = this.state;
+        avatarEl.innerHTML = logoUrl
+          ? `<img src="${this.escapeHtml(logoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+          : icon ? this.escapeHtml(icon) : ICON_BOT;
+      }
+    }
+  }
+
+  private updateInputPlaceholder() {
+    if (this.textarea) {
+      this.textarea.placeholder = this.personMode ? "Message our team..." : "Type a message...";
+    }
+  }
+
   private scrollToBottom() {
     requestAnimationFrame(() => {
       this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
@@ -1494,6 +1551,29 @@ export class ChatbotWidget extends HTMLElement {
     toolRegistry.discoverExternal();
     this.chatSocket.setFlunkieToolHandler(async (req) => toolRegistry.execute(req.tool, req.arguments));
     this.chatSocket.setFlunkieTools(() => toolRegistry.getSchemas());
+
+    // Wire live chat handlers
+    this.chatSocket.onAdminMessage((content) => {
+      const msg: Message = { role: "assistant", content, isAdminMessage: true };
+      this.messages.push(msg);
+      this.appendMessage(msg);
+      this.saveMessages();
+    });
+
+    this.chatSocket.onModeChanged((mode) => {
+      this.personMode = mode === "person";
+      this.updateHeaderForMode();
+      this.updateInputPlaceholder();
+    });
+
+    this.chatSocket.onWaiting(() => {
+      // Show a subtle "Message sent" status below the last user message
+      const statusDiv = document.createElement("div");
+      statusDiv.className = "cb-message-status";
+      statusDiv.textContent = "Message sent";
+      this.messagesEl.appendChild(statusDiv);
+      this.scrollToBottom();
+    });
 
     this.mcpUnsubscribe = this.chatSocket.onMcpResult((results) => {
       // Dispatch CustomEvent that crosses Shadow DOM

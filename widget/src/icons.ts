@@ -73,6 +73,12 @@ export const ICON_SIDEBAR_RIGHT_HIDE = `
   <polyline points="9 9 12 12 9 15"/>
 </svg>`;
 
+export const ICON_PERSON = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+  <circle cx="12" cy="7" r="4"/>
+</svg>`;
+
 export const ICON_KEYBOARD = `
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
