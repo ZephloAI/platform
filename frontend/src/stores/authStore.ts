@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import apiClient from '../api/client';
 import type { AuthState, User } from '../types';
+import { useOrgStore } from './orgStore';
 
 // ============================================================
 // Auth Store (Zustand)
@@ -17,7 +18,7 @@ function getStoredUser(): User | null {
   }
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   // Initialize state from localStorage so sessions survive page refresh
   user: getStoredUser(),
   token: localStorage.getItem('token'),
@@ -29,34 +30,57 @@ export const useAuthStore = create<AuthState>((set) => ({
    */
   login: async (email: string, password: string) => {
     const response = await apiClient.post('/api/auth/login', { email, password });
-    const { token, id, email: userEmail } = response.data;
-    const user: User = { id, email: userEmail };
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
 
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
 
     set({ user, token, isAuthenticated: true });
+
+    // Fetch organizations after login
+    useOrgStore.getState().fetchOrganizations();
   },
 
   /**
    * Register a new account.
    * Automatically logs the user in after successful registration.
    */
-  register: async (email: string, password: string) => {
-    const response = await apiClient.post('/api/auth/register', { email, password });
-    const { token, id, email: userEmail } = response.data;
-    const user: User = { id, email: userEmail };
+  register: async (email: string, password: string, firstName: string, lastName: string) => {
+    const response = await apiClient.post('/api/auth/register', {
+      email,
+      password,
+      first_name: firstName,
+      last_name: lastName,
+    });
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
 
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
 
     set({ user, token, isAuthenticated: true });
+
+    // Fetch organizations after registration
+    useOrgStore.getState().fetchOrganizations();
+  },
+
+  /**
+   * Update user fields in state and localStorage.
+   */
+  updateUser: (updates: Partial<User>) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+    const updated = { ...currentUser, ...updates };
+    localStorage.setItem('user', JSON.stringify(updated));
+    set({ user: updated });
   },
 
   /** Log out by clearing all auth state */
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    useOrgStore.getState().clearOrganizations();
     set({ user: null, token: null, isAuthenticated: false });
   },
 }));

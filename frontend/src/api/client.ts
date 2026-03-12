@@ -16,12 +16,26 @@ const apiClient = axios.create({
 });
 
 // --- Request Interceptor ---
-// Attach the JWT token to every outgoing request if available
+// Attach the JWT token and active organization to every outgoing request
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Include active organization header if set
+  try {
+    const raw = localStorage.getItem('activeOrganization');
+    if (raw) {
+      const org = JSON.parse(raw);
+      if (org?.id) {
+        config.headers['X-Organization-Id'] = org.id;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
   return config;
 });
 

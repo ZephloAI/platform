@@ -53,8 +53,12 @@ class Chatbot(Base):
     # WebMCP (browser-side tool execution)
     webmcp_enabled = Column(Boolean, default=False, server_default="false")
 
+    # Organization (nullable initially for migration, then required)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+
     # Relationships
     user = relationship("User", back_populates="chatbots")
+    organization = relationship("Organization", back_populates="chatbots")
     crawl_jobs = relationship(
         "CrawlJob", back_populates="chatbot", cascade="all, delete-orphan"
     )

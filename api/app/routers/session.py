@@ -33,18 +33,26 @@ async def create_session(
     valid and belong to the requested chatbot. If absent, access is allowed
     without authentication (backward compatible).
     """
-    # If an API key was provided, verify it belongs to this chatbot
-    if api_key and api_key.chatbot_id != body.chatbot_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key does not match this chatbot",
-        )
+    # If an API key was provided, verify it belongs to the same organization
+    if api_key:
+        chatbot_check = await ChatbotRepository(db).get_by_id(body.chatbot_id)
+        if chatbot_check and api_key.organization_id and chatbot_check.organization_id:
+            if api_key.organization_id != chatbot_check.organization_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="API key does not match this chatbot's organization",
+                )
+        elif api_key.chatbot_id and api_key.chatbot_id != body.chatbot_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API key does not match this chatbot",
+            )
 
     chatbot = await ChatbotRepository(db).get_by_id(body.chatbot_id)
     if not chatbot:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chatbot not found",
+            detail="Agent not found",
         )
 
     if not chatbot.is_active:

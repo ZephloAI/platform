@@ -33,20 +33,27 @@ async def get_widget_config(
     valid and belong to the requested chatbot. If absent, access is allowed
     without authentication (backward compatible).
     """
-    # If an API key was provided, verify it belongs to this chatbot
-    if api_key and api_key.chatbot_id != chatbot_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key does not match this chatbot",
-        )
-
     chatbot_repo = ChatbotRepository(db)
     chatbot = await chatbot_repo.get_by_id(chatbot_id)
+
+    # If an API key was provided, verify it belongs to the same organization
+    if api_key and chatbot:
+        if api_key.organization_id and chatbot.organization_id:
+            if api_key.organization_id != chatbot.organization_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="API key does not match this chatbot's organization",
+                )
+        elif api_key.chatbot_id and api_key.chatbot_id != chatbot_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API key does not match this chatbot",
+            )
 
     if not chatbot:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chatbot not found",
+            detail="Agent not found",
         )
 
     return PublicWidgetConfig(

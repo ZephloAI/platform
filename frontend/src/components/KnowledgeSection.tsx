@@ -164,7 +164,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
           {activeTab === 'pages' && (
             <div className="glass-card p-5 animate-fade-in">
               <p className="text-[13px] text-label-secondary mb-3">
-                Add specific page URLs directly. These will be crawled to build the chatbot's knowledge base.
+                Add specific page URLs directly. These will be crawled to build the agent's knowledge base.
               </p>
               <ManualUrlAdder
                 existingUrls={discoveredUrls}

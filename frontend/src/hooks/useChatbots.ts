@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import { useOrgStore } from '../stores/orgStore';
 import type { Chatbot, CrawlJob, ChatMessage, DiscoveredUrl, WidgetSettings } from '../types';
 
 // ============================================================
@@ -10,22 +11,25 @@ import type { Chatbot, CrawlJob, ChatMessage, DiscoveredUrl, WidgetSettings } fr
 // --- Query Keys ---
 // Centralized keys make cache invalidation predictable
 const QUERY_KEYS = {
-  chatbots: ['chatbots'] as const,
+  chatbots: (orgId?: number) => ['chatbots', orgId] as const,
   chatbot: (id: number) => ['chatbots', id] as const,
   crawlJob: (id: number) => ['crawlJobs', id] as const,
 };
 
 /**
- * Fetch the list of all chatbots for the current user.
+ * Fetch the list of all chatbots for the current user's active organization.
  */
 export function useChatbots() {
+  const activeOrg = useOrgStore((state) => state.activeOrganization);
+  const orgId = activeOrg?.id;
+
   return useQuery({
-    queryKey: QUERY_KEYS.chatbots,
+    queryKey: QUERY_KEYS.chatbots(orgId),
     queryFn: async (): Promise<Chatbot[]> => {
-      const response = await apiClient.get('/api/chatbots');
+      const params = orgId ? { organization_id: orgId } : {};
+      const response = await apiClient.get('/api/chatbots', { params });
       return response.data;
     },
-    // Only fetch when the user has a token (prevents 401 on mount race conditions)
     enabled: !!localStorage.getItem('token'),
   });
 }
@@ -54,11 +58,14 @@ export function useCreateChatbot() {
 
   return useMutation({
     mutationFn: async (data: { name: string }): Promise<Chatbot> => {
-      const response = await apiClient.post('/api/chatbots', data);
+      const activeOrg = useOrgStore.getState().activeOrganization;
+      const body = activeOrg ? { ...data, organization_id: activeOrg.id } : data;
+      const response = await apiClient.post('/api/chatbots', body);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots });
+      const orgId = useOrgStore.getState().activeOrganization?.id;
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots(orgId) });
     },
   });
 }
@@ -83,7 +90,7 @@ export function useUpdateChatbot() {
     },
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots });
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
     },
   });
 }
@@ -99,7 +106,7 @@ export function useDeleteChatbot() {
       await apiClient.delete(`/api/chatbots/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbots });
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
     },
   });
 }

@@ -32,7 +32,9 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     Raises 400 if the email is already taken.
     """
     auth_service = AuthService(db)
-    return await auth_service.register(body.email, body.password)
+    return await auth_service.register(
+        body.email, body.password, body.first_name, body.last_name
+    )
 
 
 @router.post("/login", response_model=LoginResponse)

@@ -97,7 +97,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
             connectionStatus === 'connecting' ? 'bg-yellow-500' :
             'bg-gray-400'
           }`} />
-          <p className="text-[13px] font-medium text-label-secondary">Test your chatbot</p>
+          <p className="text-[13px] font-medium text-label-secondary">Test your agent</p>
         </div>
         <button
           onClick={handleNewChat}

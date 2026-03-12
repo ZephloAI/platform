@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useAcceptInvitation } from '../hooks/useOrganization';
 
 // ============================================================
 // LoginPage
@@ -15,6 +16,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const acceptInvitation = useAcceptInvitation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,14 @@ function LoginPage() {
 
     try {
       await login(email, password);
+
+      // Check for a pending invitation token stored before login
+      const pendingToken = sessionStorage.getItem('pendingInvitationToken');
+      if (pendingToken) {
+        sessionStorage.removeItem('pendingInvitationToken');
+        acceptInvitation.mutate(pendingToken);
+      }
+
       navigate('/dashboard');
     } catch (err: unknown) {
       const message =
@@ -51,7 +61,7 @@ function LoginPage() {
             Welcome back
           </h1>
           <p className="text-[15px] text-label-tertiary">
-            Sign in to ChatBot Platform
+            Sign in to Flunkie
           </p>
         </div>
 

@@ -16,8 +16,9 @@ class ApiKey(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     chatbot_id = Column(
-        Integer, ForeignKey("chatbots.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("chatbots.id", ondelete="CASCADE"), nullable=True
     )
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     key = Column(String, unique=True, index=True, nullable=False)
     key_prefix = Column(String(8), nullable=False)
     name = Column(String, default="Default")
@@ -27,3 +28,4 @@ class ApiKey(Base):
 
     # Relationships
     chatbot = relationship("Chatbot")
+    organization = relationship("Organization", back_populates="api_keys")

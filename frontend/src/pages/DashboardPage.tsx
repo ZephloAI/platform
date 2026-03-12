@@ -7,7 +7,7 @@ function DashboardPage() {
   const deleteMutation = useDeleteChatbot();
 
   const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this chatbot?')) {
+    if (window.confirm('Are you sure you want to delete this agent?')) {
       deleteMutation.mutate(id);
     }
   };
@@ -37,7 +37,7 @@ function DashboardPage() {
           <div className="grid grid-cols-3 gap-0 border border-black/[0.08] rounded-xl overflow-hidden">
             <div className="p-5 border-r border-black/[0.08]">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Total chatbots</p>
+                <p className="text-[13px] text-label-secondary">Total agents</p>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -50,7 +50,7 @@ function DashboardPage() {
             </div>
             <div className="p-5 border-r border-black/[0.08] border-t-2 border-t-accent">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Active chatbots</p>
+                <p className="text-[13px] text-label-secondary">Active agents</p>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -81,7 +81,7 @@ function DashboardPage() {
       {/* Chatbots section */}
       <div>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-semibold text-label-primary">Your Chatbots</h2>
+          <h2 className="text-[17px] font-semibold text-label-primary">Your Agents</h2>
           {chatbots && chatbots.length > 0 && (
             <Link
               to="/chatbots/new"
@@ -106,7 +106,7 @@ function DashboardPage() {
         {error && (
           <div className="border border-black/[0.08] rounded-xl p-6 text-center">
             <p className="text-[14px] text-red-500">
-              Failed to load chatbots. Please try refreshing.
+              Failed to load agents. Please try refreshing.
             </p>
           </div>
         )}
@@ -120,16 +120,16 @@ function DashboardPage() {
               </svg>
             </div>
             <h2 className="text-[17px] font-semibold text-label-primary mb-1">
-              No chatbots yet
+              No agents yet
             </h2>
             <p className="text-[14px] text-label-tertiary mb-6 max-w-xs">
-              Create your first chatbot to start answering questions about your website.
+              Create your first agent to start answering questions about your website.
             </p>
             <Link
               to="/chatbots/new"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-[13px] font-semibold rounded-lg hover:bg-accent-hover transition-all duration-200"
             >
-              Create Your First Chatbot
+              Create Your First Agent
             </Link>
           </div>
         )}

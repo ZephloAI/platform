@@ -34,7 +34,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
       <div className="glass-card p-6">
         <h3 className="text-[15px] font-semibold text-label-primary mb-1">Identity</h3>
         <p className="text-[12px] text-label-tertiary mb-5">
-          Basic information about your chatbot.
+          Basic information about your agent.
         </p>
 
         <div className="space-y-4">
@@ -47,7 +47,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary/60 border border-separator text-[13px] text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/40 transition-all duration-200"
-              placeholder="My Chatbot"
+              placeholder="My Agent"
             />
           </div>
 
@@ -60,7 +60,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary/60 border border-separator text-[13px] text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/40 transition-all duration-200"
-              placeholder="What does this chatbot do?"
+              placeholder="What does this agent do?"
             />
           </div>
         </div>
@@ -70,7 +70,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
       <div className="glass-card p-6">
         <h3 className="text-[15px] font-semibold text-label-primary mb-1">Instructions</h3>
         <p className="text-[12px] text-label-tertiary mb-5">
-          Tell your chatbot how to behave, what tone to use, and any specific rules to follow.
+          Tell your agent how to behave, what tone to use, and any specific rules to follow.
         </p>
 
         <textarea

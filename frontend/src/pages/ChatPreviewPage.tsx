@@ -29,7 +29,7 @@ function ChatPreviewPage() {
   if (!chatbot) {
     return (
       <div className="glass-card p-6 text-center max-w-lg mx-auto">
-        <p className="text-[14px] text-red-500">Chatbot not found.</p>
+        <p className="text-[14px] text-red-500">Agent not found.</p>
       </div>
     );
   }

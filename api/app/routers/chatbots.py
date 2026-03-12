@@ -31,16 +31,21 @@ router = APIRouter(prefix="/api/chatbots", tags=["chatbots"])
 
 @router.get("", response_model=list[ChatbotResponse])
 async def list_chatbots(
+    organization_id: int | None = None,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    List all chatbots for the current user.
-
-    Returns only chatbots owned by the authenticated user.
+    List chatbots. If organization_id is provided, returns chatbots
+    for that org (requires membership). Otherwise returns user's chatbots.
     """
+    if organization_id:
+        from app.services.organization_service import OrganizationService
+        org_service = OrganizationService(db)
+        await org_service.verify_membership(organization_id, user.id)
+
     service = ChatbotService(db)
-    return await service.list_chatbots(user.id)
+    return await service.list_chatbots(user.id, organization_id=organization_id)
 
 
 @router.post("", response_model=ChatbotResponse, status_code=201)
@@ -53,13 +58,20 @@ async def create_chatbot(
     Create a new chatbot.
 
     The chatbot starts with status "pending" until a crawl is triggered.
+    Accepts optional organization_id in body.
     """
+    if body.organization_id:
+        from app.services.organization_service import OrganizationService
+        org_service = OrganizationService(db)
+        await org_service.verify_membership(body.organization_id, user.id)
+
     service = ChatbotService(db)
     return await service.create_chatbot(
         user_id=user.id,
         name=body.name,
         description=body.description,
         instructions=body.instructions,
+        organization_id=body.organization_id,
     )
 
 

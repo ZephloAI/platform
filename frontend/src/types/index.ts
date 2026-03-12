@@ -1,11 +1,14 @@
 // ============================================================
-// Type Definitions for the Chatbot Platform
+// Type Definitions for the Flunkie Platform
 // ============================================================
 
 /** A registered user in the system */
 export interface User {
   id: number;
   email: string;
+  first_name: string | null;
+  last_name: string | null;
+  onboarding_completed: boolean;
 }
 
 /** Zustand auth store shape - manages user session state */
@@ -14,11 +17,12 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
-/** A chatbot linked to a user's website */
+/** An agent linked to a user's website */
 export interface Chatbot {
   id: number;
   name: string;
@@ -71,7 +75,7 @@ export interface GreetingPrompt {
   prompt: string;
 }
 
-/** An MCP server connected to a chatbot */
+/** An MCP server connected to an agent */
 export interface MCPServer {
   name: string;
   transport: 'sse' | 'streamable-http';
@@ -127,10 +131,39 @@ export interface ChatMessage {
   follow_up_prompts?: { title: string; link?: string; prompt?: string }[];
 }
 
+/** An organization that owns agents and members */
+export interface Organization {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+  role: string;
+}
+
+/** A member of an organization */
+export interface OrganizationMember {
+  id: number;
+  user_id: number;
+  email: string;
+  role: string;
+  joined_at: string;
+}
+
+/** An invitation to join an organization */
+export interface Invitation {
+  id: number;
+  email: string;
+  role: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+}
+
 /** An API key for authenticating SDK/widget requests */
 export interface ApiKey {
   id: number;
-  chatbot_id: number;
+  organization_id: number;
+  chatbot_id?: number;
   key_prefix: string;
   name: string;
   is_active: boolean;

@@ -41,7 +41,7 @@ class CrawlService:
         if not chatbot or chatbot.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chatbot not found",
+                detail="Agent not found",
             )
 
         # Call the crawler service's discover endpoint
@@ -91,7 +91,7 @@ class CrawlService:
         if not chatbot or chatbot.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chatbot not found",
+                detail="Agent not found",
             )
 
         # Create the crawl job

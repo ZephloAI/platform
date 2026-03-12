@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.services.organization_service import OrganizationService
 
 # Password hashing context using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -22,11 +23,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.user_repo = UserRepository(db)
 
     # -- Public methods --
 
-    async def register(self, email: str, password: str) -> dict:
+    async def register(
+        self, email: str, password: str, first_name: str, last_name: str
+    ) -> dict:
         """
         Register a new user.
 
@@ -49,12 +53,30 @@ class AuthService:
         # Hash password and create user
         password_hash = pwd_context.hash(password)
         user = await self.user_repo.create(
-            email=email, password_hash=password_hash
+            email=email,
+            password_hash=password_hash,
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        # Auto-create a default organization for the new user
+        org_service = OrganizationService(self.db)
+        org = await org_service.create_organization(
+            user_id=user.id,
+            name=f"{email}'s Organization",
         )
 
         # Generate token and return response
         token = self._create_token(user.id)
-        return {"id": user.id, "email": user.email, "token": token}
+        return {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "onboarding_completed": user.onboarding_completed,
+            "token": token,
+            "organization_id": org.id,
+        }
 
     async def login(self, email: str, password: str) -> dict:
         """
@@ -69,8 +91,21 @@ class AuthService:
                 detail="Invalid email or password",
             )
 
+        # Get user's first organization
+        org_service = OrganizationService(self.db)
+        orgs = await org_service.get_user_organizations(user.id)
+        org_id = orgs[0]["id"] if orgs else None
+
         token = self._create_token(user.id)
-        return {"id": user.id, "email": user.email, "token": token}
+        return {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "onboarding_completed": user.onboarding_completed,
+            "token": token,
+            "organization_id": org_id,
+        }
 
     async def get_current_user(self, token: str) -> User | None:
         """

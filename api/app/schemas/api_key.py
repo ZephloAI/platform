@@ -15,7 +15,8 @@ class ApiKeyCreate(BaseModel):
 class ApiKeyResponse(BaseModel):
     """Schema for API key responses (key is hidden)."""
     id: int
-    chatbot_id: int
+    chatbot_id: int | None = None
+    organization_id: int | None = None
     key_prefix: str
     name: str
     is_active: bool

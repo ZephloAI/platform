@@ -13,7 +13,7 @@ function CreateChatbotPage() {
     setError('');
 
     if (!name.trim()) {
-      setError('Please enter a name for your chatbot.');
+      setError('Please enter a name for your agent.');
       return;
     }
 
@@ -24,7 +24,7 @@ function CreateChatbotPage() {
           navigate(`/chatbots/${chatbot.id}`);
         },
         onError: () => {
-          setError('Failed to create chatbot. Please try again.');
+          setError('Failed to create agent. Please try again.');
         },
       }
     );
@@ -33,10 +33,10 @@ function CreateChatbotPage() {
   return (
     <div className="max-w-lg animate-fade-in">
       <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mb-1">
-        New Chatbot
+        New Agent
       </h1>
       <p className="text-[14px] text-label-tertiary mb-8">
-        Give your chatbot a name, then add pages to build its knowledge base.
+        Give your agent a name, then add pages to build its knowledge base.
       </p>
 
       <form onSubmit={handleSubmit} className="border border-black/[0.08] rounded-xl p-6 space-y-5">
@@ -68,7 +68,7 @@ function CreateChatbotPage() {
             disabled={createMutation.isPending}
             className="btn-primary"
           >
-            {createMutation.isPending ? 'Creating...' : 'Create Chatbot'}
+            {createMutation.isPending ? 'Creating...' : 'Create Agent'}
           </button>
           <button
             type="button"

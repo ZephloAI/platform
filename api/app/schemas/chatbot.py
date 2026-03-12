@@ -14,6 +14,7 @@ class ChatbotCreate(BaseModel):
     name: str
     description: str | None = None
     instructions: str | None = None
+    organization_id: int | None = None
 
 
 class ChatbotUpdate(BaseModel):
@@ -57,6 +58,7 @@ class GreetingPrompt(BaseModel):
 class ChatbotResponse(BaseModel):
     """Schema for chatbot list/detail responses."""
     id: int
+    organization_id: int | None = None
     name: str
     description: str | None = None
     instructions: str | None = None

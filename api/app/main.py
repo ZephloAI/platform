@@ -8,12 +8,12 @@ Run with: uvicorn app.main:app --reload
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys
+from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding
 
 # Create the FastAPI application
 app = FastAPI(
-    title="Chatbot SaaS API",
-    description="API for the website chatbot SaaS platform",
+    title="Flunkie API",
+    description="API for the Flunkie website agent platform",
     version="1.0.0",
 )
 
@@ -33,6 +33,9 @@ app.include_router(crawl_jobs.router)
 app.include_router(public_chat.router)
 app.include_router(session.router)
 app.include_router(api_keys.router)
+app.include_router(organizations.router)
+app.include_router(organizations.accept_router)
+app.include_router(onboarding.router)
 
 
 @app.get("/health")

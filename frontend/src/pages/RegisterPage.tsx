@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useAcceptInvitation } from '../hooks/useOrganization';
+import { useAuthStore } from '../stores/authStore';
 
 // ============================================================
 // RegisterPage
 // Apple-style registration with glass card and ambient glow.
-// Matches the LoginPage visual language for consistency.
+// Captures first/last name along with email and password.
 // ============================================================
 
 function RegisterPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +20,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const acceptInvitation = useAcceptInvitation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +39,17 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(email, password);
+      await register(email, password, firstName, lastName);
+
+      // Check for a pending invitation token stored before registration
+      const pendingToken = sessionStorage.getItem('pendingInvitationToken');
+      if (pendingToken) {
+        sessionStorage.removeItem('pendingInvitationToken');
+        await acceptInvitation.mutateAsync(pendingToken);
+        // Invited users skip onboarding
+        useAuthStore.getState().updateUser({ onboarding_completed: true });
+      }
+
       navigate('/dashboard');
     } catch (err: unknown) {
       const message =
@@ -63,7 +78,7 @@ function RegisterPage() {
             Get started
           </h1>
           <p className="text-[15px] text-label-tertiary">
-            Create your ChatBot Platform account
+            Create your Flunkie account
           </p>
         </div>
 
@@ -75,6 +90,34 @@ function RegisterPage() {
               {error}
             </div>
           )}
+
+          {/* Name fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="firstName" className="input-label">First Name</label>
+              <input
+                id="firstName"
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="input-field"
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="input-label">Last Name</label>
+              <input
+                id="lastName"
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="input-field"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
 
           {/* Email */}
           <div>

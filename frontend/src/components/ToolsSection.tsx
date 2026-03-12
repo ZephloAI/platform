@@ -207,7 +207,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
                 </span>
               </div>
               <p className="text-[12px] text-label-tertiary mt-0.5">
-                Allow the chatbot to use tools registered on the host website via the Flunkie SDK or WebMCP standard.
+                Allow the agent to use tools registered on the host website via the Flunkie SDK or WebMCP standard.
               </p>
             </div>
           </div>
@@ -233,7 +233,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             MCP Servers
           </h2>
           <p className="text-[13px] text-label-tertiary mt-1">
-            Connect external tools and services to your chatbot via MCP servers.
+            Connect external tools and services to your agent via MCP servers.
           </p>
         </div>
         {!isFormOpen && servers.length > 0 && (
@@ -262,7 +262,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             Connect your first MCP server
           </h3>
           <p className="text-[13px] text-label-tertiary mb-6 max-w-sm mx-auto">
-            MCP servers give your chatbot access to external tools like databases, APIs, and more.
+            MCP servers give your agent access to external tools like databases, APIs, and more.
           </p>
           <button
             onClick={openAddForm}

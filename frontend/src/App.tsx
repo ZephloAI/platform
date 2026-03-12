@@ -9,6 +9,9 @@ import DashboardPage from './pages/DashboardPage';
 import CreateChatbotPage from './pages/CreateChatbotPage';
 import ChatbotDetailPage from './pages/ChatbotDetailPage';
 import ChatPreviewPage from './pages/ChatPreviewPage';
+import OrganizationSettingsPage from './pages/OrganizationSettingsPage';
+import AcceptInvitationPage from './pages/AcceptInvitationPage';
+import OnboardingPage from './pages/OnboardingPage';
 
 function App() {
   return (
@@ -17,6 +20,17 @@ function App() {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/invitations/accept/:token" element={<AcceptInvitationPage />} />
+
+      {/* Onboarding - full screen, no layout wrapper */}
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Home pages - simple top nav, no sidebar */}
       <Route
@@ -29,6 +43,16 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/chatbots/new" element={<CreateChatbotPage />} />
       </Route>
+
+      {/* Organization settings - own sidebar layout */}
+      <Route
+        path="/organizations/:orgId/settings"
+        element={
+          <ProtectedRoute>
+            <OrganizationSettingsPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Chatbot detail pages - sidebar layout */}
       <Route

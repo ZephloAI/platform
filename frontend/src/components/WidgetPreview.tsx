@@ -229,7 +229,7 @@ function WidgetPreview({ chatbotName, state }: WidgetPreviewProps) {
         color: '#86868b',
         flexShrink: 0,
       }}>
-        Powered by <span style={{ fontWeight: 500, color: '#6e6e73' }}>Chatbot</span>
+        Powered by <span style={{ fontWeight: 500, color: '#6e6e73' }}>Flunkie</span>
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 // ============================================================
 // ProtectedRoute Component
-// Redirects to /login if the user is not authenticated.
-// Wrap any route that requires authentication with this.
+// Redirects to /login if not authenticated.
+// Redirects to /onboarding if onboarding is not completed.
 // ============================================================
 
 interface ProtectedRouteProps {
@@ -12,11 +12,16 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
 
-  // Not logged in? Send them to the login page.
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to onboarding if not completed (unless already on /onboarding)
+  if (user && !user.onboarding_completed && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;

@@ -3,6 +3,7 @@ Shared FastAPI dependencies.
 
 Provides:
 - get_current_user: JWT auth for dashboard endpoints
+- get_current_organization: org membership verification
 - validate_api_key: API key auth for public/widget endpoints
 """
 
@@ -76,3 +77,22 @@ async def validate_api_key(
     await repo.update_last_used(api_key.id)
 
     return api_key
+
+
+async def get_current_organization(
+    org_id: int,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    FastAPI dependency: verify the user is a member of the given organization.
+
+    Returns the Organization record if the user is a member.
+    Raises 403 if not a member, 404 if org not found.
+    """
+    from app.services.organization_service import OrganizationService
+
+    org_service = OrganizationService(db)
+    org = await org_service.get_organization(org_id)
+    await org_service.verify_membership(org_id, user.id)
+    return org

@@ -550,7 +550,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
                   Voice
                 </h3>
                 <p className="text-[12px] text-label-tertiary mt-1">
-                  Allow visitors to use their microphone to speak to the chatbot and hear spoken responses.
+                  Allow visitors to use their microphone to speak to the agent and hear spoken responses.
                 </p>
               </div>
               <button
