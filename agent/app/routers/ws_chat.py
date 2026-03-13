@@ -21,7 +21,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
 from app.agent import create_agent, clean_response, connect_mcp_servers
-from app.rag import retrieve_context, format_context_for_llm
+from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.tts import text_to_speech
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
 from app.webmcp_tools import create_web_tools
@@ -179,6 +179,17 @@ async def ws_chat(ws: WebSocket):
     flunkie_tool_schemas = init_data.get("flunkie_tools", [])
     print(init_data)
 
+    # --- Add "Talk to a real person" to the follow-up pool so the agent can suggest it ---
+    if person_mode_enabled:
+        follow_up_prompts.append({
+            "title": "Talk to a real person",
+            "description": "The visitor wants to speak with a human team member instead of the AI",
+            "prompt": "__switch_to_person__",
+        })
+
+    # --- Check if the Qdrant collection exists (website has been crawled) ---
+    has_rag_data = collection_exists_for_chatbot(chatbot_id, chatbot_name)
+
     # --- Connect MCP servers ---
     mcp_tools = await connect_mcp_servers(mcp_configs)
 
@@ -193,6 +204,7 @@ async def ws_chat(ws: WebSocket):
         follow_up_pool=follow_up_prompts,
         mcp_tools=all_tools,
         custom_instructions=custom_instructions,
+        has_rag_data=has_rag_data,
     )
 
     try:
@@ -242,15 +254,14 @@ async def ws_chat(ws: WebSocket):
                 })
                 continue
 
-            # Step 1: Retrieve relevant context from Qdrant
-            contexts = retrieve_context(
-                chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name
-            )
+            # Step 1: Retrieve relevant context from Qdrant (skip if no collection)
+            contexts = []
+            if has_rag_data:
+                contexts = retrieve_context(
+                    chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name
+                ) or []
 
-            # Step 2: Format context for the LLM prompt
-            context_str = format_context_for_llm(contexts)
-
-            # Step 3: Build the full prompt
+            # Step 2: Build the full prompt
             # If returning from person mode, prepend admin conversation context
             admin_context = ""
             history = await fetch_message_history(session_id)
@@ -267,14 +278,24 @@ async def ws_chat(ws: WebSocket):
             voice_instruction = (
                 "Keep your answer to 1-2 short sentences. Be conversational and direct. "
             ) if voice else ""
-            full_prompt = (
-                f"{admin_context}"
-                f"Here is what you know:\n{context_str}\n\n"
-                f"The visitor asks: {message}\n\n"
-                f"{voice_instruction}"
-                "Respond naturally and confidently as a team member. "
-                "Do not mention sources or URLs in your answer."
-            )
+
+            if has_rag_data:
+                context_str = format_context_for_llm(contexts)
+                full_prompt = (
+                    f"{admin_context}"
+                    f"Here is what you know:\n{context_str}\n\n"
+                    f"The visitor asks: {message}\n\n"
+                    f"{voice_instruction}"
+                    "Respond naturally and confidently as a team member. "
+                    "Do not mention sources or URLs in your answer."
+                )
+            else:
+                full_prompt = (
+                    f"{admin_context}"
+                    f"The visitor asks: {message}\n\n"
+                    f"{voice_instruction}"
+                    "Respond naturally and confidently as a team member."
+                )
 
             # Step 4: Run the agent (async for MCP tool support)
             collector = McpMetaCollector()
@@ -329,13 +350,6 @@ async def ws_chat(ws: WebSocket):
             selected = follow_up_toolkit.selected if follow_up_toolkit else []
             if follow_up_toolkit:
                 follow_up_toolkit.selected = []
-
-            # Inject "Talk to a person" if person mode is enabled and not already in person mode
-            if person_mode_enabled and session_mode == "ai":
-                selected.append({
-                    "title": "Talk to a real person",
-                    "prompt": "__switch_to_person__",
-                })
 
             # Step 6.5: Generate audio if voice mode requested
             audio = None

@@ -25,7 +25,7 @@ from agno.tools.mcp import MCPTools
 from agno.tools.mcp.params import SSEClientParams, StreamableHTTPClientParams
 
 from app.config import settings
-from app.rag import retrieve_context, format_context_for_llm
+from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
 
 logger = logging.getLogger(__name__)
@@ -185,6 +185,7 @@ def create_agent(
     follow_up_pool: list[dict] | None = None,
     mcp_tools: list | None = None,
     custom_instructions: str | None = None,
+    has_rag_data: bool = True,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
@@ -232,14 +233,9 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             f"IMPORTANT — Custom instructions from the chatbot owner:\n{custom_instructions}",
         ]
 
-    agent = Agent(
-        model=OpenRouter(
-            id=settings.LLM_MODEL,
-            api_key=settings.OPENROUTER_API_KEY,
-        ),
-        description="You are a friendly and knowledgeable team member.",
-        instructions=[
-            *custom_instruction_lines,
+    # Swap instructions based on whether RAG data (crawled website) is available
+    if has_rag_data:
+        core_instructions = [
             "Speak confidently as a member of the team, not as an external tool.",
             "Answer questions using the provided context. Speak in first person plural ('we offer', 'our packages') as if you work there.",
             "NEVER say 'based on the website', 'according to the context', or reference your sources in the text. Just state the information directly and confidently.",
@@ -248,6 +244,27 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             "If the context doesn't have enough information, say something like 'I don't have the details on that right now, but I'd be happy to connect you with someone who can help.'",
             "ALWAYS end your response with a helpful follow-up question or suggested next step to keep the conversation going. For example: 'Would you like me to share more details about any of these?' or 'Shall I help you with booking?'",
             "Keep responses concise and scannable. Use bullet points for lists.",
+        ]
+    else:
+        core_instructions = [
+            "Speak confidently as a member of the team, not as an external tool.",
+            "The website content hasn't been set up yet, so you don't have specific information about this business.",
+            "Use your general knowledge to be helpful, but be honest when you don't have specific details about this business.",
+            "If the visitor asks something specific about the business, say something like 'I don't have those details just yet, but I'd be happy to help with general questions or connect you with someone who can help.'",
+            "Be warm, helpful, and conversational - like a real team member chatting with a visitor.",
+            "ALWAYS end your response with a helpful follow-up question or suggested next step to keep the conversation going.",
+            "Keep responses concise and scannable. Use bullet points for lists.",
+        ]
+
+    agent = Agent(
+        model=OpenRouter(
+            id=settings.LLM_MODEL,
+            api_key=settings.OPENROUTER_API_KEY,
+        ),
+        description="You are a friendly and knowledgeable team member.",
+        instructions=[
+            *custom_instruction_lines,
+            *core_instructions,
             *extra_instructions,
         ],
         markdown=False,
@@ -292,25 +309,30 @@ async def chat_with_agent(
 
         # Step 1: Retrieve relevant context from Qdrant
         contexts = retrieve_context(chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name)
+        has_rag_data = contexts is not None
 
-        # Step 2: Format the retrieved chunks into a text block
-        context_str = format_context_for_llm(contexts)
-
-        # Step 3: Build the full prompt with context + user question
-        full_prompt = f"""Here is what you know:
+        # Step 2: Build the full prompt based on whether RAG data exists
+        if has_rag_data:
+            context_str = format_context_for_llm(contexts)
+            full_prompt = f"""Here is what you know:
 {context_str}
 
 The visitor asks: {message}
 
 Respond naturally and confidently as a team member. Do not mention sources or URLs in your answer."""
+        else:
+            full_prompt = f"""The visitor asks: {message}
 
-        # Step 4: Create agent with follow-up tool and MCP tools attached
+Respond naturally and confidently as a team member."""
+
+        # Step 3: Create agent with follow-up tool and MCP tools attached
         agent, follow_up_toolkit = create_agent(
             chatbot_name=chatbot_name or "Assistant",
             session_id=session_id,
             follow_up_pool=follow_up_prompts or [],
             mcp_tools=mcp_tools if mcp_tools else None,
             custom_instructions=custom_instructions,
+            has_rag_data=has_rag_data,
         )
 
         # Step 5: Run async — required when MCP tools are attached
@@ -350,7 +372,7 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
         # Step 6: Build a deduplicated list of source URLs
         seen_urls: set[str] = set()
         sources: list[dict] = []
-        for ctx in contexts:
+        for ctx in (contexts or []):
             if ctx["url"] not in seen_urls and ctx["score"] > 0.3:
                 seen_urls.add(ctx["url"])
                 sources.append({"url": ctx["url"], "title": ctx["title"]})

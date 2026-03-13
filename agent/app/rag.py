@@ -49,14 +49,30 @@ def get_collection_name(chatbot_name: str, chatbot_id: int) -> str:
     return f"{sanitized}_{chatbot_id}"
 
 
-def retrieve_context(chatbot_id: int, query: str, top_k: int = 5, chatbot_name: str = "") -> list[dict]:
+def collection_exists_for_chatbot(chatbot_id: int, chatbot_name: str) -> bool:
+    """
+    Check if the Qdrant collection for a chatbot exists.
+
+    Returns True if the collection exists (website has been crawled),
+    False otherwise.
+    """
+    client = get_qdrant_client()
+    collection_name = get_collection_name(chatbot_name, chatbot_id)
+    try:
+        return client.collection_exists(collection_name)
+    except Exception as e:
+        print(f"Qdrant collection check error: {e}")
+        return False
+
+
+def retrieve_context(chatbot_id: int, query: str, top_k: int = 5, chatbot_name: str = "") -> list[dict] | None:
     """
     Search Qdrant for website chunks relevant to the user's query.
 
     How it works:
-    1. Convert the user's query text into a 384-dim embedding vector.
-    2. Query the Qdrant collection for that chatbot ({name}_{id}).
-    3. Return the top-k most similar chunks with their metadata.
+    1. Check if the Qdrant collection exists for this chatbot.
+    2. Convert the user's query text into a 384-dim embedding vector.
+    3. Query the Qdrant collection for similar chunks.
 
     Args:
         chatbot_id:   ID of the chatbot.
@@ -66,15 +82,24 @@ def retrieve_context(chatbot_id: int, query: str, top_k: int = 5, chatbot_name: 
 
     Returns:
         List of dicts, each containing: text, url, title, score.
-        Returns empty list if the search fails (e.g., collection not found).
+        Returns None if the collection doesn't exist (website not crawled).
+        Returns empty list if the search fails for other reasons.
     """
-    # Step 1: Generate embedding for the user's query
-    query_embedding = embedding_model.encode(query).tolist()
-
-    # Step 2: Search the Qdrant collection for this chatbot
+    # Step 1: Check if the collection exists before doing any work
     client = get_qdrant_client()
     collection_name = get_collection_name(chatbot_name, chatbot_id)
 
+    try:
+        if not client.collection_exists(collection_name):
+            return None
+    except Exception as e:
+        print(f"Qdrant collection check error: {e}")
+        return None
+
+    # Step 2: Generate embedding for the user's query
+    query_embedding = embedding_model.encode(query).tolist()
+
+    # Step 3: Search the Qdrant collection for this chatbot
     try:
         results = client.query_points(
             collection_name=collection_name,
@@ -83,12 +108,10 @@ def retrieve_context(chatbot_id: int, query: str, top_k: int = 5, chatbot_name: 
             with_payload=True,
         )
     except Exception as e:
-        # This can happen if the collection doesn't exist yet
-        # (e.g., the website hasn't been crawled) or Qdrant is unreachable.
         print(f"Qdrant search error: {e}")
         return []
 
-    # Step 3: Format the results into a simple list of dicts
+    # Step 4: Format the results into a simple list of dicts
     contexts = []
     for point in results.points:
         contexts.append(
