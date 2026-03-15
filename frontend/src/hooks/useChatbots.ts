@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, CrawlJob, ChatMessage, WidgetSettings } from '../types';
+import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, ChatMessage, OrgAnalytics, WidgetSettings } from '../types';
 import * as chatbotApi from '../api/chatbots';
 
 // ============================================================
@@ -176,6 +176,42 @@ export function useCrawlJob(id: number | null) {
     queryFn: (): Promise<CrawlJob> => chatbotApi.getCrawlJob(id!),
     enabled: id !== null,
     refetchInterval: 3000,
+  });
+}
+
+/**
+ * Fetch per-chatbot daily analytics for sparklines.
+ */
+export function useOrgChatbotAnalytics(orgId: number | undefined) {
+  return useQuery({
+    queryKey: ['orgChatbotAnalytics', orgId] as const,
+    queryFn: (): Promise<Record<number, ChatbotMiniAnalytics>> => chatbotApi.getOrgChatbotAnalytics(orgId!),
+    enabled: !!orgId,
+    refetchInterval: 15_000,
+  });
+}
+
+/**
+ * Fetch per-chatbot metrics for all chatbots in the active organization.
+ */
+export function useOrgChatbotMetrics(orgId: number | undefined) {
+  return useQuery({
+    queryKey: ['orgChatbotMetrics', orgId] as const,
+    queryFn: (): Promise<ChatbotMetricsMap> => chatbotApi.getOrgChatbotMetrics(orgId!),
+    enabled: !!orgId,
+    refetchInterval: 15_000,
+  });
+}
+
+/**
+ * Fetch daily time-series analytics for the active organization.
+ */
+export function useOrgAnalytics(orgId: number | undefined, days = 30) {
+  return useQuery({
+    queryKey: ['orgAnalytics', orgId, days] as const,
+    queryFn: (): Promise<OrgAnalytics> => chatbotApi.getOrgAnalytics(orgId!, days),
+    enabled: !!orgId,
+    refetchInterval: 15_000,
   });
 }
 

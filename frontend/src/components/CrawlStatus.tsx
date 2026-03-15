@@ -28,9 +28,9 @@ const STATUS_CONFIG: Record<
     animate: true,
   },
   completed: {
-    dot: 'bg-emerald-500',
+    dot: 'bg-sage-500',
     label: 'Completed',
-    bg: 'bg-emerald-500/[0.03]',
+    bg: 'bg-sage-50',
     animate: false,
   },
   failed: {
@@ -51,21 +51,21 @@ function CrawlStatus({ crawlJob }: CrawlStatusProps) {
         <span
           className={`h-2 w-2 rounded-full ${config.dot} ${config.animate ? 'animate-pulse-soft' : ''}`}
         />
-        <span className="text-[13px] font-medium text-label-primary">{config.label}</span>
+        <span className="text-[13px] font-semibold text-label-primary">{config.label}</span>
       </div>
 
       {/* Stats in a clean grid */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-[11px] text-label-tertiary uppercase tracking-wider mb-0.5">
+          <p className="section-label mb-0.5">
             Pages Crawled
           </p>
-          <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+          <p className="metric-value text-[22px]">
             {crawlJob.pages_crawled}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-label-tertiary uppercase tracking-wider mb-0.5">
+          <p className="section-label mb-0.5">
             Started
           </p>
           <p className="text-[13px] text-label-secondary">
@@ -79,7 +79,7 @@ function CrawlStatus({ crawlJob }: CrawlStatusProps) {
         </div>
         {crawlJob.completed_at && (
           <div>
-            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mb-0.5">
+            <p className="section-label mb-0.5">
               Completed
             </p>
             <p className="text-[13px] text-label-secondary">

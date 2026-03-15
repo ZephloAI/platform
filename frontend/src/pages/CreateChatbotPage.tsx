@@ -32,16 +32,16 @@ function CreateChatbotPage() {
 
   return (
     <div className="max-w-lg animate-fade-in">
-      <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mb-1">
+      <h1 className="heading-lg font-display text-label-primary mb-1">
         New Agent
       </h1>
-      <p className="text-[14px] text-label-tertiary mb-8">
+      <p className="text-[14px] text-label-secondary mb-8">
         Give your agent a name, then add pages to build its knowledge base.
       </p>
 
-      <form onSubmit={handleSubmit} className="border border-black/[0.08] rounded-xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="card p-6 space-y-5">
         {error && (
-          <div className="bg-red-50 text-red-600 text-[13px] rounded-lg p-3 border border-red-100">
+          <div className="bg-red-50 text-red-600 text-[13px] rounded-xl p-3 border border-red-100">
             {error}
           </div>
         )}
@@ -66,7 +66,7 @@ function CreateChatbotPage() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="btn-primary"
+            className="btn-accent"
           >
             {createMutation.isPending ? 'Creating...' : 'Create Agent'}
           </button>

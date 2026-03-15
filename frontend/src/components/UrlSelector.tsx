@@ -79,7 +79,7 @@ function UrlSelector({ urls, selectedUrls, onSelectionChange, onAddUrl }: UrlSel
   };
 
   return (
-    <div className="glass-card overflow-hidden animate-fade-in">
+    <div className="card overflow-hidden animate-fade-in">
       {/* Header with count and controls */}
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-3">
@@ -115,13 +115,13 @@ function UrlSelector({ urls, selectedUrls, onSelectionChange, onAddUrl }: UrlSel
             onChange={(e) => setManualUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddManualUrl()}
             placeholder="Add a page URL..."
-            className="flex-1 bg-surface-secondary/80 border border-black/[0.04] rounded-lg px-3.5 py-2 text-[13px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 focus:bg-white transition-all duration-250 ease-apple"
+            className="input-field"
           />
           <button
             type="button"
             onClick={handleAddManualUrl}
             disabled={!manualUrl.trim()}
-            className="px-3 py-2 text-[12px] font-medium bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
+            className="btn-accent text-[12px] px-3 py-2 shrink-0"
           >
             Add
           </button>
@@ -133,7 +133,7 @@ function UrlSelector({ urls, selectedUrls, onSelectionChange, onAddUrl }: UrlSel
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Filter pages..."
-          className="w-full bg-surface-secondary/80 border border-black/[0.04] rounded-lg px-3.5 py-2 text-[13px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 focus:bg-white transition-all duration-250 ease-apple"
+          className="input-field"
         />
       </div>
 

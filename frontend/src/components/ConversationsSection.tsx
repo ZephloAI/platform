@@ -94,7 +94,7 @@ function ConversationsSection() {
       {/* ---- Left panel: Session list ---- */}
       <div className="w-[300px] shrink-0 border-r border-black/[0.06] flex flex-col bg-white">
         <div className="px-4 py-3 border-b border-black/[0.06] shrink-0">
-          <h2 className="text-[13px] font-semibold text-label-primary">Conversations</h2>
+          <h2 className="section-label">Conversations</h2>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -120,8 +120,8 @@ function ConversationsSection() {
                   onClick={() => handleSelectSession(session)}
                   className={`w-full text-left px-4 py-3 transition-all duration-200 border-b border-black/[0.03] ${
                     selectedSessionId === session.id
-                      ? 'bg-black/[0.04]'
-                      : 'hover:bg-black/[0.02]'
+                      ? 'bg-accent-light'
+                      : 'hover:bg-surface-secondary'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -129,8 +129,8 @@ function ConversationsSection() {
                     <span
                       className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                         session.mode === 'person'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-black/[0.05] text-label-tertiary'
+                          ? 'bg-sage-100 text-sage-600'
+                          : 'bg-surface-secondary text-label-tertiary'
                       }`}
                     >
                       {session.mode === 'person' ? 'Live' : 'AI'}
@@ -168,7 +168,7 @@ function ConversationsSection() {
       </div>
 
       {/* ---- Right panel: Conversation detail ---- */}
-      <div className="flex-1 flex flex-col bg-white min-w-0">
+      <div className="flex-1 flex flex-col bg-surface-primary min-w-0">
         {!selectedSessionId ? (
           /* Empty state */
           <div className="flex-1 flex items-center justify-center">
@@ -193,8 +193,8 @@ function ConversationsSection() {
                 {conversation && (
                   <span className={`text-[11px] px-1.5 py-0.5 rounded ${
                     conversation.mode === 'person'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-black/[0.05] text-label-tertiary'
+                      ? 'bg-sage-100 text-sage-600'
+                      : 'bg-surface-secondary text-label-tertiary'
                   }`}>
                     {conversation.mode === 'person' ? 'Live Chat' : 'AI Mode'}
                   </span>
@@ -202,10 +202,10 @@ function ConversationsSection() {
               </div>
 
               {/* Mode toggle */}
-              <div className="flex items-center bg-black/[0.04] rounded-lg p-0.5">
+              <div className="flex items-center bg-surface-secondary rounded-xl p-0.5">
                 <button
                   onClick={() => handleToggleMode('ai')}
-                  className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${
                     conversation?.mode === 'ai'
                       ? 'bg-white text-label-primary shadow-sm'
                       : 'text-label-tertiary hover:text-label-secondary'
@@ -215,9 +215,9 @@ function ConversationsSection() {
                 </button>
                 <button
                   onClick={() => handleToggleMode('person')}
-                  className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${
                     conversation?.mode === 'person'
-                      ? 'bg-white text-green-700 shadow-sm'
+                      ? 'bg-white text-sage-600 shadow-sm'
                       : 'text-label-tertiary hover:text-label-secondary'
                   }`}
                 >
@@ -245,17 +245,17 @@ function ConversationsSection() {
                       <div className={`max-w-[70%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
                         {/* Admin label */}
                         {isAdmin && (
-                          <span className="text-[11px] text-green-600 font-medium mb-1 ml-1">You</span>
+                          <span className="text-[11px] text-sage-600 font-medium mb-1 ml-1">You</span>
                         )}
 
                         {/* Message bubble */}
                         <div
-                          className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
+                          className={`px-3.5 py-2.5 text-[13px] leading-relaxed ${
                             isUser
-                              ? 'bg-accent text-white rounded-br-md'
+                              ? 'bg-ink text-white rounded-2xl rounded-br-md'
                               : isAdmin
-                              ? 'bg-green-50 text-green-900 border border-green-200 rounded-bl-md'
-                              : 'bg-black/[0.04] text-label-primary rounded-bl-md'
+                              ? 'bg-sage-50 text-sage-600 border border-sage-100 rounded-2xl rounded-bl-md'
+                              : 'bg-white border border-black/[0.06] shadow-card rounded-2xl rounded-bl-md text-label-primary'
                           }`}
                         >
                           {msg.content}
@@ -288,12 +288,12 @@ function ConversationsSection() {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type a reply..."
-                  className="flex-1 px-4 py-2.5 bg-black/[0.03] border border-black/[0.06] rounded-xl text-[13px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 transition-all duration-200"
+                  className="input-field flex-1"
                 />
                 <button
                   type="submit"
                   disabled={!replyText.trim() || sendMessage.isPending}
-                  className="px-4 py-2.5 bg-accent text-white text-[13px] font-medium rounded-xl hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
+                  className="btn-accent px-4 py-2.5 shrink-0"
                 >
                   {sendMessage.isPending ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

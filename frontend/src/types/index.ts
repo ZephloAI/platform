@@ -2,6 +2,36 @@
 // Type Definitions for the Flunkie Platform
 // ============================================================
 
+/** A single day's count for time-series charts */
+export interface DailyDataPoint {
+  date: string;
+  count: number;
+}
+
+/** Daily time-series analytics for an organization */
+export interface OrgAnalytics {
+  messages_per_day: DailyDataPoint[];
+  conversations_per_day: DailyDataPoint[];
+  resolved_per_day: DailyDataPoint[];
+  unique_visitors_per_day: DailyDataPoint[];
+}
+
+/** Per-chatbot metrics keyed by chatbot ID */
+export interface ChatbotMetricsMap {
+  metrics: Record<number, {
+    total_conversations: number;
+    total_messages: number;
+    resolved_requests: number;
+  }>;
+}
+
+/** Compact per-chatbot daily analytics for sparklines */
+export interface ChatbotMiniAnalytics {
+  messages: DailyDataPoint[];
+  conversations: DailyDataPoint[];
+  resolved: DailyDataPoint[];
+}
+
 /** A registered user in the system */
 export interface User {
   id: number;

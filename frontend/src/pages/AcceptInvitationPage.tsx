@@ -50,7 +50,7 @@ function AcceptInvitationPage() {
   }, [token, isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="min-h-screen bg-surface-primary flex items-center justify-center">
       <div className="max-w-sm w-full mx-4 text-center">
         {status === 'loading' && (
           <div className="space-y-4">
@@ -61,8 +61,8 @@ function AcceptInvitationPage() {
 
         {status === 'success' && (
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-12 h-12 rounded-full bg-sage-50 flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 text-sage-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -97,8 +97,8 @@ function AcceptInvitationPage() {
 
         {status === 'login-required' && (
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-12 h-12 rounded-full bg-accent-light flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>

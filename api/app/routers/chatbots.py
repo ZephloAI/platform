@@ -10,10 +10,12 @@ Flow:
   -> Response returned to client
 """
 
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession as SASession
 
 from app.database import get_db
@@ -27,6 +29,10 @@ from app.schemas.chatbot import (
     ChatbotResponse,
     ChatbotDetailResponse,
     ChatbotMetrics,
+    ChatbotMetricsMap,
+    ChatbotMiniAnalytics,
+    DailyDataPoint,
+    OrgAnalytics,
     WidgetSettingsUpdate,
     WidgetSettingsResponse,
 )
@@ -223,6 +229,209 @@ async def _compute_metrics(
         total_conversations=total_conversations,
         total_messages=total_messages,
         resolved_requests=resolved_requests,
+    )
+
+
+async def _compute_metrics_batch(
+    db: SASession,
+    *,
+    chatbot_ids: list[int],
+) -> dict[int, ChatbotMetrics]:
+    """Compute metrics per chatbot in batch (3 queries total, not N)."""
+    # Conversations per chatbot
+    conv_q = (
+        select(ChatSession.chatbot_id, func.count(ChatSession.id))
+        .where(ChatSession.chatbot_id.in_(chatbot_ids))
+        .group_by(ChatSession.chatbot_id)
+    )
+    conv_map = {row[0]: row[1] for row in (await db.execute(conv_q)).all()}
+
+    # Messages per chatbot
+    msg_q = (
+        select(ChatSession.chatbot_id, func.count(Message.id))
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(ChatSession.chatbot_id.in_(chatbot_ids))
+        .group_by(ChatSession.chatbot_id)
+    )
+    msg_map = {row[0]: row[1] for row in (await db.execute(msg_q)).all()}
+
+    # Resolved per chatbot
+    res_q = (
+        select(ChatSession.chatbot_id, func.count(Message.id))
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(
+            ChatSession.chatbot_id.in_(chatbot_ids),
+            Message.role == "assistant",
+            Message.is_resolved == True,
+        )
+        .group_by(ChatSession.chatbot_id)
+    )
+    res_map = {row[0]: row[1] for row in (await db.execute(res_q)).all()}
+
+    return {
+        cid: ChatbotMetrics(
+            total_conversations=conv_map.get(cid, 0),
+            total_messages=msg_map.get(cid, 0),
+            resolved_requests=res_map.get(cid, 0),
+        )
+        for cid in chatbot_ids
+    }
+
+
+async def _compute_analytics_batch(
+    db: SASession,
+    *,
+    chatbot_ids: list[int],
+    days: int = 14,
+) -> dict[int, ChatbotMiniAnalytics]:
+    """Compute per-chatbot daily analytics in batch (3 queries, not N)."""
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+    all_dates = [(start_date + timedelta(days=i)).isoformat() for i in range(days)]
+
+    # Messages per chatbot per day
+    msg_q = (
+        select(
+            ChatSession.chatbot_id,
+            cast(Message.created_at, Date).label("day"),
+            func.count(Message.id).label("cnt"),
+        )
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(
+            ChatSession.chatbot_id.in_(chatbot_ids),
+            cast(Message.created_at, Date) >= start_date,
+        )
+        .group_by(ChatSession.chatbot_id, "day")
+    )
+    msg_rows: dict[int, dict[str, int]] = {}
+    for r in (await db.execute(msg_q)).all():
+        msg_rows.setdefault(r[0], {})[str(r.day)] = r.cnt
+
+    # Conversations per chatbot per day
+    conv_q = (
+        select(
+            ChatSession.chatbot_id,
+            cast(ChatSession.created_at, Date).label("day"),
+            func.count(ChatSession.id).label("cnt"),
+        )
+        .where(
+            ChatSession.chatbot_id.in_(chatbot_ids),
+            cast(ChatSession.created_at, Date) >= start_date,
+        )
+        .group_by(ChatSession.chatbot_id, "day")
+    )
+    conv_rows: dict[int, dict[str, int]] = {}
+    for r in (await db.execute(conv_q)).all():
+        conv_rows.setdefault(r[0], {})[str(r.day)] = r.cnt
+
+    # Resolved per chatbot per day
+    res_q = (
+        select(
+            ChatSession.chatbot_id,
+            cast(Message.created_at, Date).label("day"),
+            func.count(Message.id).label("cnt"),
+        )
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(
+            ChatSession.chatbot_id.in_(chatbot_ids),
+            Message.role == "assistant",
+            Message.is_resolved == True,
+            cast(Message.created_at, Date) >= start_date,
+        )
+        .group_by(ChatSession.chatbot_id, "day")
+    )
+    res_rows: dict[int, dict[str, int]] = {}
+    for r in (await db.execute(res_q)).all():
+        res_rows.setdefault(r[0], {})[str(r.day)] = r.cnt
+
+    def fill(rows: dict[str, int]) -> list[DailyDataPoint]:
+        return [DailyDataPoint(date=d, count=rows.get(d, 0)) for d in all_dates]
+
+    return {
+        cid: ChatbotMiniAnalytics(
+            messages=fill(msg_rows.get(cid, {})),
+            conversations=fill(conv_rows.get(cid, {})),
+            resolved=fill(res_rows.get(cid, {})),
+        )
+        for cid in chatbot_ids
+    }
+
+
+async def _compute_analytics(
+    db: SASession,
+    *,
+    chatbot_ids: list[int],
+    days: int = 30,
+) -> OrgAnalytics:
+    """Compute daily time-series analytics for a set of chatbots."""
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+
+    # Build all dates in range for gap-filling
+    all_dates = [(start_date + timedelta(days=i)).isoformat() for i in range(days)]
+
+    session_filter = [ChatSession.chatbot_id.in_(chatbot_ids)]
+    date_filter = cast(ChatSession.created_at, Date) >= start_date
+
+    # Messages per day
+    msg_q = (
+        select(
+            cast(Message.created_at, Date).label("day"),
+            func.count(Message.id).label("cnt"),
+        )
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(*session_filter, cast(Message.created_at, Date) >= start_date)
+        .group_by("day")
+    )
+    msg_rows = {str(r.day): r.cnt for r in (await db.execute(msg_q)).all()}
+
+    # Conversations per day
+    conv_q = (
+        select(
+            cast(ChatSession.created_at, Date).label("day"),
+            func.count(ChatSession.id).label("cnt"),
+        )
+        .where(*session_filter, date_filter)
+        .group_by("day")
+    )
+    conv_rows = {str(r.day): r.cnt for r in (await db.execute(conv_q)).all()}
+
+    # Resolved per day
+    resolved_q = (
+        select(
+            cast(Message.created_at, Date).label("day"),
+            func.count(Message.id).label("cnt"),
+        )
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(
+            *session_filter,
+            Message.role == "assistant",
+            Message.is_resolved == True,
+            cast(Message.created_at, Date) >= start_date,
+        )
+        .group_by("day")
+    )
+    resolved_rows = {str(r.day): r.cnt for r in (await db.execute(resolved_q)).all()}
+
+    # Unique visitors per day (distinct sessions)
+    visitors_q = (
+        select(
+            cast(ChatSession.created_at, Date).label("day"),
+            func.count(func.distinct(ChatSession.id)).label("cnt"),
+        )
+        .where(*session_filter, date_filter)
+        .group_by("day")
+    )
+    visitors_rows = {str(r.day): r.cnt for r in (await db.execute(visitors_q)).all()}
+
+    def fill(rows: dict[str, int]) -> list[DailyDataPoint]:
+        return [DailyDataPoint(date=d, count=rows.get(d, 0)) for d in all_dates]
+
+    return OrgAnalytics(
+        messages_per_day=fill(msg_rows),
+        conversations_per_day=fill(conv_rows),
+        resolved_per_day=fill(resolved_rows),
+        unique_visitors_per_day=fill(visitors_rows),
     )
 
 

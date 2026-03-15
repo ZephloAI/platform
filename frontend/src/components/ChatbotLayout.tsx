@@ -136,26 +136,26 @@ function ChatbotLayout() {
   const otherChatbots = chatbots?.filter((c) => c.id !== chatbotId) || [];
 
   const navLinkClass = (active: boolean) =>
-    `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
+    `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-smooth ${
       active
-        ? 'bg-black/[0.06] text-label-primary'
-        : 'text-label-secondary hover:bg-black/[0.03] hover:text-label-primary'
+        ? 'bg-accent-light text-accent'
+        : 'text-label-secondary hover:bg-surface-secondary hover:text-label-primary'
     }`;
 
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
+    <div className="h-screen bg-surface-primary flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[220px] shrink-0 border-r border-black/[0.06] flex flex-col h-screen sticky top-0">
+      <aside className="w-[220px] shrink-0 bg-white border-r border-black/[0.04] flex flex-col h-screen sticky top-0">
         {/* Chatbot switcher */}
         <div className="px-4 pt-5 pb-3" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-black/[0.03] transition-colors"
+            className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-surface-secondary transition-colors ease-smooth"
           >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
               {chatbot?.name?.charAt(0).toUpperCase() || 'C'}
             </div>
-            <span className="text-[13px] font-semibold text-label-primary truncate flex-1 text-left">
+            <span className="text-[13px] font-display font-semibold text-label-primary truncate flex-1 text-left">
               {chatbot?.name || 'Loading...'}
             </span>
             <svg
@@ -165,14 +165,14 @@ function ChatbotLayout() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className={`text-label-quaternary shrink-0 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+              className={`text-label-quaternary shrink-0 transition-transform duration-200 ease-smooth ${dropdownOpen ? 'rotate-180' : ''}`}
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
 
           {dropdownOpen && (
-            <div className="mt-1 bg-white border border-black/[0.08] rounded-lg shadow-lg overflow-hidden animate-fade-in z-50 relative">
+            <div className="mt-1 dropdown-glass rounded-xl animate-scale-in z-50 relative">
               {otherChatbots.length > 0 && (
                 <div className="py-1">
                   <p className="px-3 py-1.5 text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">
@@ -185,9 +185,9 @@ function ChatbotLayout() {
                         setDropdownOpen(false);
                         navigate(`/chatbots/${c.id}`);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
                     >
-                      <div className="w-5 h-5 rounded bg-black/[0.06] flex items-center justify-center text-[9px] font-semibold text-label-tertiary shrink-0">
+                      <div className="w-5 h-5 rounded bg-accent-light flex items-center justify-center text-[9px] font-semibold text-accent shrink-0">
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="truncate">{c.name}</span>
@@ -195,11 +195,11 @@ function ChatbotLayout() {
                   ))}
                 </div>
               )}
-              <div className="border-t border-black/[0.06] py-1">
+              <div className="border-t border-black/[0.04] py-1">
                 <Link
                   to="/dashboard"
                   onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 18l-6-6 6-6" />
@@ -209,7 +209,7 @@ function ChatbotLayout() {
                 <Link
                   to="/chatbots/new"
                   onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent/[0.04] transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent-light transition-colors ease-smooth"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19" />
@@ -226,7 +226,7 @@ function ChatbotLayout() {
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           <Link
             to="/dashboard"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-all duration-200 mb-2"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth mb-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -234,14 +234,14 @@ function ChatbotLayout() {
             </svg>
             Home
           </Link>
-          <div className="border-t border-black/[0.06] my-2" />
+          <div className="border-t border-black/[0.04] my-2" />
           {NAV_ITEMS.map((item) => (
             <div key={item.key}>
               <button
                 onClick={() => setActiveSection(item.key)}
                 className={navLinkClass(activeSection === item.key)}
               >
-                <span className={activeSection === item.key ? 'text-label-primary' : 'text-label-tertiary'}>
+                <span className={activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}>
                   {item.icon}
                 </span>
                 <span className="flex-1 text-left">{item.label}</span>
@@ -260,7 +260,7 @@ function ChatbotLayout() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`transition-transform duration-200 ${activeSection === item.key ? 'rotate-180' : ''}`}
+                    className={`transition-transform duration-200 ease-smooth ${activeSection === item.key ? 'rotate-180 text-accent' : ''}`}
                   >
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
@@ -272,10 +272,10 @@ function ChatbotLayout() {
                     <button
                       key={sub.key}
                       onClick={() => setActiveConfigTab(sub.key)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ${
+                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-smooth ${
                         activeConfigTab === sub.key
-                          ? 'bg-black/[0.05] text-label-primary'
-                          : 'text-label-tertiary hover:bg-black/[0.03] hover:text-label-secondary'
+                          ? 'bg-accent-light text-accent'
+                          : 'text-label-tertiary hover:bg-surface-secondary hover:text-label-secondary'
                       }`}
                     >
                       {sub.label}
@@ -289,10 +289,10 @@ function ChatbotLayout() {
                     <button
                       key={sub.key}
                       onClick={() => setActiveToolsTab(sub.key)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ${
+                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-smooth ${
                         activeToolsTab === sub.key
-                          ? 'bg-black/[0.05] text-label-primary'
-                          : 'text-label-tertiary hover:bg-black/[0.03] hover:text-label-secondary'
+                          ? 'bg-accent-light text-accent'
+                          : 'text-label-tertiary hover:bg-surface-secondary hover:text-label-secondary'
                       }`}
                     >
                       {sub.label}
@@ -305,10 +305,10 @@ function ChatbotLayout() {
         </nav>
 
         {/* Bottom section */}
-        <div className="px-3 pb-4 border-t border-black/[0.06] pt-3">
+        <div className="px-3 pb-4 border-t border-black/[0.04] pt-3">
           <Link
             to="/dashboard"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:bg-black/[0.03] hover:text-label-primary transition-all duration-200 w-full"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth w-full"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -321,23 +321,23 @@ function ChatbotLayout() {
       </aside>
 
       {/* Main content area */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col bg-surface-primary">
         {/* Top navbar */}
-        <header className="h-14 border-b border-black/[0.06] flex items-center justify-between px-8 shrink-0 bg-white sticky top-0 z-40">
-          <h1 className="text-[17px] font-semibold text-label-primary tracking-tight capitalize">
+        <header className="h-14 border-b border-black/[0.04] flex items-center justify-between px-8 shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+          <h1 className="heading-md font-display text-label-primary capitalize">
             {activeSection}
           </h1>
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity ease-smooth"
             >
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </button>
             {accountOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-black/[0.08] rounded-lg shadow-lg overflow-hidden animate-fade-in z-50">
-                <div className="px-4 py-3 border-b border-black/[0.06]">
-                  <p className="text-[13px] font-semibold text-label-primary truncate">
+              <div className="absolute right-0 top-full mt-2 w-56 dropdown-glass rounded-xl animate-scale-in z-50">
+                <div className="px-4 py-3 border-b border-black/[0.04]">
+                  <p className="text-[13px] font-display font-semibold text-label-primary truncate">
                     {user?.first_name && user?.last_name
                       ? `${user.first_name} ${user.last_name}`
                       : user?.email?.split('@')[0]}
@@ -351,7 +351,7 @@ function ChatbotLayout() {
                   <Link
                     to="/dashboard"
                     onClick={() => setAccountOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -363,7 +363,7 @@ function ChatbotLayout() {
                     <Link
                       to={`/organizations/${activeOrg.id}/settings`}
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -375,10 +375,10 @@ function ChatbotLayout() {
                     </Link>
                   )}
                 </div>
-                <div className="border-t border-black/[0.06] py-1">
+                <div className="border-t border-black/[0.04] py-1">
                   <button
                     onClick={() => { setAccountOpen(false); logout(); }}
-                    className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+                    className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors ease-smooth w-full text-left"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

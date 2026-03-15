@@ -99,10 +99,10 @@ Flunkie.initialize({
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Status Card */}
-      <div className="glass-card p-6">
+      <div className="card p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-[18px] font-semibold text-label-primary tracking-tight">
+            <h2 className="heading-sm font-display text-label-primary">
               Status
             </h2>
             <p className="text-[12px] text-label-quaternary mt-0.5">
@@ -144,8 +144,8 @@ Flunkie.initialize({
         </div>
 
         {chatbot.is_active && (
-          <div className="pt-2 border-t border-black/[0.04]">
-            <Link to={`/chatbots/${chatbot.id}/chat`} className="btn-primary">
+          <div className="pt-3 mt-3 border-t border-black/[0.04]">
+            <Link to={`/chatbots/${chatbot.id}/chat`} className="btn-accent">
               Open Chat
             </Link>
           </div>
@@ -153,40 +153,40 @@ Flunkie.initialize({
       </div>
 
       {/* Metrics */}
-      <div className="glass-card p-6">
-        <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
+      <div className="card p-6">
+        <h2 className="section-label mb-4">
           Metrics
         </h2>
         <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
-            <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+            <p className="metric-value font-display">
               {chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0}
             </p>
-            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
+            <p className="metric-label">
               Pages Indexed
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+            <p className="metric-value font-display">
               {chatbot.crawl_jobs?.length || 0}
             </p>
-            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
+            <p className="metric-label">
               Crawl Jobs
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+            <p className="metric-value font-display">
               {metrics?.total_conversations ?? '—'}
             </p>
-            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
+            <p className="metric-label">
               Conversations
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+            <p className="metric-value font-display">
               {metrics?.resolved_requests ?? '—'}
             </p>
-            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
+            <p className="metric-label">
               Resolved
             </p>
           </div>
@@ -194,8 +194,8 @@ Flunkie.initialize({
       </div>
 
       {/* Embed Code with Tabs */}
-      <div className="glass-card p-6">
-        <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-3">
+      <div className="card p-6">
+        <h2 className="section-label mb-3">
           Embed Code
         </h2>
         <p className="text-[13px] text-label-secondary mb-4">
@@ -203,7 +203,7 @@ Flunkie.initialize({
         </p>
 
         {/* Tab Buttons */}
-        <div className="flex gap-1 mb-4 p-1 bg-black/[0.03] rounded-lg w-fit">
+        <div className="flex gap-1 mb-4 p-1 bg-surface-secondary rounded-xl w-fit">
           {([
             { key: 'script' as EmbedTab, label: 'Script Tag' },
             { key: 'npm' as EmbedTab, label: 'npm' },
@@ -212,7 +212,7 @@ Flunkie.initialize({
             <button
               key={tab.key}
               onClick={() => setEmbedTab(tab.key)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-all duration-200 ${
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-all duration-200 ${
                 embedTab === tab.key
                   ? 'bg-white text-label-primary shadow-sm'
                   : 'text-label-tertiary hover:text-label-secondary'
@@ -227,7 +227,7 @@ Flunkie.initialize({
         </div>
 
         <div className="relative">
-          <pre className="bg-gray-900 text-green-400 text-[12px] rounded-xl p-4 overflow-x-auto font-mono leading-relaxed">
+          <pre className="bg-ink text-emerald-400 text-[12px] rounded-xl p-4 overflow-x-auto font-mono leading-relaxed">
             {embedCodeMap[embedTab]}
           </pre>
           <button
@@ -240,7 +240,7 @@ Flunkie.initialize({
       </div>
 
       {/* API Keys Info */}
-      <div className="glass-card p-6">
+      <div className="card p-6">
         <div className="flex items-center gap-3">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-label-tertiary shrink-0">
             <circle cx="12" cy="12" r="10" />

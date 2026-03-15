@@ -6,8 +6,8 @@ import { useAuthStore } from '../stores/authStore';
 
 // ============================================================
 // RegisterPage
-// Apple-style registration with glass card and ambient glow.
-// Captures first/last name along with email and password.
+// Warm Editorial registration with card surface, ambient warm
+// gradients, and premium editorial typography.
 // ============================================================
 
 function RegisterPage() {
@@ -62,37 +62,41 @@ function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-primary px-4 relative overflow-hidden">
-      {/* Ambient gradient orbs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-accent/[0.04] rounded-full blur-3xl" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.03] rounded-full blur-3xl" />
+      {/* Grain texture overlay */}
+      <div className="grain" />
 
-      <div className="max-w-sm w-full relative z-10 animate-fade-in">
+      {/* Warm ambient gradient orbs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-accent/[0.06] rounded-full blur-3xl" />
+      <div className="absolute bottom-[-25%] right-[-10%] w-[600px] h-[600px] bg-amber-700/[0.04] rounded-full blur-3xl" />
+      <div className="absolute top-[50%] right-[15%] w-[300px] h-[300px] bg-accent/[0.03] rounded-full blur-3xl" />
+
+      <div className="max-w-[400px] w-full relative z-10 animate-fade-in">
         {/* Logo and heading */}
-        <div className="text-center mb-10">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-accent/20">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="text-center mb-12 animate-slide-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center mx-auto mb-6 shadow-glow">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h1 className="text-[28px] font-semibold text-label-primary tracking-tight mb-1">
+          <h1 className="heading-xl font-display text-label-primary mb-2">
             Get started
           </h1>
-          <p className="text-[15px] text-label-tertiary">
-            Create your Flunkie account
+          <p className="text-base text-label-secondary">
+            Create your <span className="font-display font-semibold text-accent">Flunkie</span> account
           </p>
         </div>
 
         {/* Register form */}
-        <form onSubmit={handleSubmit} className="glass-card p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="card p-10 space-y-6 shadow-card-lg animate-scale-in">
           {/* Error */}
           {error && (
-            <div className="bg-red-500/[0.06] text-red-600 text-[13px] rounded-xl p-3.5 border border-red-500/10">
+            <div className="bg-red-50 text-red-600 text-sm rounded-xl p-4 border border-red-100">
               {error}
             </div>
           )}
 
           {/* Name fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="firstName" className="input-label">First Name</label>
               <input
@@ -162,15 +166,15 @@ function RegisterPage() {
           </div>
 
           {/* Submit */}
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button type="submit" disabled={loading} className="btn-accent w-full">
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         {/* Login link */}
-        <p className="text-center text-[13px] text-label-tertiary mt-6">
+        <p className="text-center text-sm text-label-tertiary mt-8">
           Already have an account?{' '}
-          <Link to="/login" className="text-accent font-medium hover:text-accent-hover transition-colors">
+          <Link to="/login" className="text-accent font-semibold hover:text-accent-hover transition-colors">
             Sign in
           </Link>
         </p>

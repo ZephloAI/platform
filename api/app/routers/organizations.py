@@ -18,7 +18,7 @@ from app.models.chatbot import Chatbot
 from app.models.user import User
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.schemas.api_key import ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse
-from app.schemas.chatbot import ChatbotMetrics
+from app.schemas.chatbot import ChatbotMetrics, ChatbotMetricsMap, ChatbotMiniAnalytics, OrgAnalytics
 from app.schemas.organization import (
     OrganizationCreate,
     OrganizationResponse,
@@ -111,6 +111,87 @@ async def get_org_metrics(
 
     from app.routers.chatbots import _compute_metrics
     return await _compute_metrics(db, chatbot_ids=chatbot_ids)
+
+
+@router.get("/{org_id}/analytics", response_model=OrgAnalytics)
+async def get_org_analytics(
+    org_id: int,
+    days: int = 30,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get daily time-series analytics across all chatbots in the organization."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+
+    result = await db.execute(
+        select(Chatbot.id).where(Chatbot.organization_id == org_id)
+    )
+    chatbot_ids = [row[0] for row in result.all()]
+
+    if not chatbot_ids:
+        from app.schemas.chatbot import DailyDataPoint
+        from datetime import date, timedelta
+        today = date.today()
+        empty = [
+            DailyDataPoint(date=(today - timedelta(days=days - 1 - i)).isoformat(), count=0)
+            for i in range(days)
+        ]
+        return OrgAnalytics(
+            messages_per_day=empty,
+            conversations_per_day=empty,
+            resolved_per_day=empty,
+            unique_visitors_per_day=empty,
+        )
+
+    from app.routers.chatbots import _compute_analytics
+    return await _compute_analytics(db, chatbot_ids=chatbot_ids, days=days)
+
+
+@router.get("/{org_id}/chatbot-metrics", response_model=ChatbotMetricsMap)
+async def get_org_chatbot_metrics(
+    org_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get metrics for every chatbot in the org in a single batch."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+
+    result = await db.execute(
+        select(Chatbot.id).where(Chatbot.organization_id == org_id)
+    )
+    chatbot_ids = [row[0] for row in result.all()]
+
+    if not chatbot_ids:
+        return ChatbotMetricsMap(metrics={})
+
+    from app.routers.chatbots import _compute_metrics_batch
+    metrics = await _compute_metrics_batch(db, chatbot_ids=chatbot_ids)
+    return ChatbotMetricsMap(metrics=metrics)
+
+
+@router.get("/{org_id}/chatbot-analytics")
+async def get_org_chatbot_analytics(
+    org_id: int,
+    days: int = 14,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-chatbot daily analytics for sparklines."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+
+    result = await db.execute(
+        select(Chatbot.id).where(Chatbot.organization_id == org_id)
+    )
+    chatbot_ids = [row[0] for row in result.all()]
+
+    if not chatbot_ids:
+        return {}
+
+    from app.routers.chatbots import _compute_analytics_batch
+    return await _compute_analytics_batch(db, chatbot_ids=chatbot_ids, days=days)
 
 
 # -- Members --

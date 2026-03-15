@@ -1,162 +1,182 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useChatbots, useDeleteChatbot } from '../hooks/useChatbots';
+import { useChatbots, useDeleteChatbot, useOrgAnalytics, useOrgChatbotAnalytics } from '../hooks/useChatbots';
 import ChatbotCard from '../components/ChatbotCard';
-import apiClient from '../api/client';
+import AnalyticsChart from '../components/AnalyticsChart';
+import ConfirmModal from '../components/ConfirmModal';
 import { useOrgStore } from '../stores/orgStore';
-
-interface OrgMetrics {
-  total_conversations: number;
-  total_messages: number;
-  resolved_requests: number;
-}
+import { useAuth } from '../hooks/useAuth';
 
 function DashboardPage() {
+  const { user } = useAuth();
   const { data: chatbots, isLoading, error } = useChatbots();
   const deleteMutation = useDeleteChatbot();
   const activeOrg = useOrgStore((state) => state.activeOrganization);
-  const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
+  const { data: analytics, isLoading: analyticsLoading } = useOrgAnalytics(activeOrg?.id);
+  const { data: chatbotAnalytics } = useOrgChatbotAnalytics(activeOrg?.id);
 
-  useEffect(() => {
-    if (!activeOrg) return;
-    apiClient
-      .get(`/api/organizations/${activeOrg.id}/metrics`)
-      .then((res) => setMetrics(res.data))
-      .catch(() => {});
-  }, [activeOrg?.id]);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this agent?')) {
-      deleteMutation.mutate(id);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
-  const totalChatbots = chatbots?.length || 0;
+  const firstName = user?.first_name || user?.email?.split('@')[0] || '';
+  const hasAgents = chatbots && chatbots.length > 0;
 
   return (
-    <div className="animate-fade-in max-w-5xl">
-      {/* Page title */}
-      <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mb-8">
-        Home
-      </h1>
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="flex items-end justify-between mb-8">
+        <h1 className="heading-xl">
+          {firstName ? `Hi, ${firstName}` : 'Home'}
+        </h1>
+        {hasAgents && (
+          <Link
+            to="/chatbots/new"
+            className="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-xl"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            New Agent
+          </Link>
+        )}
+      </div>
 
-      {/* Overview section */}
-      {!isLoading && chatbots && chatbots.length > 0 && (
+      {/* Compact charts row */}
+      {hasAgents && (
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[17px] font-semibold text-label-primary">Overview</h2>
-          </div>
-
-          {/* Stats cards */}
-          <div className="grid grid-cols-3 gap-0 border border-black/[0.08] rounded-xl overflow-hidden">
-            <div className="p-5 border-r border-black/[0.08]">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Total Chatbots</p>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </div>
-              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
-                {totalChatbots}
-              </p>
+          {analyticsLoading ? (
+            <div className="grid grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="metric-card !p-4 animate-pulse">
+                  <div className="h-2.5 w-14 bg-black/[0.06] rounded mb-2" />
+                  <div className="h-6 w-10 bg-black/[0.06] rounded mb-2" />
+                  <div className="h-16 bg-black/[0.03] rounded" />
+                </div>
+              ))}
             </div>
-            <div className="p-5 border-r border-black/[0.08] border-t-2 border-t-accent">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Total Messages</p>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </div>
-              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
-                {metrics?.total_messages ?? '—'}
-              </p>
+          ) : analytics ? (
+            <div className="grid grid-cols-4 gap-3">
+              <AnalyticsChart
+                data={analytics.messages_per_day}
+                title="Messages"
+                color="#C8973E"
+              />
+              <AnalyticsChart
+                data={analytics.conversations_per_day}
+                title="Conversations"
+                color="#1A1A2E"
+                delay="60ms"
+              />
+              <AnalyticsChart
+                data={analytics.resolved_per_day}
+                title="Resolved"
+                color="#6B8F71"
+                delay="120ms"
+              />
+              <AnalyticsChart
+                data={analytics.unique_visitors_per_day}
+                title="Visitors"
+                color="#D4A853"
+                delay="180ms"
+              />
             </div>
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Resolved Requests</p>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </div>
-              <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
-                {metrics?.resolved_requests ?? '—'}
-              </p>
-            </div>
-          </div>
+          ) : null}
         </div>
       )}
 
-      {/* Chatbots section */}
+      {/* Agents */}
       <div>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-semibold text-label-primary">Your Agents</h2>
-          {chatbots && chatbots.length > 0 && (
-            <Link
-              to="/chatbots/new"
-              className="text-[13px] text-accent font-medium hover:text-accent-hover transition-colors"
-            >
-              Create New
-            </Link>
-          )}
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-              <p className="text-[13px] text-label-tertiary">Loading...</p>
+        {hasAgents && (
+          <>
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="heading-md">Agents</h2>
+              <span className="text-[12px] font-medium text-label-quaternary">{chatbots.length}</span>
             </div>
+
+            {/* Column headers */}
+            <div className="flex items-center gap-4 px-5 pb-2">
+              <div className="w-9 shrink-0" />
+              <div className="w-40 shrink-0" />
+              <div className="flex-1 flex items-center justify-center gap-8">
+                <div className="w-[106px] text-center">
+                  <p className="text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">Messages</p>
+                </div>
+                <div className="w-[106px] text-center">
+                  <p className="text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">Conversations</p>
+                </div>
+                <div className="w-[106px] text-center">
+                  <p className="text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">Resolutions</p>
+                </div>
+              </div>
+              <div className="w-[92px] shrink-0" />
+            </div>
+
+            <div className="card rounded-2xl overflow-hidden divide-y divide-black/[0.04]">
+              {chatbots.map((chatbot) => (
+                <ChatbotCard
+                  key={chatbot.id}
+                  chatbot={chatbot}
+                  analytics={chatbotAnalytics?.[chatbot.id]}
+                  onDelete={() => setDeleteTarget({ id: chatbot.id, name: chatbot.name })}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {isLoading && (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-5 h-5 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
           </div>
         )}
 
-        {/* Error */}
         {error && (
-          <div className="border border-black/[0.08] rounded-xl p-6 text-center">
+          <div className="card rounded-2xl p-6 text-center">
             <p className="text-[14px] text-red-500">
               Failed to load agents. Please try refreshing.
             </p>
           </div>
         )}
 
-        {/* Empty state */}
         {chatbots && chatbots.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-black/[0.03] flex items-center justify-center mb-5">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-label-tertiary" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-accent-light flex items-center justify-center mb-5">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <h2 className="text-[17px] font-semibold text-label-primary mb-1">
-              No agents yet
+            <h2 className="text-[16px] font-display font-semibold text-label-primary mb-1">
+              Create your first agent
             </h2>
-            <p className="text-[14px] text-label-tertiary mb-6 max-w-xs">
-              Create your first agent to start answering questions about your website.
+            <p className="text-[13px] text-label-tertiary mb-6 max-w-[280px]">
+              Point it at your website and it'll answer questions for your visitors.
             </p>
             <Link
               to="/chatbots/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-[13px] font-semibold rounded-lg hover:bg-accent-hover transition-all duration-200"
+              className="btn-accent px-5 py-2.5 text-[13px] font-semibold rounded-xl"
             >
-              Create Your First Agent
+              Get Started
             </Link>
           </div>
         )}
-
-        {/* Chatbot list */}
-        {chatbots && chatbots.length > 0 && (
-          <div className="border border-black/[0.08] rounded-xl overflow-hidden divide-y divide-black/[0.06]">
-            {chatbots.map((chatbot) => (
-              <ChatbotCard key={chatbot.id} chatbot={chatbot} onDelete={handleDelete} />
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete agent"
+        description={`This will permanently delete "${deleteTarget?.name}" and all its data including conversations, messages, and crawled pages. This can't be undone.`}
+        confirmLabel="Delete"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

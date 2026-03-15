@@ -152,6 +152,32 @@ class ChatbotMetrics(BaseModel):
     resolved_requests: int
 
 
+class ChatbotMetricsMap(BaseModel):
+    """Per-chatbot metrics keyed by chatbot ID."""
+    metrics: dict[int, ChatbotMetrics]
+
+
+class DailyDataPoint(BaseModel):
+    """A single day's count for time-series analytics."""
+    date: str
+    count: int
+
+
+class OrgAnalytics(BaseModel):
+    """Daily time-series analytics for an organization."""
+    messages_per_day: list[DailyDataPoint]
+    conversations_per_day: list[DailyDataPoint]
+    resolved_per_day: list[DailyDataPoint]
+    unique_visitors_per_day: list[DailyDataPoint]
+
+
+class ChatbotMiniAnalytics(BaseModel):
+    """Compact daily analytics for a single chatbot."""
+    messages: list[DailyDataPoint]
+    conversations: list[DailyDataPoint]
+    resolved: list[DailyDataPoint]
+
+
 class PublicWidgetConfig(BaseModel):
     """Public config returned to the embeddable widget. No sensitive data."""
     chatbot_id: int

@@ -27,16 +27,16 @@ function Layout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface-primary grain">
       {/* Top nav */}
-      <nav className="h-14 border-b border-black/[0.06] flex items-center justify-between px-8 bg-white sticky top-0 z-40">
+      <nav className="h-14 border-b border-black/[0.06] flex items-center justify-between px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <span className="text-[15px] font-semibold text-label-primary tracking-tight">
+          <span className="text-[15px] font-display font-bold text-label-primary tracking-tight">
             Flunkie
           </span>
         </div>
@@ -45,12 +45,12 @@ function Layout() {
         <div className="relative" ref={accountRef}>
           <button
             onClick={() => setAccountOpen(!accountOpen)}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity"
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity"
           >
             {user?.email?.charAt(0).toUpperCase() || 'U'}
           </button>
           {accountOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-black/[0.08] rounded-lg shadow-lg overflow-hidden animate-fade-in z-50">
+            <div className="absolute right-0 top-full mt-2 w-56 dropdown-glass rounded-xl overflow-hidden animate-scale-in z-50">
               <div className="px-4 py-3 border-b border-black/[0.06]">
                 <p className="text-[13px] font-semibold text-label-primary truncate">
                   {user?.first_name && user?.last_name
@@ -97,7 +97,7 @@ function Layout() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto px-8 py-8">
+      <main className="max-w-6xl mx-auto px-8 py-10">
         <Outlet />
       </main>
     </div>

@@ -284,7 +284,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
       {activeTab === 'appearance' && (
         <div className="space-y-5">
           {/* Logo Upload */}
-          <div className="glass-card p-6">
+          <div className="card p-6">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
               Logo
             </h3>
@@ -336,7 +336,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Icon */}
-          <div className="glass-card p-6">
+          <div className="card p-6">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
               Icon
             </h3>
@@ -360,7 +360,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Colors */}
-          <div className="glass-card p-6">
+          <div className="card p-6">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
               Colors
             </h3>
@@ -391,7 +391,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Typography */}
-          <div className="glass-card p-6 space-y-5">
+          <div className="card p-6 space-y-5">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Typography
             </h3>
@@ -429,7 +429,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Dimensions */}
-          <div className="glass-card p-6 space-y-5">
+          <div className="card p-6 space-y-5">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Dimensions
             </h3>
@@ -476,7 +476,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Position & Welcome */}
-          <div className="glass-card p-6 space-y-5">
+          <div className="card p-6 space-y-5">
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Layout
             </h3>
@@ -543,7 +543,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Voice */}
-          <div className="glass-card p-6">
+          <div className="card p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
@@ -575,7 +575,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Quick Prompts Tab ============ */}
       {activeTab === 'quick-prompts' && (
-        <div className="glass-card p-6 space-y-5">
+        <div className="card p-6 space-y-5">
           <div>
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Quick Prompts
@@ -681,7 +681,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Follow-Up Prompts Tab ============ */}
       {activeTab === 'follow-up-prompts' && (
-        <div className="glass-card p-6 space-y-5">
+        <div className="card p-6 space-y-5">
           <div>
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Follow-Up Prompts
@@ -794,7 +794,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Greeting Prompts Tab ============ */}
       {activeTab === 'greeting-prompts' && (
-        <div className="glass-card p-6 space-y-5">
+        <div className="card p-6 space-y-5">
           <div>
             <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
               Greeting Prompts

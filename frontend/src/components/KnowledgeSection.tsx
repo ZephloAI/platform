@@ -77,7 +77,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {chatbot.status !== 'crawling' && (
         <div>
           {/* Tab bar */}
-          <div className="flex gap-0 mb-4 bg-surface-secondary/60 rounded-xl p-1">
+          <div className="flex gap-0 mb-4 bg-surface-secondary rounded-xl p-1">
             <button
               onClick={() => setActiveTab('website')}
               className={`flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
@@ -117,7 +117,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
           {/* Website tab content */}
           {activeTab === 'website' && (
-            <div className="glass-card p-5 animate-fade-in">
+            <div className="card p-5 animate-fade-in">
               <p className="text-[13px] text-label-secondary mb-3">
                 Enter a website URL to discover all its pages. You can then select which ones to crawl.
               </p>
@@ -129,12 +129,12 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                   onKeyDown={(e) => e.key === 'Enter' && canDiscover && handleDiscover()}
                   placeholder="https://example.com"
                   disabled={discoverMutation.isPending || discoveredUrls.length > 0}
-                  className="flex-1 bg-surface-secondary/80 border border-black/[0.04] rounded-lg px-3.5 py-2.5 text-[13px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 focus:bg-white transition-all duration-250 ease-apple disabled:opacity-50"
+                  className="input-field flex-1 disabled:opacity-50"
                 />
                 {canDiscover && (
                   <button
                     onClick={handleDiscover}
-                    className="btn-primary shrink-0"
+                    className="btn-accent shrink-0"
                   >
                     Discover Pages
                   </button>
@@ -162,7 +162,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
           {/* Pages tab content */}
           {activeTab === 'pages' && (
-            <div className="glass-card p-5 animate-fade-in">
+            <div className="card p-5 animate-fade-in">
               <p className="text-[13px] text-label-secondary mb-3">
                 Add specific page URLs directly. These will be crawled to build the agent's knowledge base.
               </p>
@@ -176,7 +176,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       )}
 
       {chatbot.status === 'crawling' && discoveredUrls.length === 0 && (
-        <div className="glass-card p-6">
+        <div className="card p-6">
           <div className="flex items-center gap-2.5">
             <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
             <span className="text-[13px] font-medium text-label-secondary">
@@ -190,14 +190,14 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {discoveredUrls.length > 0 && !discoverMutation.isPending && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+            <h2 className="section-label">
               Selected Pages
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCrawlSelected}
                 disabled={!canCrawl}
-                className="btn-primary"
+                className="btn-accent"
               >
                 {startCrawlMutation.isPending
                   ? 'Starting...'
@@ -226,12 +226,12 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
       {/* Crawl History */}
       <div>
-        <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
+        <h2 className="section-label mb-4">
           Crawl History
         </h2>
 
         {(!chatbot.crawl_jobs || chatbot.crawl_jobs.length === 0) && (
-          <div className="glass-card p-8 text-center">
+          <div className="card p-8 text-center">
             <p className="text-[14px] text-label-tertiary">
               No crawl jobs yet. Add pages above to start indexing.
             </p>
@@ -300,12 +300,12 @@ function ManualUrlAdder({
           }}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder="https://example.com/specific-page"
-          className="flex-1 bg-surface-secondary/80 border border-black/[0.04] rounded-lg px-3.5 py-2.5 text-[13px] text-label-primary placeholder:text-label-quaternary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/30 focus:bg-white transition-all duration-250 ease-apple"
+          className="input-field flex-1"
         />
         <button
           onClick={handleAdd}
           disabled={!manualUrl.trim()}
-          className="px-4 py-2.5 text-[13px] font-medium bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
+          className="btn-accent shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Add Page
         </button>

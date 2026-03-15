@@ -28,7 +28,7 @@ function ChatPreviewPage() {
   // Not found
   if (!chatbot) {
     return (
-      <div className="glass-card p-6 text-center max-w-lg mx-auto">
+      <div className="card p-6 text-center max-w-lg mx-auto">
         <p className="text-[14px] text-red-500">Agent not found.</p>
       </div>
     );
@@ -47,7 +47,7 @@ function ChatPreviewPage() {
           </svg>
           Back
         </Link>
-        <div className="glass-card p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-amber-500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -55,7 +55,7 @@ function ChatPreviewPage() {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <p className="text-[15px] font-medium text-label-primary mb-1">Not ready yet</p>
+          <p className="heading-sm font-display mb-1">Not ready yet</p>
           <p className="text-[13px] text-label-tertiary">
             Please crawl the website first before starting a chat.
           </p>
@@ -77,7 +77,7 @@ function ChatPreviewPage() {
           </svg>
           {chatbot.name}
         </Link>
-        <h1 className="text-[22px] font-semibold text-label-primary tracking-tight mt-2">
+        <h1 className="heading-lg font-display mt-2">
           Chat Preview
         </h1>
       </div>

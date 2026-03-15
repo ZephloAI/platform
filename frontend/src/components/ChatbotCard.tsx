@@ -1,109 +1,123 @@
-import { useState, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import type { Chatbot } from '../types';
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import type { Chatbot, ChatbotMiniAnalytics, DailyDataPoint } from '../types';
 
 interface ChatbotCardProps {
   chatbot: Chatbot;
-  onDelete: (id: number) => void;
+  analytics?: ChatbotMiniAnalytics;
+  onDelete: () => void;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-emerald-500',
-  inactive: 'bg-gray-400',
-};
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Active',
-  inactive: 'Inactive',
-};
+function SparkTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const date = payload[0]?.payload?.date;
+  return (
+    <div className="bg-white rounded-lg px-2 py-1 shadow-card-hover text-[10px] border border-black/[0.06]">
+      <p className="text-label-tertiary">{date ? formatDate(date) : ''}</p>
+      <p className="font-semibold text-label-primary">{payload[0].value}</p>
+    </div>
+  );
+}
 
-function ChatbotCard({ chatbot, onDelete }: ChatbotCardProps) {
-  const pagesIndexed = chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0;
-  const displayStatus = chatbot.is_active === false ? 'inactive' : 'active';
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+function Sparkline({ data, color }: { data: DailyDataPoint[]; color: string }) {
+  const total = useMemo(() => data.reduce((sum, d) => sum + d.count, 0), [data]);
 
   return (
-    <div className="flex items-center gap-4 px-5 py-4 hover:bg-black/[0.015] transition-colors group">
-      {/* Icon */}
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-20 h-8 shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 1, right: 0, left: 0, bottom: 1 }}>
+            <defs>
+              <linearGradient id={`spark-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.15} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Tooltip content={<SparkTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke={color}
+              strokeWidth={1.2}
+              fill={`url(#spark-${color.replace('#', '')})`}
+              dot={false}
+              activeDot={{ r: 2, strokeWidth: 1, fill: '#fff', stroke: color }}
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-[12px] font-semibold text-label-primary tabular-nums leading-none">
+        {total.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
+const emptyData: DailyDataPoint[] = Array.from({ length: 14 }, () => ({
+  date: '',
+  count: 0,
+}));
+
+function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
+  const isActive = chatbot.is_active !== false;
+
+  return (
+    <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-secondary/50 transition-colors group">
+      {/* Icon + Name */}
       <Link
         to={`/chatbots/${chatbot.id}`}
-        className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/10 to-blue-50 flex items-center justify-center shrink-0"
+        className="w-9 h-9 rounded-xl bg-accent-light flex items-center justify-center shrink-0"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </Link>
-
-      {/* Info - entire area is clickable */}
-      <Link to={`/chatbots/${chatbot.id}`} className="flex-1 min-w-0">
-        <p className="text-[14px] font-semibold text-label-primary group-hover:text-accent transition-colors">
+      <Link to={`/chatbots/${chatbot.id}`} className="min-w-0 w-40 shrink-0">
+        <p className="text-[14px] font-display font-semibold text-label-primary truncate group-hover:text-accent transition-colors">
           {chatbot.name}
-        </p>
-        <p className="text-[12px] text-label-tertiary truncate mt-0.5">
-          {chatbot.website_url || 'No website added'} {pagesIndexed > 0 && `· ${pagesIndexed} pages`}
         </p>
       </Link>
 
-      {/* Status */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[displayStatus]}`} />
-        <span className="text-[12px] text-label-secondary font-medium">
-          {STATUS_LABELS[displayStatus]}
-        </span>
+      {/* Sparkline metrics */}
+      <div className="flex-1 flex items-center justify-center gap-8">
+        <Sparkline data={analytics?.messages ?? emptyData} color="#C8973E" />
+        <Sparkline data={analytics?.conversations ?? emptyData} color="#1A1A2E" />
+        <Sparkline data={analytics?.resolved ?? emptyData} color="#6B8F71" />
       </div>
 
-      {/* More menu */}
-      <div className="relative shrink-0" ref={menuRef}>
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="w-7 h-7 rounded-md hover:bg-black/[0.04] flex items-center justify-center transition-colors"
+      {/* Status + Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={`w-2 h-2 rounded-full ${isActive ? 'bg-sage-500' : 'bg-label-quaternary'}`}
+          title={isActive ? 'Active' : 'Inactive'}
+        />
+        <Link
+          to={`/chatbots/${chatbot.id}`}
+          className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-black/[0.05] transition-colors"
+          title="Edit"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-label-quaternary">
-            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-label-quaternary group-hover:text-label-secondary transition-colors" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </Link>
+        <button
+          onClick={onDelete}
+          className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
+          title="Delete"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-label-quaternary hover:text-red-500 transition-colors" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         </button>
-
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-black/[0.08] rounded-lg shadow-lg overflow-hidden z-10 animate-fade-in">
-            <Link
-              to={`/chatbots/${chatbot.id}`}
-              className="block w-full text-left px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
-            >
-              Open
-            </Link>
-            {chatbot.is_active !== false && (
-              <Link
-                to={`/chatbots/${chatbot.id}/chat`}
-                className="block w-full text-left px-3 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
-              >
-                Chat
-              </Link>
-            )}
-            <div className="border-t border-black/[0.06]" />
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                onDelete(chatbot.id);
-              }}
-              className="block w-full text-left px-3 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

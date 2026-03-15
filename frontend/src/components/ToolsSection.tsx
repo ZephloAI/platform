@@ -187,7 +187,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
   return (
     <div className="animate-fade-in space-y-6">
       {/* WebMCP Browser Tools */}
-      <div className="glass-card p-5 mb-6">
+      <div className="card p-5 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-purple-500/10">
@@ -199,7 +199,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-semibold text-label-primary">
+                <h3 className="heading-sm font-display">
                   Browser Tools (WebMCP)
                 </h3>
                 <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-[10px] font-medium text-purple-500 uppercase tracking-wide">
@@ -229,7 +229,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[17px] font-semibold text-label-primary tracking-tight">
+          <h2 className="heading-md font-display">
             MCP Servers
           </h2>
           <p className="text-[13px] text-label-tertiary mt-1">
@@ -252,13 +252,13 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
       {/* Empty state */}
       {servers.length === 0 && !isFormOpen && (
-        <div className="glass-card p-12 text-center">
+        <div className="card p-12 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-secondary/80 mb-4">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-label-tertiary">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
             </svg>
           </div>
-          <h3 className="text-[15px] font-semibold text-label-primary mb-1">
+          <h3 className="heading-sm font-display mb-1">
             Connect your first MCP server
           </h3>
           <p className="text-[13px] text-label-tertiary mb-6 max-w-sm mx-auto">
@@ -283,7 +283,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
           {servers.map((server, index) => (
             <div
               key={index}
-              className={`glass-card p-4 transition-all duration-200 ${
+              className={`card p-4 transition-all duration-200 ${
                 editingIndex === index ? 'ring-1 ring-accent/30' : ''
               }`}
             >
@@ -353,14 +353,14 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
       {/* Add/Edit form */}
       {isFormOpen && (
-        <div className="glass-card p-6 space-y-5">
-          <h3 className="text-[15px] font-semibold text-label-primary">
+        <div className="card p-6 space-y-5">
+          <h3 className="heading-sm font-display">
             {editingIndex !== null ? 'Edit Server' : 'Add Server'}
           </h3>
 
           {/* Name */}
           <div>
-            <label className="block text-[12px] font-medium text-label-secondary mb-1.5">
+            <label className="input-label">
               Name
             </label>
             <input
@@ -374,7 +374,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
           {/* URL */}
           <div>
-            <label className="block text-[12px] font-medium text-label-secondary mb-1.5">
+            <label className="input-label">
               Server URL
             </label>
             <input
@@ -388,7 +388,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
           {/* Transport */}
           <div>
-            <label className="block text-[12px] font-medium text-label-secondary mb-1.5">
+            <label className="input-label">
               Transport
             </label>
             <select

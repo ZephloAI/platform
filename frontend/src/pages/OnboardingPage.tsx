@@ -7,7 +7,7 @@ import { useOrgStore } from '../stores/orgStore';
 // ============================================================
 // OnboardingPage
 // 3-step wizard: Organization → About You → Invite Team
-// Apple-style glass-card design matching auth pages.
+// Warm Editorial design with amber/gold ambient gradients.
 // ============================================================
 
 const ORG_SIZES = [
@@ -103,19 +103,19 @@ function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-primary px-4 relative overflow-hidden">
-      {/* Ambient gradient orbs */}
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-accent/[0.04] rounded-full blur-3xl" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/[0.03] rounded-full blur-3xl" />
+      {/* Warm ambient gradient orbs */}
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-accent/[0.06] rounded-full blur-3xl" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-amber-400/[0.04] rounded-full blur-3xl" />
 
       <div className="max-w-md w-full relative z-10 animate-fade-in">
         {/* Logo and heading */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-accent/20">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-accent/20">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h1 className="text-[28px] font-semibold text-label-primary tracking-tight mb-1">
+          <h1 className="heading-xl font-display text-label-primary mb-1">
             {step === 1 && 'Set up your organization'}
             {step === 2 && 'About you'}
             {step === 3 && 'Invite your team'}
@@ -137,7 +137,7 @@ function OnboardingPage() {
                   ? 'w-8 bg-accent'
                   : i + 1 < step
                     ? 'w-1.5 bg-accent/40'
-                    : 'w-1.5 bg-white/10'
+                    : 'w-1.5 bg-black/[0.08]'
               }`}
             />
           ))}
@@ -145,13 +145,13 @@ function OnboardingPage() {
 
         {/* Error */}
         {error && (
-          <div className="bg-red-500/[0.06] text-red-600 text-[13px] rounded-xl p-3.5 border border-red-500/10 mb-4">
+          <div className="bg-red-50 text-red-600 text-[13px] rounded-xl p-3.5 border border-red-100 mb-4">
             {error}
           </div>
         )}
 
         {/* Step content */}
-        <div className="glass-card p-8">
+        <div className="card p-8">
           {/* Step 1: Organization */}
           {step === 1 && (
             <div className="space-y-5">
@@ -269,7 +269,7 @@ function OnboardingPage() {
               <button
                 type="button"
                 onClick={addTeamMember}
-                className="text-[13px] text-accent hover:text-accent-hover transition-colors font-medium"
+                className="text-[13px] text-accent hover:text-accent-hover transition-colors font-semibold"
               >
                 + Add another
               </button>
@@ -283,7 +283,7 @@ function OnboardingPage() {
             <button
               type="button"
               onClick={() => setStep(step - 1)}
-              className="px-6 py-2.5 text-[14px] font-medium text-label-secondary hover:text-label-primary rounded-xl border border-white/[0.08] hover:border-white/[0.15] transition-all"
+              className="btn-secondary px-6"
             >
               Back
             </button>
@@ -296,7 +296,7 @@ function OnboardingPage() {
               type="button"
               onClick={() => setStep(step + 1)}
               disabled={!canProceed()}
-              className="btn-primary px-8"
+              className="btn-accent px-8"
             >
               Next
             </button>
@@ -306,7 +306,7 @@ function OnboardingPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="px-6 py-2.5 text-[14px] font-medium text-label-secondary hover:text-label-primary rounded-xl border border-white/[0.08] hover:border-white/[0.15] transition-all"
+                className="btn-ghost px-6"
               >
                 Skip
               </button>
@@ -314,7 +314,7 @@ function OnboardingPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="btn-primary px-8"
+                className="btn-accent px-8"
               >
                 {loading ? 'Finishing...' : 'Finish & Launch'}
               </button>

@@ -88,7 +88,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
   };
 
   return (
-    <div className="flex flex-col h-[640px] glass-card overflow-hidden">
+    <div className="flex flex-col h-[640px] card overflow-hidden">
       {/* Header with new chat button */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-black/[0.06]">
         <div className="flex items-center gap-2">

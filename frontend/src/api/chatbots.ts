@@ -7,7 +7,7 @@
 
 import apiClient from './client';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, CrawlJob, DiscoveredUrl, WidgetSettings } from '../types';
+import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, OrgAnalytics, WidgetSettings } from '../types';
 
 // --- Helpers ---
 
@@ -97,6 +97,25 @@ export async function uploadLogo(
   const response = await apiClient.post(`/api/chatbots/${chatbotId}/logo`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return response.data;
+}
+
+// --- Analytics ---
+
+export async function getOrgAnalytics(orgId: number, days = 30): Promise<OrgAnalytics> {
+  const response = await apiClient.get(`/api/organizations/${orgId}/analytics`, {
+    params: { days },
+  });
+  return response.data;
+}
+
+export async function getOrgChatbotAnalytics(orgId: number): Promise<Record<number, ChatbotMiniAnalytics>> {
+  const response = await apiClient.get(`/api/organizations/${orgId}/chatbot-analytics`);
+  return response.data;
+}
+
+export async function getOrgChatbotMetrics(orgId: number): Promise<ChatbotMetricsMap> {
+  const response = await apiClient.get(`/api/organizations/${orgId}/chatbot-metrics`);
   return response.data;
 }
 
