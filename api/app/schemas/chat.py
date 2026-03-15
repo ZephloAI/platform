@@ -44,6 +44,7 @@ class MessageResponse(BaseModel):
     session_id: str
     role: str
     content: str
+    is_resolved: bool | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -100,3 +101,4 @@ class InternalMessageRequest(BaseModel):
     session_id: str
     role: str
     content: str
+    is_resolved: bool | None = None

@@ -145,6 +145,13 @@ class WidgetSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ChatbotMetrics(BaseModel):
+    """Analytics metrics for a chatbot or organization."""
+    total_conversations: int
+    total_messages: int
+    resolved_requests: int
+
+
 class PublicWidgetConfig(BaseModel):
     """Public config returned to the embeddable widget. No sensitive data."""
     chatbot_id: int

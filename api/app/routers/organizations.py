@@ -9,11 +9,16 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession as SASession
+
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.chatbot import Chatbot
 from app.models.user import User
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.schemas.api_key import ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse
+from app.schemas.chatbot import ChatbotMetrics
 from app.schemas.organization import (
     OrganizationCreate,
     OrganizationResponse,
@@ -79,6 +84,33 @@ async def get_organization(
         "created_at": org.created_at,
         "role": member.role,
     }
+
+
+@router.get("/{org_id}/metrics", response_model=ChatbotMetrics)
+async def get_org_metrics(
+    org_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get aggregated resolution metrics across all chatbots in the organization."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+
+    # Get all chatbot IDs for this org
+    result = await db.execute(
+        select(Chatbot.id).where(Chatbot.organization_id == org_id)
+    )
+    chatbot_ids = [row[0] for row in result.all()]
+
+    if not chatbot_ids:
+        return ChatbotMetrics(
+            total_conversations=0,
+            total_messages=0,
+            resolved_requests=0,
+        )
+
+    from app.routers.chatbots import _compute_metrics
+    return await _compute_metrics(db, chatbot_ids=chatbot_ids)
 
 
 # -- Members --

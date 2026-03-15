@@ -13,14 +13,20 @@ Flow:
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession as SASession
+
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.chat_session import ChatSession
+from app.models.message import Message
 from app.models.user import User
 from app.schemas.chatbot import (
     ChatbotCreate,
     ChatbotUpdate,
     ChatbotResponse,
     ChatbotDetailResponse,
+    ChatbotMetrics,
     WidgetSettingsUpdate,
     WidgetSettingsResponse,
 )
@@ -164,6 +170,60 @@ async def upload_logo(
     await repo.update(chatbot_id, widget_logo_url=url)
 
     return {"url": url}
+
+
+@router.get("/{chatbot_id}/metrics", response_model=ChatbotMetrics)
+async def get_chatbot_metrics(
+    chatbot_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get resolution metrics for a single chatbot."""
+    service = ChatbotService(db)
+    await service.get_chatbot(chatbot_id, user.id)
+
+    return await _compute_metrics(db, chatbot_id=chatbot_id)
+
+
+async def _compute_metrics(
+    db: SASession,
+    *,
+    chatbot_id: int | None = None,
+    chatbot_ids: list[int] | None = None,
+) -> ChatbotMetrics:
+    """Compute resolution metrics for one or many chatbots."""
+    # Build session filter
+    session_filter = []
+    if chatbot_id is not None:
+        session_filter.append(ChatSession.chatbot_id == chatbot_id)
+    elif chatbot_ids is not None:
+        session_filter.append(ChatSession.chatbot_id.in_(chatbot_ids))
+
+    # Total conversations
+    total_q = select(func.count(ChatSession.id)).where(*session_filter)
+    total_conversations = (await db.execute(total_q)).scalar() or 0
+
+    # Total messages across those sessions
+    msg_q = (
+        select(func.count(Message.id))
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(*session_filter)
+    )
+    total_messages = (await db.execute(msg_q)).scalar() or 0
+
+    # Resolved requests: every assistant message with is_resolved=True
+    resolved_q = (
+        select(func.count(Message.id))
+        .join(ChatSession, Message.session_id == ChatSession.id)
+        .where(Message.role == "assistant", Message.is_resolved == True, *session_filter)
+    )
+    resolved_requests = (await db.execute(resolved_q)).scalar() or 0
+
+    return ChatbotMetrics(
+        total_conversations=total_conversations,
+        total_messages=total_messages,
+        resolved_requests=resolved_requests,
+    )
 
 
 @router.delete("/{chatbot_id}")

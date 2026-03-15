@@ -70,6 +70,15 @@ async def connect_mcp_servers(mcp_configs: list[dict]) -> list[MCPTools]:
     return connected
 
 
+def extract_resolution(text: str) -> tuple[str, bool | None]:
+    """Extract and strip resolution tag. Returns (cleaned_text, is_resolved)."""
+    if "[RESOLVED]" in text:
+        return text.replace("[RESOLVED]", "").strip(), True
+    if "[UNRESOLVED]" in text:
+        return text.replace("[UNRESOLVED]", "").strip(), False
+    return text, None
+
+
 def clean_response(text: str) -> str:
     """Strip leaked LLM tool-call syntax, internal reasoning, and instruction echo from response text."""
     # Remove tool-call / reasoning leaks
@@ -108,6 +117,10 @@ def clean_response(text: str) -> str:
     ]
     for pat in instruction_patterns:
         text = re.sub(pat, "", text, flags=re.MULTILINE)
+
+    # Safety net: strip resolution tags that may have leaked through
+    text = re.sub(r"\[RESOLVED\]", "", text)
+    text = re.sub(r"\[UNRESOLVED\]", "", text)
 
     # Collapse multiple blank lines left by removals
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
@@ -244,6 +257,7 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             "If the context doesn't have enough information, say something like 'I don't have the details on that right now, but I'd be happy to connect you with someone who can help.'",
             "ALWAYS end your response with a helpful follow-up question or suggested next step to keep the conversation going. For example: 'Would you like me to share more details about any of these?' or 'Shall I help you with booking?'",
             "Keep responses concise and scannable. Use bullet points for lists.",
+            "After your response, on a new line, add exactly [RESOLVED] if you answered the visitor's question or helped them, or [UNRESOLVED] if you couldn't fully help or need more information.",
         ]
     else:
         core_instructions = [
@@ -254,6 +268,7 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             "Be warm, helpful, and conversational - like a real team member chatting with a visitor.",
             "ALWAYS end your response with a helpful follow-up question or suggested next step to keep the conversation going.",
             "Keep responses concise and scannable. Use bullet points for lists.",
+            "After your response, on a new line, add exactly [RESOLVED] if you answered the visitor's question or helped them, or [UNRESOLVED] if you couldn't fully help or need more information.",
         ]
 
     agent = Agent(
@@ -366,6 +381,9 @@ Respond naturally and confidently as a team member."""
         if not isinstance(response_text, str):
             response_text = str(response_text)
 
+        # Extract resolution classification before cleaning
+        response_text, is_resolved = extract_resolution(response_text)
+
         # Strip any tool result text / LLM reasoning that may leak into the response
         response_text = clean_response(response_text)
 
@@ -386,6 +404,7 @@ Respond naturally and confidently as a team member."""
             "session_id": session_id or response.session_id,
             "follow_up_prompts": selected_follow_ups,
             "mcp_results": mcp_results,
+            "is_resolved": is_resolved,
         }
     finally:
         # Disconnect all MCP servers

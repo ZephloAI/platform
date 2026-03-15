@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Chatbot } from '../types';
 import apiClient from '../api/client';
 import { useOrgStore } from '../stores/orgStore';
+
+interface ChatbotMetrics {
+  total_conversations: number;
+  total_messages: number;
+  resolved_requests: number;
+}
 
 // ============================================================
 // OverviewSection
@@ -31,6 +37,14 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
   const [copied, setCopied] = useState(false);
   const [embedTab, setEmbedTab] = useState<EmbedTab>('script');
   const activeOrg = useOrgStore((state) => state.activeOrganization);
+  const [metrics, setMetrics] = useState<ChatbotMetrics | null>(null);
+
+  useEffect(() => {
+    apiClient
+      .get(`/api/chatbots/${chatbot.id}/metrics`)
+      .then((res) => setMetrics(res.data))
+      .catch(() => {});
+  }, [chatbot.id]);
 
   const origin = window.location.origin;
 
@@ -143,7 +157,7 @@ Flunkie.initialize({
         <h2 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
           Metrics
         </h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-[22px] font-semibold text-label-primary tracking-tight">
               {chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0}
@@ -162,10 +176,18 @@ Flunkie.initialize({
           </div>
           <div className="text-center">
             <p className="text-[22px] font-semibold text-label-primary tracking-tight">
-              —
+              {metrics?.total_conversations ?? '—'}
             </p>
             <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
               Conversations
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-[22px] font-semibold text-label-primary tracking-tight">
+              {metrics?.resolved_requests ?? '—'}
+            </p>
+            <p className="text-[11px] text-label-tertiary uppercase tracking-wider mt-0.5">
+              Resolved
             </p>
           </div>
         </div>

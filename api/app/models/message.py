@@ -1,6 +1,6 @@
 """Message model for storing chat messages."""
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, text
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -14,6 +14,7 @@ class Message(Base):
     session_id = Column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
     role = Column(String, nullable=False)  # "user", "assistant", "admin"
     content = Column(Text, nullable=False)
+    is_resolved = Column(Boolean, nullable=True, default=None)
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
 
     session = relationship("ChatSession", back_populates="messages")

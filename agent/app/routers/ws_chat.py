@@ -20,7 +20,7 @@ import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
-from app.agent import create_agent, clean_response, connect_mcp_servers
+from app.agent import create_agent, clean_response, extract_resolution, connect_mcp_servers
 from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.tts import text_to_speech
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
@@ -36,13 +36,16 @@ install_patch()
 active_connections: dict[str, WebSocket] = {}
 
 
-async def store_message(session_id: str, role: str, content: str):
+async def store_message(session_id: str, role: str, content: str, is_resolved: bool | None = None):
     """Store a message via the API internal endpoint."""
     try:
+        payload = {"session_id": session_id, "role": role, "content": content}
+        if is_resolved is not None:
+            payload["is_resolved"] = is_resolved
         async with httpx.AsyncClient(timeout=5.0) as client:
             await client.post(
                 f"{settings.API_CALLBACK_URL}/api/internal/messages",
-                json={"session_id": session_id, "role": role, "content": content},
+                json=payload,
             )
     except Exception:
         logger.warning(f"Failed to store message for session {session_id}")
@@ -328,6 +331,9 @@ async def ws_chat(ws: WebSocket):
                 response.session_id,
             )
 
+            # Extract resolution classification before cleaning
+            raw_content, is_resolved = extract_resolution(raw_content)
+
             response_text = clean_response(raw_content)
 
             # Safety net: if the response is still empty, re-run without tools
@@ -370,7 +376,7 @@ async def ws_chat(ws: WebSocket):
 
             # Store messages via API callback
             await store_message(session_id, "user", message)
-            await store_message(session_id, "assistant", response_text)
+            await store_message(session_id, "assistant", response_text, is_resolved=is_resolved)
 
     except WebSocketDisconnect:
         logger.info(f"Client disconnected (chatbot_id={chatbot_id})")

@@ -47,6 +47,7 @@ async def store_message(
         session_id=body.session_id,
         role=body.role,
         content=body.content,
+        is_resolved=body.is_resolved,
     )
     db.add(message)
     await db.commit()
@@ -70,6 +71,7 @@ async def store_message(
         session_id=str(message.session_id),
         role=message.role,
         content=message.content,
+        is_resolved=message.is_resolved,
         created_at=message.created_at,
     )
 
@@ -93,6 +95,7 @@ async def get_messages(
             session_id=str(msg.session_id),
             role=msg.role,
             content=msg.content,
+            is_resolved=msg.is_resolved,
             created_at=msg.created_at,
         )
         for msg in messages

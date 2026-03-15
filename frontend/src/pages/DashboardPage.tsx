@@ -1,10 +1,29 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useChatbots, useDeleteChatbot } from '../hooks/useChatbots';
 import ChatbotCard from '../components/ChatbotCard';
+import apiClient from '../api/client';
+import { useOrgStore } from '../stores/orgStore';
+
+interface OrgMetrics {
+  total_conversations: number;
+  total_messages: number;
+  resolved_requests: number;
+}
 
 function DashboardPage() {
   const { data: chatbots, isLoading, error } = useChatbots();
   const deleteMutation = useDeleteChatbot();
+  const activeOrg = useOrgStore((state) => state.activeOrganization);
+  const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    apiClient
+      .get(`/api/organizations/${activeOrg.id}/metrics`)
+      .then((res) => setMetrics(res.data))
+      .catch(() => {});
+  }, [activeOrg?.id]);
 
   const handleDelete = (id: number) => {
     if (window.confirm('Are you sure you want to delete this agent?')) {
@@ -13,11 +32,6 @@ function DashboardPage() {
   };
 
   const totalChatbots = chatbots?.length || 0;
-  const readyChatbots = chatbots?.filter((c) => c.status === 'ready').length || 0;
-  const totalPages = chatbots?.reduce(
-    (sum, c) => sum + (c.crawl_jobs?.reduce((s, j) => s + j.pages_crawled, 0) || 0),
-    0
-  ) || 0;
 
   return (
     <div className="animate-fade-in max-w-5xl">
@@ -37,7 +51,7 @@ function DashboardPage() {
           <div className="grid grid-cols-3 gap-0 border border-black/[0.08] rounded-xl overflow-hidden">
             <div className="p-5 border-r border-black/[0.08]">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Total agents</p>
+                <p className="text-[13px] text-label-secondary">Total Chatbots</p>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -50,7 +64,7 @@ function DashboardPage() {
             </div>
             <div className="p-5 border-r border-black/[0.08] border-t-2 border-t-accent">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Active agents</p>
+                <p className="text-[13px] text-label-secondary">Total Messages</p>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -58,12 +72,12 @@ function DashboardPage() {
                 </svg>
               </div>
               <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
-                {readyChatbots}
+                {metrics?.total_messages ?? '—'}
               </p>
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-label-secondary">Pages indexed</p>
+                <p className="text-[13px] text-label-secondary">Resolved Requests</p>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-label-quaternary">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -71,7 +85,7 @@ function DashboardPage() {
                 </svg>
               </div>
               <p className="text-[28px] font-semibold text-label-primary tracking-tight leading-none">
-                {totalPages}
+                {metrics?.resolved_requests ?? '—'}
               </p>
             </div>
           </div>
