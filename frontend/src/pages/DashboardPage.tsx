@@ -30,7 +30,7 @@ function DashboardPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-end justify-between mb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6 md:mb-8">
         <h1 className="heading-xl">
           {firstName ? `Hi, ${firstName}` : 'Home'}
         </h1>
@@ -52,7 +52,7 @@ function DashboardPage() {
       {hasAgents && (
         <div className="mb-8">
           {analyticsLoading ? (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="metric-card !p-4 animate-pulse">
                   <div className="h-2.5 w-14 bg-black/[0.06] rounded mb-2" />
@@ -62,7 +62,7 @@ function DashboardPage() {
               ))}
             </div>
           ) : analytics ? (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <AnalyticsChart
                 data={analytics.messages_per_day}
                 title="Messages"
@@ -100,8 +100,8 @@ function DashboardPage() {
               <span className="text-[12px] font-medium text-label-quaternary">{chatbots.length}</span>
             </div>
 
-            {/* Column headers */}
-            <div className="flex items-center gap-4 px-5 pb-2">
+            {/* Column headers - hidden on mobile */}
+            <div className="hidden md:flex items-center gap-4 px-5 pb-2">
               <div className="w-9 shrink-0" />
               <div className="w-40 shrink-0" />
               <div className="flex-1 flex items-center justify-center gap-8">

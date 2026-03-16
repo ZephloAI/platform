@@ -69,7 +69,7 @@ function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
   const isActive = chatbot.is_active !== false;
 
   return (
-    <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-secondary/50 transition-colors group">
+    <div className="flex items-center gap-4 px-3 py-3 md:px-5 md:py-3.5 hover:bg-surface-secondary/50 transition-colors group">
       {/* Icon + Name */}
       <Link
         to={`/chatbots/${chatbot.id}`}
@@ -79,14 +79,14 @@ function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </Link>
-      <Link to={`/chatbots/${chatbot.id}`} className="min-w-0 w-40 shrink-0">
+      <Link to={`/chatbots/${chatbot.id}`} className="min-w-0 flex-1 md:flex-none md:w-40 shrink-0">
         <p className="text-[14px] font-display font-semibold text-label-primary truncate group-hover:text-accent transition-colors">
           {chatbot.name}
         </p>
       </Link>
 
-      {/* Sparkline metrics */}
-      <div className="flex-1 flex items-center justify-center gap-8">
+      {/* Sparkline metrics - hidden on mobile */}
+      <div className="hidden md:flex flex-1 items-center justify-center gap-8">
         <Sparkline data={analytics?.messages ?? emptyData} color="#C8973E" />
         <Sparkline data={analytics?.conversations ?? emptyData} color="#1A1A2E" />
         <Sparkline data={analytics?.resolved ?? emptyData} color="#6B8F71" />

@@ -12,6 +12,7 @@ import type { ConversationSession } from '../types';
 // ============================================================
 // ConversationsSection – split-pane inbox for live chat
 // Left panel: session list | Right panel: conversation detail
+// On mobile: show one panel at a time with back navigation
 // ============================================================
 
 /**
@@ -73,6 +74,11 @@ function ConversationsSection() {
     }
   }
 
+  // Go back to list (mobile)
+  function handleBackToList() {
+    setSelectedSessionId(null);
+  }
+
   // Send a reply
   function handleSendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -92,7 +98,7 @@ function ConversationsSection() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* ---- Left panel: Session list ---- */}
-      <div className="w-[300px] shrink-0 border-r border-black/[0.06] flex flex-col bg-white">
+      <div className={`w-full md:w-[300px] shrink-0 border-r border-black/[0.06] flex flex-col bg-white ${selectedSessionId ? 'hidden md:flex' : 'flex'}`}>
         <div className="px-4 py-3 border-b border-black/[0.06] shrink-0">
           <h2 className="section-label">Conversations</h2>
         </div>
@@ -168,7 +174,7 @@ function ConversationsSection() {
       </div>
 
       {/* ---- Right panel: Conversation detail ---- */}
-      <div className="flex-1 flex flex-col bg-surface-primary min-w-0">
+      <div className={`flex-1 flex flex-col bg-surface-primary min-w-0 ${!selectedSessionId ? 'hidden md:flex' : 'flex'}`}>
         {!selectedSessionId ? (
           /* Empty state */
           <div className="flex-1 flex items-center justify-center">
@@ -185,8 +191,17 @@ function ConversationsSection() {
         ) : (
           <>
             {/* Header */}
-            <div className="px-6 py-3 border-b border-black/[0.06] flex items-center justify-between shrink-0">
+            <div className="px-4 md:px-6 py-3 border-b border-black/[0.06] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
+                {/* Back button - mobile only */}
+                <button
+                  onClick={handleBackToList}
+                  className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-secondary transition-colors"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
                 <span className="text-[13px] font-medium text-label-primary">
                   {selectedSessionId.slice(0, 8)}...
                 </span>
@@ -227,7 +242,7 @@ function ConversationsSection() {
             </div>
 
             {/* Messages area */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4">
               {detailLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-5 h-5 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
@@ -242,7 +257,7 @@ function ConversationsSection() {
                       key={msg.id}
                       className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[70%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div className={`max-w-[85%] md:max-w-[70%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
                         {/* Admin label */}
                         {isAdmin && (
                           <span className="text-[11px] text-sage-600 font-medium mb-1 ml-1">You</span>
@@ -281,7 +296,7 @@ function ConversationsSection() {
             {conversation?.mode === 'person' && (
               <form
                 onSubmit={handleSendReply}
-                className="px-6 py-3 border-t border-black/[0.06] flex items-center gap-3 shrink-0"
+                className="px-4 md:px-6 py-3 border-t border-black/[0.06] flex items-center gap-3 shrink-0"
               >
                 <input
                   type="text"

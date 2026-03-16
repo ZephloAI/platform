@@ -230,7 +230,7 @@ function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               {teamMembers.map((member, index) => (
-                <div key={index} className="flex gap-3 items-end">
+                <div key={index} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                   <div className="flex-1">
                     {index === 0 && <label className="input-label">Email</label>}
                     <input
@@ -241,7 +241,7 @@ function OnboardingPage() {
                       placeholder="teammate@company.com"
                     />
                   </div>
-                  <div className="w-28">
+                  <div className="w-full sm:w-28">
                     {index === 0 && <label className="input-label">Role</label>}
                     <select
                       value={member.role}

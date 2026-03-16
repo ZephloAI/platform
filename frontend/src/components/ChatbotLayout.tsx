@@ -105,18 +105,22 @@ function ChatbotLayout() {
     if (section === 'config') params.configTab = 'appearance';
     if (section === 'tools') params.toolsTab = 'mcp-servers';
     setSearchParams(params);
+    setSidebarOpen(false);
   };
 
   const setActiveConfigTab = (tab: ConfigTab) => {
     setSearchParams({ section: 'config', configTab: tab });
+    setSidebarOpen(false);
   };
 
   const setActiveToolsTab = (tab: ToolsTab) => {
     setSearchParams({ section: 'tools', toolsTab: tab });
+    setSidebarOpen(false);
   };
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
 
@@ -144,8 +148,16 @@ function ChatbotLayout() {
 
   return (
     <div className="h-screen bg-surface-primary flex overflow-hidden">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-[220px] shrink-0 bg-white border-r border-black/[0.04] flex flex-col h-screen sticky top-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] md:w-[220px] bg-white border-r border-black/[0.04] flex flex-col transform transition-transform duration-300 ease-smooth md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Chatbot switcher */}
         <div className="px-4 pt-5 pb-3" ref={dropdownRef}>
           <button
@@ -183,6 +195,7 @@ function ChatbotLayout() {
                       key={c.id}
                       onClick={() => {
                         setDropdownOpen(false);
+                        setSidebarOpen(false);
                         navigate(`/chatbots/${c.id}`);
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
@@ -198,7 +211,7 @@ function ChatbotLayout() {
               <div className="border-t border-black/[0.04] py-1">
                 <Link
                   to="/dashboard"
-                  onClick={() => setDropdownOpen(false)}
+                  onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
                   className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -208,7 +221,7 @@ function ChatbotLayout() {
                 </Link>
                 <Link
                   to="/chatbots/new"
-                  onClick={() => setDropdownOpen(false)}
+                  onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
                   className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent-light transition-colors ease-smooth"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -226,6 +239,7 @@ function ChatbotLayout() {
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           <Link
             to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth mb-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -308,6 +322,7 @@ function ChatbotLayout() {
         <div className="px-3 pb-4 border-t border-black/[0.04] pt-3">
           <Link
             to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth w-full"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -323,10 +338,23 @@ function ChatbotLayout() {
       {/* Main content area */}
       <div className="flex-1 min-w-0 flex flex-col bg-surface-primary">
         {/* Top navbar */}
-        <header className="h-14 border-b border-black/[0.04] flex items-center justify-between px-8 shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
-          <h1 className="heading-md font-display text-label-primary capitalize">
-            {activeSection}
-          </h1>
+        <header className="h-14 border-b border-black/[0.04] flex items-center justify-between px-4 md:px-8 shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            {/* Hamburger button - mobile only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <h1 className="heading-md font-display text-label-primary capitalize">
+              {activeSection}
+            </h1>
+          </div>
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
@@ -400,7 +428,7 @@ function ChatbotLayout() {
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto px-8 py-8">
+            <div className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-8">
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           )}

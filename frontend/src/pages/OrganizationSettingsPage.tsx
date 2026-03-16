@@ -37,9 +37,13 @@ function OrganizationSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeSection = (searchParams.get('section') as Section) || 'members';
-  const setActiveSection = (section: Section) => setSearchParams({ section });
+  const setActiveSection = (section: Section) => {
+    setSearchParams({ section });
+    setSidebarOpen(false);
+  };
 
   const [accountOpen, setAccountOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,8 +82,16 @@ function OrganizationSettingsPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary flex">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-[220px] shrink-0 border-r border-black/[0.06] flex flex-col h-screen sticky top-0 bg-white">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] md:w-[220px] border-r border-black/[0.06] flex flex-col bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Org name header */}
         <div className="px-4 pt-5 pb-3">
           <div className="flex items-center gap-2.5 px-2 py-1.5">
@@ -97,6 +109,7 @@ function OrganizationSettingsPage() {
           {/* Home link */}
           <Link
             to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 mb-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -162,6 +175,7 @@ function OrganizationSettingsPage() {
         <div className="px-3 pb-4 border-t border-black/[0.06] pt-3">
           <Link
             to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 w-full"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -177,10 +191,23 @@ function OrganizationSettingsPage() {
       {/* Main content area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top navbar */}
-        <header className="h-14 border-b border-black/[0.06] flex items-center justify-between px-8 shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
-          <h1 className="heading-md font-display text-label-primary">
-            {sectionTitle[activeSection]}
-          </h1>
+        <header className="h-14 border-b border-black/[0.06] flex items-center justify-between px-4 md:px-8 shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            {/* Hamburger button - mobile only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <h1 className="heading-md font-display text-label-primary">
+              {sectionTitle[activeSection]}
+            </h1>
+          </div>
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
@@ -234,7 +261,7 @@ function OrganizationSettingsPage() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto bg-surface-primary">
-          <div className="max-w-3xl mx-auto px-8 py-8 animate-fade-in">
+          <div className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-8 animate-fade-in">
             {activeSection === 'members' && (
               <MembersTab
                 orgId={orgId}
@@ -299,7 +326,7 @@ function MembersTab({
         members.map((member) => (
           <div
             key={member.id}
-            className="card flex items-center justify-between p-4 transition-all duration-200 hover:shadow-card-hover"
+            className="card flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-card-hover"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center text-[14px] font-semibold text-label-secondary shrink-0">
@@ -315,7 +342,7 @@ function MembersTab({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 ml-3">
+            <div className="flex items-center gap-3 shrink-0 ml-12 sm:ml-3">
               {canManage && member.role !== 'creator' && member.user_id !== currentUserId ? (
                 <select
                   value={member.role}
@@ -404,7 +431,7 @@ function ApiKeysTab({
     <div className="space-y-5">
       {/* Create Key Form */}
       {canManage && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={keyName}
@@ -416,7 +443,7 @@ function ApiKeysTab({
           <button
             onClick={handleCreate}
             disabled={!keyName.trim() || createKey.isPending}
-            className="btn-accent px-4 py-2 text-[13px] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-accent px-4 py-2 text-[13px] w-full sm:w-auto disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {createKey.isPending ? 'Creating...' : 'Create Key'}
           </button>
@@ -431,7 +458,7 @@ function ApiKeysTab({
           {apiKeys.map((key) => (
             <div
               key={key.id}
-              className={`card flex items-center justify-between p-3 transition-all ${
+              className={`card flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-3 transition-all ${
                 key.is_active
                   ? 'hover:shadow-card-hover'
                   : 'opacity-50'
@@ -451,7 +478,7 @@ function ApiKeysTab({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-3">
+              <div className="flex items-center gap-2 shrink-0 ml-0 sm:ml-3">
                 <span
                   className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                     key.is_active ? 'bg-sage-50 text-sage-600' : 'bg-red-50 text-red-600'
@@ -566,7 +593,7 @@ function InvitationsTab({
     <div className="space-y-5">
       {/* Invite Form */}
       {canManage && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="email"
             value={email}
@@ -578,7 +605,7 @@ function InvitationsTab({
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="input-field"
+            className="input-field w-full sm:w-auto"
           >
             <option value="admin">Admin</option>
             <option value="member">Member</option>
@@ -586,7 +613,7 @@ function InvitationsTab({
           <button
             onClick={handleInvite}
             disabled={!email.trim() || inviteUser.isPending}
-            className="btn-accent px-4 py-2 text-[13px] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-accent px-4 py-2 text-[13px] w-full sm:w-auto disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {inviteUser.isPending ? 'Inviting...' : 'Invite'}
           </button>
@@ -601,7 +628,7 @@ function InvitationsTab({
           {invitations.map((inv) => (
             <div
               key={inv.id}
-              className="card flex items-center justify-between p-4 transition-all duration-200 hover:shadow-card-hover"
+              className="card flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-card-hover"
             >
               <div className="min-w-0">
                 <p className="text-[14px] font-medium text-label-primary truncate">
@@ -616,7 +643,7 @@ function InvitationsTab({
                   </span>
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-3">
+              <div className="flex items-center gap-2 shrink-0">
                 <span
                   className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                     inv.status === 'pending'

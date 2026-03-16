@@ -123,13 +123,13 @@
 
   /* ─── Typography ─── */
   .heading-xl {
-    @apply font-display text-[32px] font-bold tracking-tight text-label-primary leading-tight;
+    @apply font-display text-[24px] md:text-[32px] font-bold tracking-tight text-label-primary leading-tight;
   }
   .heading-lg {
-    @apply font-display text-[24px] font-bold tracking-tight text-label-primary;
+    @apply font-display text-[20px] md:text-[24px] font-bold tracking-tight text-label-primary;
   }
   .heading-md {
-    @apply font-display text-[18px] font-semibold tracking-tight text-label-primary;
+    @apply font-display text-[16px] md:text-[18px] font-semibold tracking-tight text-label-primary;
   }
   .heading-sm {
     @apply font-display text-[15px] font-semibold text-label-primary;
@@ -143,7 +143,7 @@
     @apply card p-6;
   }
   .metric-value {
-    @apply font-display text-[32px] font-bold text-label-primary tracking-tight leading-none;
+    @apply font-display text-[24px] md:text-[32px] font-bold text-label-primary tracking-tight leading-none;
   }
   .metric-label {
     @apply text-[12px] font-medium text-label-tertiary mt-1;
