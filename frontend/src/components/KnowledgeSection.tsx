@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStartCrawl, useDiscoverUrls } from '../hooks/useChatbots';
+import { useStartCrawl, useDiscoverUrls, useUploadDocument, useDeleteDocument, useUpdateChatbot, useRecrawl } from '../hooks/useChatbots';
 import CrawlStatus from './CrawlStatus';
 import UrlSelector from './UrlSelector';
 import type { Chatbot, DiscoveredUrl } from '../types';
@@ -11,7 +11,7 @@ import type { Chatbot, DiscoveredUrl } from '../types';
 // shared URL selection that gets crawled. Includes crawl history.
 // ============================================================
 
-type Tab = 'website' | 'pages';
+type Tab = 'website' | 'pages' | 'documents';
 
 interface KnowledgeSectionProps {
   chatbot: Chatbot;
@@ -20,8 +20,13 @@ interface KnowledgeSectionProps {
 function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   const startCrawlMutation = useStartCrawl();
   const discoverMutation = useDiscoverUrls();
+  const uploadDocMutation = useUploadDocument();
+  const deleteDocMutation = useDeleteDocument();
+  const updateChatbotMutation = useUpdateChatbot();
+  const recrawlMutation = useRecrawl();
 
   const [activeTab, setActiveTab] = useState<Tab>('website');
+  const [dragOver, setDragOver] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [discoveredUrls, setDiscoveredUrls] = useState<DiscoveredUrl[]>([]);
   const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
@@ -113,6 +118,22 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                 Pages
               </span>
             </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
+                activeTab === 'documents'
+                  ? 'bg-white text-label-primary shadow-sm'
+                  : 'text-label-tertiary hover:text-label-secondary'
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Documents
+              </span>
+            </button>
           </div>
 
           {/* Website tab content */}
@@ -172,6 +193,126 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
               />
             </div>
           )}
+
+          {/* Documents tab content */}
+          {activeTab === 'documents' && (
+            <div className="card p-5 animate-fade-in">
+              <p className="text-[13px] text-label-secondary mb-3">
+                Upload PDF documents to add to the agent's knowledge base. Max file size: 20MB.
+              </p>
+
+              {/* Drag and drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type === 'application/pdf') {
+                    uploadDocMutation.mutate({ chatbotId: chatbot.id, file });
+                  }
+                }}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                  dragOver
+                    ? 'border-accent bg-accent/5'
+                    : 'border-separator hover:border-label-quaternary'
+                }`}
+              >
+                <svg className="mx-auto mb-3 text-label-quaternary" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+                <p className="text-[13px] text-label-secondary mb-2">
+                  Drag & drop a PDF here, or
+                </p>
+                <label className="btn-accent inline-block cursor-pointer">
+                  Browse Files
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        uploadDocMutation.mutate({ chatbotId: chatbot.id, file });
+                      }
+                    }}
+                  />
+                </label>
+                <p className="text-[11px] text-label-quaternary mt-2">PDF only, up to 20MB</p>
+              </div>
+
+              {/* Upload progress */}
+              {uploadDocMutation.isPending && (
+                <div className="flex items-center gap-2.5 mt-4">
+                  <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
+                  <span className="text-[13px] font-medium text-label-secondary">Uploading...</span>
+                </div>
+              )}
+
+              {uploadDocMutation.isError && (
+                <p className="mt-3 text-[13px] text-red-500">
+                  Failed to upload document. Please try again.
+                </p>
+              )}
+
+              {/* Document list */}
+              {chatbot.documents && chatbot.documents.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {chatbot.documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <svg className="shrink-0 text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-label-primary truncate">{doc.filename}</p>
+                          <p className="text-[11px] text-label-quaternary">
+                            {(doc.file_size / 1024).toFixed(0)} KB
+                            {doc.status === 'ready' && ` · ${doc.chunks_indexed} chunks`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Status indicator */}
+                        {doc.status === 'pending' && (
+                          <span className="text-[11px] text-label-quaternary px-2 py-0.5 bg-surface-primary rounded-full">Pending</span>
+                        )}
+                        {doc.status === 'processing' && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
+                            <span className="text-[11px] text-accent">Processing</span>
+                          </div>
+                        )}
+                        {doc.status === 'ready' && (
+                          <span className="text-[11px] text-green-500 px-2 py-0.5 bg-green-500/10 rounded-full">Ready</span>
+                        )}
+                        {doc.status === 'error' && (
+                          <span className="text-[11px] text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">Error</span>
+                        )}
+                        {/* Delete button */}
+                        <button
+                          onClick={() => deleteDocMutation.mutate({ chatbotId: chatbot.id, documentId: doc.id })}
+                          disabled={deleteDocMutation.isPending}
+                          className="p-1 text-label-quaternary hover:text-red-500 transition-colors"
+                          title="Delete document"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -226,9 +367,33 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
       {/* Crawl History */}
       <div>
-        <h2 className="section-label mb-4">
-          Crawl History
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="section-label">
+            Crawl History
+          </h2>
+          {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && chatbot.status !== 'crawling' && (
+            <button
+              onClick={() => recrawlMutation.mutate(chatbot.id)}
+              disabled={recrawlMutation.isPending}
+              className="btn-secondary text-[12px] flex items-center gap-1.5"
+            >
+              {recrawlMutation.isPending ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-label-quaternary/20 border-t-label-quaternary rounded-full animate-spin" />
+                  Re-crawling...
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  Re-crawl
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {(!chatbot.crawl_jobs || chatbot.crawl_jobs.length === 0) && (
           <div className="card p-8 text-center">
@@ -245,6 +410,78 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Auto Re-crawl Settings */}
+      <div>
+        <h2 className="section-label mb-4">Auto Re-crawl</h2>
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[13px] font-medium text-label-primary">
+                Automatically re-crawl website
+              </p>
+              <p className="text-[12px] text-label-tertiary mt-0.5">
+                Keep your agent's knowledge up to date by periodically re-crawling your website.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                updateChatbotMutation.mutate({
+                  chatbotId: chatbot.id,
+                  data: {
+                    name: chatbot.name,
+                    description: chatbot.description,
+                    instructions: chatbot.instructions,
+                    auto_recrawl_enabled: !chatbot.auto_recrawl_enabled,
+                  },
+                });
+              }}
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                chatbot.auto_recrawl_enabled ? 'bg-accent' : 'bg-surface-tertiary'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                  chatbot.auto_recrawl_enabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {chatbot.auto_recrawl_enabled && (
+            <div className="mt-4 pt-4 border-t border-separator">
+              <label className="text-[12px] text-label-secondary block mb-1.5">
+                Re-crawl interval
+              </label>
+              <select
+                value={chatbot.recrawl_interval_hours ?? 48}
+                onChange={(e) => {
+                  updateChatbotMutation.mutate({
+                    chatbotId: chatbot.id,
+                    data: {
+                      name: chatbot.name,
+                      description: chatbot.description,
+                      instructions: chatbot.instructions,
+                      recrawl_interval_hours: parseInt(e.target.value),
+                    },
+                  });
+                }}
+                className="input-field w-auto"
+              >
+                <option value={24}>Every 24 hours</option>
+                <option value={48}>Every 2 days</option>
+                <option value={72}>Every 3 days</option>
+                <option value={168}>Every week</option>
+              </select>
+              {chatbot.last_crawled_at && (
+                <p className="text-[11px] text-label-quaternary mt-2">
+                  Last crawled: {new Date(chatbot.last_crawled_at).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

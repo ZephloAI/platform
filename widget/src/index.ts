@@ -188,6 +188,10 @@ export class ChatbotWidget extends HTMLElement {
     if (this.chatSocket) {
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
       this.setupMcpListener();
+      // Eagerly connect so admin messages can be received immediately
+      this.chatSocket.connect().catch(() => {
+        // Will retry on first message send
+      });
     }
 
     // Load existing messages from localStorage (if any)
@@ -1206,6 +1210,7 @@ export class ChatbotWidget extends HTMLElement {
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status: ConnectionStatus) => this.updateStatusDot(status);
       this.setupMcpListener();
+      this.chatSocket.connect().catch(() => {});
       return true;
     } catch {
       return false;
@@ -1448,6 +1453,7 @@ export class ChatbotWidget extends HTMLElement {
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
       this.setupMcpListener();
+      this.chatSocket.connect().catch(() => {});
     } catch {
       // Will retry on next message
     }

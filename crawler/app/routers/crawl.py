@@ -13,7 +13,7 @@ from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
 from app.crawler import discover_urls
-from app.orchestrator import run_crawl_job
+from app.orchestrator import run_crawl_job, run_document_job
 
 router = APIRouter()
 
@@ -95,6 +95,29 @@ async def start_crawl(request: CrawlRequest, background_tasks: BackgroundTasks):
     )
 
     return CrawlResponse(status="started", crawl_job_id=request.crawl_job_id)
+
+
+class ProcessDocumentRequest(BaseModel):
+    """Request body for processing a PDF document."""
+    chatbot_id: int
+    chatbot_name: str
+    document_id: int
+    pdf_url: str
+    callback_url: str
+
+
+@router.post("/process-document")
+async def process_document(request: ProcessDocumentRequest, background_tasks: BackgroundTasks):
+    """Process a PDF document and index its content."""
+    background_tasks.add_task(
+        run_document_job,
+        chatbot_id=request.chatbot_id,
+        chatbot_name=request.chatbot_name,
+        document_id=request.document_id,
+        pdf_url=request.pdf_url,
+        callback_url=request.callback_url,
+    )
+    return {"status": "started", "document_id": request.document_id}
 
 
 @router.get("/health")

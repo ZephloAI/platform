@@ -59,6 +59,12 @@ class Chatbot(Base):
     # Organization (nullable initially for migration, then required)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
 
+    # Auto re-crawl settings
+    auto_recrawl_enabled = Column(Boolean, default=True, server_default="true")
+    recrawl_interval_hours = Column(Integer, default=48)
+    last_crawled_at = Column(DateTime, nullable=True)
+    crawled_urls = Column(JSON, nullable=True)  # stored selected URLs for re-crawl
+
     # Relationships
     user = relationship("User", back_populates="chatbots")
     organization = relationship("Organization", back_populates="chatbots")
@@ -67,4 +73,7 @@ class Chatbot(Base):
     )
     pages = relationship(
         "Page", back_populates="chatbot", cascade="all, delete-orphan"
+    )
+    documents = relationship(
+        "Document", back_populates="chatbot", cascade="all, delete-orphan"
     )

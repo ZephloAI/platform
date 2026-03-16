@@ -5,16 +5,28 @@ Sets up the app, CORS middleware, and includes all routers.
 Run with: uvicorn app.main:app --reload
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin
+from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin, documents
+from app.services.scheduler import start_scheduler, stop_scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
 
 # Create the FastAPI application
 app = FastAPI(
     title="Flunkie API",
     description="API for the Flunkie website agent platform",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware - allow all origins so the embeddable widget works on any website
@@ -39,6 +51,7 @@ app.include_router(onboarding.router)
 app.include_router(conversations.router)
 app.include_router(internal.router)
 app.include_router(ws_admin.router)
+app.include_router(documents.router)
 
 
 @app.get("/health")

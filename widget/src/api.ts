@@ -180,6 +180,127 @@ export class ChatSocket {
     return this.flunkieToolSchemas;
   }
 
+  private async handleMessage(event: MessageEvent): Promise<void> {
+    let data: any;
+    try {
+      data = JSON.parse(event.data);
+    } catch {
+      this.pendingReject?.(new Error("Invalid response from server"));
+      this.pending = null;
+      this.pendingReject = null;
+      return;
+    }
+
+    // Handle admin message from live chat
+    if (data.message_type === "admin_message") {
+      this.adminMessageHandler?.(data.content);
+      return;
+    }
+    if (data.message_type === "mode_changed") {
+      this.modeChangedHandler?.(data.mode);
+      return;
+    }
+    if (data.message_type === "waiting") {
+      this.waitingHandler?.();
+      // Resolve the pending promise so the UI doesn't hang
+      this.pending?.({
+        response: "",
+        sources: [],
+        session_id: data.session_id || null,
+        follow_up_prompts: [],
+      });
+      this.pending = null;
+      this.pendingReject = null;
+      return;
+    }
+
+    // Handle tool call from agent
+    if (data.message_type === "web_tool_call" && this.flunkieToolHandler) {
+      const result = await this.flunkieToolHandler({
+        tool: data.details.tool,
+        arguments: data.details.arguments || {},
+      });
+      this.ws?.send(JSON.stringify({
+        message_type: "tool_result",
+        call_id: data.call_id,
+        content: result.content,
+        error: result.error,
+      }));
+      return;
+    }
+
+    // Handle error
+    if (data.message_type === "error") {
+      this.pendingReject?.(new Error(data.error));
+      this.pending = null;
+      this.pendingReject = null;
+      return;
+    }
+
+    // Handle normal response
+    if (data.mcp_results && data.mcp_results.length > 0) {
+      this.notifyMcpListeners(data.mcp_results);
+    }
+    this.pending?.(data as ChatResponse);
+    this.pending = null;
+    this.pendingReject = null;
+  }
+
+  private setupWsHandlers(): void {
+    if (!this.ws) return;
+
+    this.ws.onmessage = (event) => this.handleMessage(event);
+
+    this.ws.onerror = () => {
+      this.setStatus('disconnected');
+      this.pendingReject?.(new Error("WebSocket connection error"));
+      this.pending = null;
+      this.pendingReject = null;
+    };
+
+    this.ws.onclose = () => {
+      this.setStatus('disconnected');
+      if (this.pendingReject) {
+        this.pendingReject(new Error("Connection closed"));
+        this.pending = null;
+        this.pendingReject = null;
+      }
+      this.ws = null;
+    };
+  }
+
+  async connect(): Promise<void> {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+
+    this.setStatus('connecting');
+    const wsUrl = this.buildWsUrl();
+
+    return new Promise((resolve, reject) => {
+      this.ws = new WebSocket(wsUrl);
+
+      this.ws.onopen = () => {
+        this.setStatus('connected');
+        this.ws!.send(JSON.stringify({
+          message_type: "init",
+          flunkie_tools: this.getFlunkieToolSchemas(),
+        }));
+        resolve();
+      };
+
+      this.ws.onmessage = (event) => this.handleMessage(event);
+
+      this.ws.onerror = () => {
+        this.setStatus('disconnected');
+        reject(new Error("WebSocket connection error"));
+      };
+
+      this.ws.onclose = () => {
+        this.setStatus('disconnected');
+        this.ws = null;
+      };
+    });
+  }
+
   async sendMessage(message: string, voice?: boolean): Promise<ChatResponse> {
     const payload = JSON.stringify({
       message_type: "chat",
@@ -208,7 +329,6 @@ export class ChatSocket {
 
       this.ws.onopen = () => {
         this.setStatus('connected');
-        // Always send init with tool schemas (empty array if none)
         this.ws!.send(JSON.stringify({
             message_type: "init",
             flunkie_tools: this.getFlunkieToolSchemas(),
@@ -216,88 +336,7 @@ export class ChatSocket {
         this.ws!.send(payload);
       };
 
-      this.ws.onmessage = async (event) => {
-        let data: any;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          this.pendingReject?.(new Error("Invalid response from server"));
-          this.pending = null;
-          this.pendingReject = null;
-          return;
-        }
-
-        // Handle admin message from live chat
-        if (data.message_type === "admin_message") {
-          this.adminMessageHandler?.(data.content);
-          return;
-        }
-        if (data.message_type === "mode_changed") {
-          this.modeChangedHandler?.(data.mode);
-          return;
-        }
-        if (data.message_type === "waiting") {
-          this.waitingHandler?.();
-          // Resolve the pending promise so the UI doesn't hang
-          this.pending?.({
-            response: "",
-            sources: [],
-            session_id: data.session_id || null,
-            follow_up_prompts: [],
-          });
-          this.pending = null;
-          this.pendingReject = null;
-          return;
-        }
-
-        // Handle tool call from agent
-        if (data.message_type === "web_tool_call" && this.flunkieToolHandler) {
-          const result = await this.flunkieToolHandler({
-            tool: data.details.tool,
-            arguments: data.details.arguments || {},
-          });
-          this.ws?.send(JSON.stringify({
-            message_type: "tool_result",
-            call_id: data.call_id,
-            content: result.content,
-            error: result.error,
-          }));
-          return;
-        }
-
-        // Handle error
-        if (data.message_type === "error") {
-          this.pendingReject?.(new Error(data.error));
-          this.pending = null;
-          this.pendingReject = null;
-          return;
-        }
-
-        // Handle normal response
-        if (data.mcp_results && data.mcp_results.length > 0) {
-          this.notifyMcpListeners(data.mcp_results);
-        }
-        this.pending?.(data as ChatResponse);
-        this.pending = null;
-        this.pendingReject = null;
-      };
-
-      this.ws.onerror = () => {
-        this.setStatus('disconnected');
-        this.pendingReject?.(new Error("WebSocket connection error"));
-        this.pending = null;
-        this.pendingReject = null;
-      };
-
-      this.ws.onclose = () => {
-        this.setStatus('disconnected');
-        if (this.pendingReject) {
-          this.pendingReject(new Error("Connection closed"));
-          this.pending = null;
-          this.pendingReject = null;
-        }
-        this.ws = null;
-      };
+      this.setupWsHandlers();
     });
   }
 

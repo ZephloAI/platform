@@ -83,6 +83,10 @@ export interface Chatbot {
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+  documents?: Document[];
+  auto_recrawl_enabled?: boolean;
+  recrawl_interval_hours?: number;
+  last_crawled_at?: string | null;
 }
 
 /** A quick prompt button shown in the widget */
@@ -137,6 +141,19 @@ export interface WidgetSettings {
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+}
+
+/** An uploaded PDF document in the knowledge base */
+export interface Document {
+  id: number;
+  chatbot_id: number;
+  filename: string;
+  s3_url: string;
+  file_size: number;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  chunks_indexed: number;
+  uploaded_at: string;
+  processed_at: string | null;
 }
 
 /** A crawl job that indexes a website's content */

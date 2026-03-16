@@ -43,3 +43,23 @@ async def upload_logo(file: UploadFile, chatbot_id: int) -> str:
 
     region = os.environ.get("AWS_REGION", "us-east-1")
     return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
+
+
+async def upload_document(file: UploadFile, chatbot_id: int) -> str:
+    """Upload a PDF document to S3 and return the public URL."""
+    client = _get_client()
+    bucket = _get_bucket()
+
+    ext = os.path.splitext(file.filename or "document.pdf")[1]
+    key = f"documents/{chatbot_id}/{uuid4().hex}{ext}"
+
+    content = await file.read()
+    client.put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=content,
+        ContentType=file.content_type or "application/pdf",
+    )
+
+    region = os.environ.get("AWS_REGION", "us-east-1")
+    return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"

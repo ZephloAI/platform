@@ -22,6 +22,6 @@ class ChatbotRepository(BaseRepository[Chatbot]):
         result = await self.db.execute(
             select(Chatbot)
             .where(Chatbot.id == chatbot_id)
-            .options(selectinload(Chatbot.crawl_jobs))
+            .options(selectinload(Chatbot.crawl_jobs), selectinload(Chatbot.documents))
         )
         return result.scalar_one_or_none()

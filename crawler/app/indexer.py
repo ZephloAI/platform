@@ -9,7 +9,7 @@ import re
 import uuid
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 
 from app.config import settings
 
@@ -86,6 +86,7 @@ def index_chunks(chatbot_name: str, chatbot_id: int, chunks: list[dict]):
                     "url": chunk["url"],
                     "title": chunk["title"],
                     "chatbot_id": chatbot_id,
+                    "source_type": chunk.get("source_type", "web"),
                 },
             )
         )
@@ -95,3 +96,65 @@ def index_chunks(chatbot_name: str, chatbot_id: int, chunks: list[dict]):
     for i in range(0, len(points), batch_size):
         batch = points[i : i + batch_size]
         client.upsert(collection_name=collection_name, points=batch)
+
+
+def ensure_collection(chatbot_name: str, chatbot_id: int):
+    """
+    Create a Qdrant collection for a chatbot only if it doesn't exist yet.
+
+    Unlike create_collection(), this does NOT delete existing data.
+    Safe to call before indexing documents alongside existing web content.
+    """
+    client = get_qdrant_client()
+    collection_name = get_collection_name(chatbot_name, chatbot_id)
+
+    try:
+        client.get_collection(collection_name)
+    except Exception:
+        # Collection doesn't exist -- create it
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+        )
+
+
+def delete_web_points(chatbot_name: str, chatbot_id: int):
+    """
+    Delete only the web-sourced points from a chatbot's collection.
+
+    This preserves document-sourced points (e.g. PDFs) while allowing
+    web content to be re-crawled fresh.
+    """
+    client = get_qdrant_client()
+    collection_name = get_collection_name(chatbot_name, chatbot_id)
+
+    web_filter = Filter(
+        must=[
+            FieldCondition(
+                key="source_type",
+                match=MatchValue(value="web"),
+            )
+        ]
+    )
+
+    # Scroll through all web points and collect their IDs
+    point_ids = []
+    offset = None
+    while True:
+        results, next_offset = client.scroll(
+            collection_name=collection_name,
+            scroll_filter=web_filter,
+            limit=100,
+            offset=offset,
+        )
+        point_ids.extend([point.id for point in results])
+        if next_offset is None:
+            break
+        offset = next_offset
+
+    # Delete collected web points
+    if point_ids:
+        client.delete(
+            collection_name=collection_name,
+            points_selector=point_ids,
+        )

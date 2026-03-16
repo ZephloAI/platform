@@ -71,7 +71,7 @@ export function useUpdateChatbot() {
       data,
     }: {
       chatbotId: number;
-      data: { name: string; description: string | null; instructions: string | null };
+      data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number };
     }): Promise<Chatbot> => chatbotApi.updateChatbot(chatbotId, data),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
@@ -124,6 +124,54 @@ export function useStartCrawl() {
       chatbotId: number;
       selectedUrls: string[];
     }): Promise<CrawlJob> => chatbotApi.startCrawl(chatbotId, selectedUrls),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Re-crawl a chatbot using its previously stored URLs.
+ * Invalidates the chatbot detail on success.
+ */
+export function useRecrawl() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (chatbotId: number): Promise<CrawlJob> =>
+      chatbotApi.recrawl(chatbotId),
+    onSuccess: (_data, chatbotId) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Upload a PDF document to a chatbot's knowledge base.
+ * Invalidates the chatbot detail on success.
+ */
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chatbotId, file }: { chatbotId: number; file: File }) =>
+      chatbotApi.uploadDocument(chatbotId, file),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Delete a document from a chatbot's knowledge base.
+ * Invalidates the chatbot detail on success.
+ */
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chatbotId, documentId }: { chatbotId: number; documentId: number }) =>
+      chatbotApi.deleteDocument(chatbotId, documentId),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },

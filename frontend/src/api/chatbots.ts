@@ -7,7 +7,7 @@
 
 import apiClient from './client';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, OrgAnalytics, WidgetSettings } from '../types';
+import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, Document, OrgAnalytics, WidgetSettings } from '../types';
 
 // --- Helpers ---
 
@@ -38,7 +38,7 @@ export async function createChatbot(data: { name: string }): Promise<Chatbot> {
 
 export async function updateChatbot(
   chatbotId: number,
-  data: { name: string; description: string | null; instructions: string | null },
+  data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number },
 ): Promise<Chatbot> {
   const response = await apiClient.put(`/api/chatbots/${chatbotId}`, data);
   return response.data;
@@ -70,9 +70,37 @@ export async function startCrawl(
   return response.data;
 }
 
+export async function recrawl(chatbotId: number): Promise<CrawlJob> {
+  const response = await apiClient.post(`/api/chatbots/${chatbotId}/recrawl`);
+  return response.data;
+}
+
 export async function getCrawlJob(jobId: number): Promise<CrawlJob> {
   const response = await apiClient.get(`/api/crawl-jobs/${jobId}`);
   return response.data;
+}
+
+// --- Documents ---
+
+export async function uploadDocument(
+  chatbotId: number,
+  file: File,
+): Promise<Document> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post(
+    `/api/chatbots/${chatbotId}/documents`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return response.data;
+}
+
+export async function deleteDocument(
+  chatbotId: number,
+  documentId: number,
+): Promise<void> {
+  await apiClient.delete(`/api/chatbots/${chatbotId}/documents/${documentId}`);
 }
 
 // --- Widget Settings ---

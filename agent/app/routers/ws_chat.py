@@ -339,10 +339,15 @@ async def ws_chat(ws: WebSocket):
             # Safety net: if the response is still empty, re-run without tools
             if not response_text.strip():
                 logger.warning("Empty response after cleaning, re-running without tools")
-                retry = await agent.arun(full_prompt, tools=[])
-                retry_content = retry.content if isinstance(retry.content, str) else ""
-                if retry_content.strip():
-                    response_text = clean_response(retry_content)
+                original_tools = agent.tools
+                agent.tools = None
+                try:
+                    retry = await agent.arun(full_prompt)
+                    retry_content = retry.content if isinstance(retry.content, str) else ""
+                    if retry_content.strip():
+                        response_text = clean_response(retry_content)
+                finally:
+                    agent.tools = original_tools
 
             # Step 5: Build deduplicated source list
             seen_urls: set[str] = set()

@@ -7,6 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.crawl_job import CrawlJobResponse
+from app.schemas.document import DocumentResponse
 
 
 class ChatbotCreate(BaseModel):
@@ -23,6 +24,8 @@ class ChatbotUpdate(BaseModel):
     description: str | None = None
     instructions: str | None = None
     is_active: bool | None = None
+    auto_recrawl_enabled: bool | None = None
+    recrawl_interval_hours: int | None = None
 
 
 class MCPServer(BaseModel):
@@ -86,6 +89,9 @@ class ChatbotResponse(BaseModel):
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    auto_recrawl_enabled: bool = True
+    recrawl_interval_hours: int = 48
+    last_crawled_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -93,6 +99,7 @@ class ChatbotResponse(BaseModel):
 class ChatbotDetailResponse(ChatbotResponse):
     """Extended chatbot response that includes crawl job history."""
     crawl_jobs: list[CrawlJobResponse] = []
+    documents: list[DocumentResponse] = []
 
 
 class WidgetSettingsUpdate(BaseModel):

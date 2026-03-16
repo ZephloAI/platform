@@ -78,6 +78,27 @@ async def start_crawl(
     return await service.start_crawl(chatbot_id, user.id, body.selected_urls)
 
 
+@router.post(
+    "/api/chatbots/{chatbot_id}/recrawl",
+    response_model=CrawlJobResponse,
+    status_code=201,
+)
+async def recrawl(
+    chatbot_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Re-crawl a chatbot using its previously stored URLs.
+
+    Requires the chatbot to have been crawled at least once before.
+    Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
+    Raises 400 if no previous crawl URLs are stored.
+    """
+    service = CrawlService(db)
+    return await service.start_recrawl(chatbot_id, user.id)
+
+
 @router.get("/api/crawl-jobs/{crawl_job_id}", response_model=CrawlJobResponse)
 async def get_crawl_job(
     crawl_job_id: int,

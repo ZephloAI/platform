@@ -16,6 +16,7 @@ from app.models.api_key import ApiKey
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.invitation import Invitation
+from app.models.document import Document
 
 __all__ = [
     "Base",
@@ -29,4 +30,5 @@ __all__ = [
     "Organization",
     "OrganizationMember",
     "Invitation",
+    "Document",
 ]

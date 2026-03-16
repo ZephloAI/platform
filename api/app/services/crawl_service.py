@@ -97,8 +97,8 @@ class CrawlService:
         # Create the crawl job
         crawl_job = await self.crawl_job_repo.create(chatbot_id=chatbot_id)
 
-        # Mark the chatbot as "crawling"
-        await self.chatbot_repo.update(chatbot_id, status="crawling")
+        # Mark the chatbot as "crawling" and save selected URLs for re-crawl
+        await self.chatbot_repo.update(chatbot_id, status="crawling", crawled_urls=selected_urls)
 
         # Build the crawler request payload
         crawler_payload = {
@@ -155,11 +155,61 @@ class CrawlService:
 
         # Update the parent chatbot's status
         if job_status == "completed":
-            await self.chatbot_repo.update(crawl_job.chatbot_id, status="ready")
+            await self.chatbot_repo.update(
+                crawl_job.chatbot_id, status="ready", last_crawled_at=datetime.utcnow()
+            )
         elif job_status == "failed":
             await self.chatbot_repo.update(crawl_job.chatbot_id, status="error")
 
         return updated_job
+
+    async def start_recrawl(self, chatbot_id: int, user_id: int) -> CrawlJob:
+        """Start a re-crawl using stored URLs (user-initiated, with ownership check)."""
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or chatbot.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Agent not found",
+            )
+        if not chatbot.crawled_urls:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No previous crawl URLs found. Crawl the website first.",
+            )
+        return await self._do_recrawl(chatbot)
+
+    async def start_auto_recrawl(self, chatbot_id: int) -> CrawlJob | None:
+        """Start a re-crawl using stored URLs (called by scheduler, no ownership check)."""
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or not chatbot.crawled_urls:
+            return None
+        return await self._do_recrawl(chatbot)
+
+    async def _do_recrawl(self, chatbot) -> CrawlJob:
+        """Shared logic for re-crawling a chatbot using its stored URLs."""
+        crawl_job = await self.crawl_job_repo.create(chatbot_id=chatbot.id)
+        await self.chatbot_repo.update(chatbot.id, status="crawling")
+
+        crawler_payload = {
+            "crawl_job_id": crawl_job.id,
+            "chatbot_id": chatbot.id,
+            "chatbot_name": chatbot.name,
+            "website_url": chatbot.website_url or "",
+            "callback_url": f"{settings.API_CALLBACK_URL}/api/internal/crawl-jobs/{crawl_job.id}",
+            "selected_urls": chatbot.crawled_urls,
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{settings.CRAWLER_SERVICE_URL}/crawl",
+                    json=crawler_payload,
+                    timeout=10.0,
+                )
+        except httpx.RequestError:
+            pass
+
+        return crawl_job
 
     async def get_crawl_job(self, crawl_job_id: int) -> CrawlJob:
         """
