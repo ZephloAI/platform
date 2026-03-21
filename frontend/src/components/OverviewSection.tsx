@@ -11,21 +11,6 @@ interface ChatbotMetrics {
   resolved_requests: number;
 }
 
-// ============================================================
-// OverviewSection
-// Status card, metrics, embed code with tabs, and API key mgmt.
-// ============================================================
-
-const STATUS_BADGES: Record<string, string> = {
-  active: 'badge badge-ready',
-  inactive: 'badge badge-error',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Active',
-  inactive: 'Inactive',
-};
-
 type EmbedTab = 'script' | 'npm' | 'legacy';
 
 interface OverviewSectionProps {
@@ -48,7 +33,6 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
 
   const origin = window.location.origin;
 
-  // Toggle active state
   const handleToggleActive = async () => {
     try {
       await apiClient.put(`/api/chatbots/${chatbot.id}`, {
@@ -61,7 +45,6 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
     }
   };
 
-  // Embed code snippets
   const scriptTagCode = `<script src="${origin}/widget/flunkie.js"></script>
 <script>
   Flunkie.initialize({
@@ -96,38 +79,24 @@ Flunkie.initialize({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const pagesIndexed = chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0;
+  const crawlJobs = chatbot.crawl_jobs?.length || 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Status Card */}
-      <div className="card p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="heading-sm font-display text-label-primary">
-              Status
-            </h2>
-            <p className="text-[12px] text-label-quaternary mt-0.5">
-              Created{' '}
-              {new Date(chatbot.created_at).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
-          </div>
-          <span className={STATUS_BADGES[chatbot.is_active ? 'active' : 'inactive'] || 'badge'}>
-            {STATUS_LABELS[chatbot.is_active ? 'active' : 'inactive']}
-          </span>
-        </div>
-
-        {/* Active Toggle */}
-        <div className="flex items-center justify-between pt-3 mt-3 border-t border-black/[0.04]">
-          <div>
-            <p className="text-[13px] font-medium text-label-primary">
-              {chatbot.is_active ? 'Active' : 'Inactive'}
-            </p>
-            <p className="text-[11px] text-label-quaternary">
-              {chatbot.is_active ? 'Widget is accepting conversations' : 'Widget is hidden from visitors'}
-            </p>
+      {/* Status + Toggle */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full ${chatbot.is_active ? 'bg-sage-500' : 'bg-black/[0.12]'}`} />
+            <div>
+              <p className="text-[14px] font-display font-semibold text-label-primary">
+                {chatbot.is_active ? 'Active' : 'Inactive'}
+              </p>
+              <p className="text-[12px] text-label-tertiary">
+                {chatbot.is_active ? 'Widget is accepting conversations' : 'Widget is hidden from visitors'}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleToggleActive}
@@ -142,67 +111,63 @@ Flunkie.initialize({
             />
           </button>
         </div>
-
         {chatbot.is_active && (
-          <div className="pt-3 mt-3 border-t border-black/[0.04]">
-            <Link to={`/chatbots/${chatbot.id}/chat`} className="btn-accent">
-              Open Chat
+          <div className="pt-4 mt-4 border-t border-black/[0.04]">
+            <Link
+              to={`/chatbots/${chatbot.id}/chat`}
+              className="inline-flex items-center gap-2 text-[13px] font-medium text-accent hover:text-accent/80 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Open Chat Preview
             </Link>
           </div>
         )}
       </div>
 
       {/* Metrics */}
-      <div className="card p-6">
-        <h2 className="section-label mb-4">
-          Metrics
-        </h2>
-        <div className="grid grid-cols-4 gap-4">
-          <div className="text-center">
-            <p className="metric-value font-display">
-              {chatbot.crawl_jobs?.reduce((sum, j) => sum + j.pages_crawled, 0) || 0}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Pages Indexed', value: pagesIndexed, color: '#1275CA' },
+          { label: 'Crawl Jobs', value: crawlJobs, color: '#1A1A2E' },
+          { label: 'Conversations', value: metrics?.total_conversations ?? '—', color: '#6B8F71' },
+          { label: 'Resolved', value: metrics?.resolved_requests ?? '—', color: '#D4A853' },
+        ].map((item, i) => (
+          <div
+            key={item.label}
+            className="card !p-4 animate-fade-in"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <p className="text-[11px] font-medium text-label-tertiary uppercase tracking-wider mb-1">
+              {item.label}
             </p>
-            <p className="metric-label">
-              Pages Indexed
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="metric-value font-display">
-              {chatbot.crawl_jobs?.length || 0}
-            </p>
-            <p className="metric-label">
-              Crawl Jobs
+            <p className="text-[22px] font-display font-bold" style={{ color: item.color }}>
+              {item.value}
             </p>
           </div>
-          <div className="text-center">
-            <p className="metric-value font-display">
-              {metrics?.total_conversations ?? '—'}
-            </p>
-            <p className="metric-label">
-              Conversations
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="metric-value font-display">
-              {metrics?.resolved_requests ?? '—'}
-            </p>
-            <p className="metric-label">
-              Resolved
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Embed Code with Tabs */}
-      <div className="card p-6">
-        <h2 className="section-label mb-3">
+      {/* Created date */}
+      <p className="text-[12px] text-label-quaternary">
+        Created{' '}
+        {new Date(chatbot.created_at).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}
+      </p>
+
+      {/* Embed Code */}
+      <div className="card p-5">
+        <h2 className="text-[14px] font-display font-semibold text-label-primary mb-1">
           Embed Code
         </h2>
-        <p className="text-[13px] text-label-secondary mb-4">
-          Add the Flunkie widget to your website using one of the methods below.
+        <p className="text-[12px] text-label-tertiary mb-4">
+          Add the Flunkie widget to your website.
         </p>
 
-        {/* Tab Buttons */}
         <div className="flex gap-1 mb-4 p-1 bg-surface-secondary rounded-xl w-fit">
           {([
             { key: 'script' as EmbedTab, label: 'Script Tag' },
@@ -219,9 +184,6 @@ Flunkie.initialize({
               }`}
             >
               {tab.label}
-              {tab.key === 'legacy' && (
-                <span className="ml-1 text-[10px] text-label-quaternary">(no auth)</span>
-              )}
             </button>
           ))}
         </div>
@@ -240,26 +202,24 @@ Flunkie.initialize({
       </div>
 
       {/* API Keys Info */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-label-tertiary shrink-0">
+      {activeOrg && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary/60">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-label-tertiary shrink-0">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
           <p className="text-[13px] text-label-secondary">
-            API Keys are now managed at the organization level.{' '}
-            {activeOrg && (
-              <Link
-                to={`/organizations/${activeOrg.id}/settings`}
-                className="text-accent hover:text-accent/80 font-medium transition-colors"
-              >
-                Manage API Keys
-              </Link>
-            )}
+            API Keys are managed at the organization level.{' '}
+            <Link
+              to={`/organizations/${activeOrg.id}/settings`}
+              className="text-accent hover:text-accent/80 font-medium transition-colors"
+            >
+              Manage API Keys
+            </Link>
           </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

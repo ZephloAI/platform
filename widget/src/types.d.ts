@@ -20,6 +20,7 @@ export interface ToolDefinition {
 export interface FlunkieInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
+  sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
   destroy(): void;

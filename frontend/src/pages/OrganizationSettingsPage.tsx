@@ -95,7 +95,7 @@ function OrganizationSettingsPage() {
         {/* Org name header */}
         <div className="px-4 pt-5 pb-3">
           <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
               {orgName.charAt(0).toUpperCase()}
             </div>
             <span className="text-[13px] font-semibold font-display text-label-primary truncate flex-1 text-left">
@@ -211,7 +211,7 @@ function OrganizationSettingsPage() {
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity"
             >
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </button>

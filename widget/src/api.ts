@@ -353,6 +353,18 @@ export class ChatSocket {
     }
   }
 
+  sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void {
+    const pageDetails = includePageDetails ? getPageContext() : {};
+    const payload = { ...pageDetails, ...data };
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        message_type: "context_update",
+        page_context: payload,
+      }));
+    }
+  }
+
   close() {
     if (this.ws) {
       this.ws.onclose = null;
@@ -361,4 +373,13 @@ export class ChatSocket {
     }
     this.setStatus('disconnected');
   }
+}
+
+function getPageContext(): Record<string, string> {
+  const metaEl = document.querySelector('meta[name="description"]');
+  return {
+    url: window.location.href,
+    title: document.title,
+    meta_description: metaEl?.getAttribute("content") || "",
+  };
 }

@@ -158,13 +158,23 @@ function ChatbotLayout() {
 
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] md:w-[220px] bg-white border-r border-black/[0.04] flex flex-col transform transition-transform duration-300 ease-smooth md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Brand */}
+        <div className="px-4 pt-4 pb-2">
+          <Link to="/dashboard" className="flex items-center gap-2 px-2 py-1">
+            <img src="/logo.svg" alt="Flunkie" className="w-6 h-6" />
+            <span className="text-[14px] font-display font-bold text-label-primary tracking-tight">
+              Flunkie
+            </span>
+          </Link>
+        </div>
+
         {/* Chatbot switcher */}
-        <div className="px-4 pt-5 pb-3" ref={dropdownRef}>
+        <div className="px-4 pb-3" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-surface-secondary transition-colors ease-smooth"
           >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
               {chatbot?.name?.charAt(0).toUpperCase() || 'C'}
             </div>
             <span className="text-[13px] font-display font-semibold text-label-primary truncate flex-1 text-left">
@@ -237,18 +247,7 @@ function ChatbotLayout() {
 
         {/* Section navigation */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          <Link
-            to="/dashboard"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth mb-2"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            Home
-          </Link>
-          <div className="border-t border-black/[0.04] my-2" />
+          <div className="border-t border-black/[0.04] mb-2" />
           {NAV_ITEMS.map((item) => (
             <div key={item.key}>
               <button
@@ -351,14 +350,14 @@ function ChatbotLayout() {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <h1 className="heading-md font-display text-label-primary capitalize">
+            <span className="text-[13px] text-label-tertiary font-medium capitalize">
               {activeSection}
-            </h1>
+            </span>
           </div>
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity ease-smooth"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold cursor-pointer hover:opacity-90 transition-opacity ease-smooth"
             >
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </button>

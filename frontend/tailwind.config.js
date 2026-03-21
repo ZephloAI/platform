@@ -26,10 +26,10 @@ export default {
           tertiary: '#ECEAE6',
         },
         accent: {
-          DEFAULT: '#C8973E',
-          hover: '#B8872E',
-          light: '#FBF5EB',
-          subtle: 'rgba(200, 151, 62, 0.08)',
+          DEFAULT: '#1275CA',
+          hover: '#0E5FA6',
+          light: '#EBF4FB',
+          subtle: 'rgba(18, 117, 202, 0.08)',
         },
         ink: {
           DEFAULT: '#1A1A2E',
@@ -59,7 +59,7 @@ export default {
         'card': '0 1px 3px rgba(26, 26, 46, 0.04), 0 4px 12px rgba(26, 26, 46, 0.03)',
         'card-hover': '0 2px 6px rgba(26, 26, 46, 0.06), 0 8px 24px rgba(26, 26, 46, 0.05)',
         'card-lg': '0 4px 8px rgba(26, 26, 46, 0.04), 0 16px 48px rgba(26, 26, 46, 0.06)',
-        'glow': '0 0 0 1px rgba(200, 151, 62, 0.15), 0 4px 16px rgba(200, 151, 62, 0.1)',
+        'glow': '0 0 0 1px rgba(18, 117, 202, 0.15), 0 4px 16px rgba(18, 117, 202, 0.1)',
       },
       transitionTimingFunction: {
         'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',

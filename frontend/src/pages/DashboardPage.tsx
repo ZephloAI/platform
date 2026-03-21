@@ -66,7 +66,7 @@ function DashboardPage() {
               <AnalyticsChart
                 data={analytics.messages_per_day}
                 title="Messages"
-                color="#C8973E"
+                color="#1275CA"
               />
               <AnalyticsChart
                 data={analytics.conversations_per_day}

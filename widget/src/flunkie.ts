@@ -20,6 +20,7 @@ export interface FlunkieOptions {
 export interface FlunkieInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
+  sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
   destroy(): void;
@@ -52,6 +53,9 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
     },
     registerTool(tool: ToolDefinition) {
       toolRegistry.register(tool);
+    },
+    sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean) {
+      widget.sendContextUpdate(data, includePageDetails);
     },
     webMcpTools() {
       return toolRegistry.getSchemas();

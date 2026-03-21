@@ -13,7 +13,7 @@
  * settings from the dashboard.
  */
 
-import { ChatSocket, fetchConfig, createSession, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus } from "./api";
+import { ChatSocket, fetchConfig, createSession, setApiKey, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus } from "./api";
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
@@ -112,7 +112,9 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   async connectedCallback() {
-    const { chatbotId, apiUrl } = getScriptConfig();
+    const scriptConfig = getScriptConfig();
+    const chatbotId = this.sdkChatbotId || scriptConfig.chatbotId;
+    const apiUrl = scriptConfig.apiUrl;
 
     // Start with defaults
     this.state = {
@@ -1612,6 +1614,34 @@ export class ChatbotWidget extends HTMLElement {
       this.mcpGlobalListeners = this.mcpGlobalListeners.filter(cb => cb !== callback);
     };
   }
+
+  /**
+   * Initialize widget from the Flunkie SDK (programmatic init).
+   * Stores api_key and chatbotId, then triggers connectedCallback if not already run.
+   */
+  private sdkApiKey: string | null = null;
+  private sdkChatbotId: number | null = null;
+
+  initFromSdk(apiKey: string, chatbotId: number): void {
+    this.sdkApiKey = apiKey;
+    this.sdkChatbotId = chatbotId;
+    setApiKey(apiKey);
+
+    // If connectedCallback already ran, re-initialize with new config
+    if (this.state) {
+      this.state.chatbotId = chatbotId;
+      // Re-fetch config with the new chatbotId
+      this.connectedCallback();
+    }
+    // Otherwise connectedCallback will pick up sdkChatbotId when it fires
+  }
+
+  /**
+   * Send page context to the agent via WebSocket.
+   */
+  sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void {
+    this.chatSocket?.sendContextUpdate(data, includePageDetails);
+  }
 }
 
 // ---- Register and auto-inject ----
@@ -1621,14 +1651,55 @@ if (!customElements.get("chatbot-widget")) {
 }
 
 // Expose global API for host page integration
+interface FlunkieSDKHandle {
+  sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
+  onMcpResult(callback: (results: McpToolResult[]) => void): () => void;
+  registerTool(tool: ToolDefinition): void;
+}
+
+interface FlunkieSDK {
+  initialize(config: { api_key: string; chatbotId: number }): FlunkieSDKHandle;
+}
+
 declare global {
   interface Window {
+    Flunkie: FlunkieSDK;
     ChatbotWidget?: {
       onMcpResult: (callback: (results: McpToolResult[]) => void) => () => void;
     };
   }
 }
 
+// Expose Flunkie SDK globally
+window.Flunkie = {
+  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: number }): FlunkieSDKHandle {
+    (window as any).__FLUNKIE_SDK__ = true;
+
+    // Create and inject the widget element
+    if (!document.querySelector("chatbot-widget")) {
+      document.body.appendChild(document.createElement("chatbot-widget"));
+    }
+    const widgetEl = document.querySelector("chatbot-widget") as ChatbotWidget;
+
+    // Pass config to the widget
+    widgetEl.initFromSdk(api_key, chatbotId);
+
+    // Return SDK handle
+    return {
+      sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean) {
+        widgetEl.sendContextUpdate(data, includePageDetails);
+      },
+      onMcpResult(callback) {
+        return widgetEl.onMcpResult(callback);
+      },
+      registerTool(tool: ToolDefinition) {
+        widgetEl.registerTool(tool);
+      },
+    };
+  },
+};
+
+// Backwards-compatible fallback: auto-inject via data-chatbot-id script tag
 if (!(window as any).__FLUNKIE_SDK__) {
   if (!document.querySelector("chatbot-widget")) {
     document.body.appendChild(document.createElement("chatbot-widget"));

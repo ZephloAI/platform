@@ -82,10 +82,10 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {chatbot.status !== 'crawling' && (
         <div>
           {/* Tab bar */}
-          <div className="flex gap-0 mb-4 bg-surface-secondary rounded-xl p-1">
+          <div className="flex gap-0 mb-4 bg-surface-secondary rounded-xl p-1 w-fit">
             <button
               onClick={() => setActiveTab('website')}
-              className={`flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
                 activeTab === 'website'
                   ? 'bg-white text-label-primary shadow-sm'
                   : 'text-label-tertiary hover:text-label-secondary'
@@ -102,7 +102,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
             </button>
             <button
               onClick={() => setActiveTab('pages')}
-              className={`flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
                 activeTab === 'pages'
                   ? 'bg-white text-label-primary shadow-sm'
                   : 'text-label-tertiary hover:text-label-secondary'
@@ -120,7 +120,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${
                 activeTab === 'documents'
                   ? 'bg-white text-label-primary shadow-sm'
                   : 'text-label-tertiary hover:text-label-secondary'
@@ -331,7 +331,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {discoveredUrls.length > 0 && !discoverMutation.isPending && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="section-label">
+            <h2 className="text-[14px] font-display font-semibold text-label-primary">
               Selected Pages
             </h2>
             <div className="flex items-center gap-2">
@@ -368,7 +368,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {/* Crawl History */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="section-label">
+          <h2 className="text-[14px] font-display font-semibold text-label-primary">
             Crawl History
           </h2>
           {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && chatbot.status !== 'crawling' && (
@@ -414,7 +414,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
       {/* Auto Re-crawl Settings */}
       <div>
-        <h2 className="section-label mb-4">Auto Re-crawl</h2>
+        <h2 className="text-[14px] font-display font-semibold text-label-primary mb-4">Auto Re-crawl</h2>
         <div className="card p-5">
           <div className="flex items-center justify-between">
             <div>

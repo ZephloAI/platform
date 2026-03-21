@@ -182,6 +182,8 @@ async def ws_chat(ws: WebSocket):
     flunkie_tool_schemas = init_data.get("flunkie_tools", [])
     print(init_data)
 
+    page_context = {}
+
     # --- Add "Talk to a real person" to the follow-up pool so the agent can suggest it ---
     if person_mode_enabled:
         follow_up_prompts.append({
@@ -217,6 +219,11 @@ async def ws_chat(ws: WebSocket):
 
             # Skip tool results — handled inline by web tool functions
             if data.get("message_type") == "tool_result":
+                continue
+
+            # Handle page context updates from widget SDK
+            if data.get("message_type") == "context_update":
+                page_context = data.get("page_context", {})
                 continue
 
             # Handle switch to person mode
@@ -303,7 +310,10 @@ async def ws_chat(ws: WebSocket):
             # Step 4: Run the agent (async for MCP tool support)
             collector = McpMetaCollector()
             set_active_collector(collector)
-            response = await agent.arun(full_prompt)
+            response = await agent.arun(
+                full_prompt,
+                dependencies={"page_context": page_context} if page_context else None,
+            )
             set_active_collector(None)
             mcp_results = collector.drain() or None
 

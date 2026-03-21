@@ -284,8 +284,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
       {activeTab === 'appearance' && (
         <div className="space-y-5">
           {/* Logo Upload */}
-          <div className="card p-6">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
+          <div className="card p-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
               Logo
             </h3>
             {logoUrl ? (
@@ -336,8 +336,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Icon */}
-          <div className="card p-6">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
+          <div className="card p-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
               Icon
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -360,8 +360,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Colors */}
-          <div className="card p-6">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider mb-4">
+          <div className="card p-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
               Colors
             </h3>
             <div className="space-y-3">
@@ -391,8 +391,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Typography */}
-          <div className="card p-6 space-y-5">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+          <div className="card p-5 space-y-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Typography
             </h3>
             <div>
@@ -429,8 +429,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Dimensions */}
-          <div className="card p-6 space-y-5">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+          <div className="card p-5 space-y-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Dimensions
             </h3>
             {position.includes('sidebar') ? (
@@ -476,8 +476,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Position & Welcome */}
-          <div className="card p-6 space-y-5">
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+          <div className="card p-5 space-y-5">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Layout
             </h3>
             <div>
@@ -543,10 +543,10 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
           </div>
 
           {/* Voice */}
-          <div className="card p-6">
+          <div className="card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+                <h3 className="text-[14px] font-display font-semibold text-label-primary">
                   Voice
                 </h3>
                 <p className="text-[12px] text-label-tertiary mt-1">
@@ -575,9 +575,9 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Quick Prompts Tab ============ */}
       {activeTab === 'quick-prompts' && (
-        <div className="card p-6 space-y-5">
+        <div className="card p-5 space-y-5">
           <div>
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Quick Prompts
             </h3>
             <p className="text-[12px] text-label-tertiary mt-1">
@@ -681,9 +681,9 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Follow-Up Prompts Tab ============ */}
       {activeTab === 'follow-up-prompts' && (
-        <div className="card p-6 space-y-5">
+        <div className="card p-5 space-y-5">
           <div>
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Follow-Up Prompts
             </h3>
             <p className="text-[12px] text-label-tertiary mt-1">
@@ -794,9 +794,9 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
       {/* ============ Greeting Prompts Tab ============ */}
       {activeTab === 'greeting-prompts' && (
-        <div className="card p-6 space-y-5">
+        <div className="card p-5 space-y-5">
           <div>
-            <h3 className="text-[13px] font-medium text-label-tertiary uppercase tracking-wider">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary">
               Greeting Prompts
             </h3>
             <p className="text-[12px] text-label-tertiary mt-1">

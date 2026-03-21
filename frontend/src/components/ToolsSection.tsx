@@ -187,11 +187,11 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
   return (
     <div className="animate-fade-in space-y-6">
       {/* WebMCP Browser Tools */}
-      <div className="card p-5 mb-6">
+      <div className="card p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-purple-500/10">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-500/10">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                 <line x1="8" y1="21" x2="16" y2="21" />
                 <line x1="12" y1="17" x2="12" y2="21" />
@@ -199,15 +199,15 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="heading-sm font-display">
-                  Browser Tools (WebMCP)
+                <h3 className="text-[14px] font-display font-semibold text-label-primary">
+                  Browser Tools
                 </h3>
                 <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-[10px] font-medium text-purple-500 uppercase tracking-wide">
-                  Early Preview
+                  Preview
                 </span>
               </div>
               <p className="text-[12px] text-label-tertiary mt-0.5">
-                Allow the agent to use tools registered on the host website via the Flunkie SDK or WebMCP standard.
+                Allow the agent to use tools registered on the host website via WebMCP.
               </p>
             </div>
           </div>
@@ -229,11 +229,11 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="heading-md font-display">
+          <h2 className="text-[14px] font-display font-semibold text-label-primary">
             MCP Servers
           </h2>
-          <p className="text-[13px] text-label-tertiary mt-1">
-            Connect external tools and services to your agent via MCP servers.
+          <p className="text-[12px] text-label-tertiary mt-0.5">
+            Connect external tools and services via MCP.
           </p>
         </div>
         {!isFormOpen && servers.length > 0 && (
@@ -252,13 +252,13 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
       {/* Empty state */}
       {servers.length === 0 && !isFormOpen && (
-        <div className="card p-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-secondary/80 mb-4">
+        <div className="card p-10 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-surface-secondary/80 mb-4">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-label-tertiary">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
             </svg>
           </div>
-          <h3 className="heading-sm font-display mb-1">
+          <h3 className="text-[14px] font-display font-semibold text-label-primary mb-1">
             Connect your first MCP server
           </h3>
           <p className="text-[13px] text-label-tertiary mb-6 max-w-sm mx-auto">
@@ -353,8 +353,8 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
       {/* Add/Edit form */}
       {isFormOpen && (
-        <div className="card p-6 space-y-5">
-          <h3 className="heading-sm font-display">
+        <div className="card p-5 space-y-5">
+          <h3 className="text-[14px] font-display font-semibold text-label-primary">
             {editingIndex !== null ? 'Edit Server' : 'Add Server'}
           </h3>
 

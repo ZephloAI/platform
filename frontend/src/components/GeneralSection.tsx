@@ -28,20 +28,25 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const hasChanges =
+    name.trim() !== chatbot.name ||
+    (description.trim() || '') !== (chatbot.description || '') ||
+    (instructions.trim() || '') !== (chatbot.instructions || '');
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Identity */}
-      <div className="card p-6">
-        <h3 className="heading-sm font-display text-label-primary mb-1">Identity</h3>
+      <div className="card p-5">
+        <h3 className="text-[14px] font-display font-semibold text-label-primary mb-1">
+          Identity
+        </h3>
         <p className="text-[12px] text-label-tertiary mb-5">
           Basic information about your agent.
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="input-label">
-              Name
-            </label>
+            <label className="input-label">Name</label>
             <input
               type="text"
               value={name}
@@ -52,9 +57,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
           </div>
 
           <div>
-            <label className="input-label">
-              Description
-            </label>
+            <label className="input-label">Description</label>
             <input
               type="text"
               value={description}
@@ -62,13 +65,18 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
               className="input-field"
               placeholder="What does this agent do?"
             />
+            <p className="text-[11px] text-label-quaternary mt-1.5">
+              A short description to help you identify this agent.
+            </p>
           </div>
         </div>
       </div>
 
       {/* Instructions */}
-      <div className="card p-6">
-        <h3 className="heading-sm font-display text-label-primary mb-1">Instructions</h3>
+      <div className="card p-5">
+        <h3 className="text-[14px] font-display font-semibold text-label-primary mb-1">
+          Instructions
+        </h3>
         <p className="text-[12px] text-label-tertiary mb-5">
           Tell your agent how to behave, what tone to use, and any specific rules to follow.
         </p>
@@ -78,7 +86,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
           onChange={(e) => setInstructions(e.target.value)}
           rows={8}
           className="input-field resize-y min-h-[160px]"
-          placeholder="Custom instructions for how the AI should behave..."
+          placeholder="You are a helpful customer support agent. Be friendly, concise, and always try to resolve the customer's issue..."
         />
       </div>
 
@@ -86,8 +94,12 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          disabled={updateChatbot.isPending || !name.trim()}
-          className="btn-accent px-5 py-2.5 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={updateChatbot.isPending || !name.trim() || !hasChanges}
+          className={`px-5 py-2.5 text-[13px] font-semibold rounded-xl transition-all duration-200 ${
+            hasChanges && name.trim()
+              ? 'btn-accent'
+              : 'bg-surface-secondary text-label-tertiary cursor-not-allowed'
+          }`}
         >
           {updateChatbot.isPending ? 'Saving...' : 'Save Changes'}
         </button>

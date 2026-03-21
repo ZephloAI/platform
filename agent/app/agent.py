@@ -289,6 +289,7 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
         session_id=session_id,
         add_history_to_context=True,
         num_history_runs=5,
+        add_dependencies_to_context=True,
     )
     return agent, follow_up_toolkit
 

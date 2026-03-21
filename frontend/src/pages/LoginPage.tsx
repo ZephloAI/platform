@@ -50,17 +50,13 @@ function LoginPage() {
 
       {/* Warm ambient gradient orbs */}
       <div className="absolute top-[-20%] right-[-10%] w-[700px] h-[700px] bg-accent/[0.06] rounded-full blur-3xl" />
-      <div className="absolute bottom-[-25%] left-[-10%] w-[600px] h-[600px] bg-amber-700/[0.04] rounded-full blur-3xl" />
+      <div className="absolute bottom-[-25%] left-[-10%] w-[600px] h-[600px] bg-blue-700/[0.04] rounded-full blur-3xl" />
       <div className="absolute top-[30%] left-[20%] w-[300px] h-[300px] bg-accent/[0.03] rounded-full blur-3xl" />
 
       <div className="max-w-[400px] w-full relative z-10 animate-fade-in">
         {/* Logo and heading */}
         <div className="text-center mb-12 animate-slide-up">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center mx-auto mb-6 shadow-glow">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
+          <img src="/logo.svg" alt="Flunkie" className="w-16 h-16 mx-auto mb-6" />
           <h1 className="heading-xl font-display text-label-primary mb-2">
             Welcome back
           </h1>

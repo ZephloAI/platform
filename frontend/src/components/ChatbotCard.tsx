@@ -87,7 +87,7 @@ function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
 
       {/* Sparkline metrics - hidden on mobile */}
       <div className="hidden md:flex flex-1 items-center justify-center gap-8">
-        <Sparkline data={analytics?.messages ?? emptyData} color="#C8973E" />
+        <Sparkline data={analytics?.messages ?? emptyData} color="#1275CA" />
         <Sparkline data={analytics?.conversations ?? emptyData} color="#1A1A2E" />
         <Sparkline data={analytics?.resolved ?? emptyData} color="#6B8F71" />
       </div>
