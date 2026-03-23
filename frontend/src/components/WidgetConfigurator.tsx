@@ -10,17 +10,6 @@ import type { PreviewState } from './ConfigSection';
 // Reports state changes to parent via onPreviewChange for live preview.
 // ============================================================
 
-const ICON_OPTIONS = [
-  { value: '🤖', label: 'Robot' },
-  { value: '💬', label: 'Chat' },
-  { value: '💡', label: 'Idea' },
-  { value: '⭐', label: 'Star' },
-  { value: '🎯', label: 'Target' },
-  { value: '📚', label: 'Books' },
-  { value: '🛟', label: 'Support' },
-  { value: '🎨', label: 'Creative' },
-];
-
 const FONT_OPTIONS = [
   { value: '', label: 'System Default' },
   { value: 'Inter', label: 'Inter' },
@@ -51,7 +40,6 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
   const [editingGreetingPrompt, setEditingGreetingPrompt] = useState<number | null>(null);
 
   // Existing state
-  const [icon, setIcon] = useState(chatbot.widget_icon || '🤖');
   const [welcome, setWelcome] = useState(
     chatbot.widget_welcome || 'Hi! How can I help you today?'
   );
@@ -85,7 +73,6 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
   // Sync from chatbot when it updates (e.g. after save + refetch)
   useEffect(() => {
-    if (chatbot.widget_icon !== null) setIcon(chatbot.widget_icon);
     if (chatbot.widget_welcome !== null) setWelcome(chatbot.widget_welcome);
     if (chatbot.widget_position !== null)
       setPosition(chatbot.widget_position as 'right' | 'left' | 'right-sidebar' | 'left-sidebar');
@@ -104,7 +91,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     if (chatbot.widget_height) setHeight(chatbot.widget_height);
     if (chatbot.voice_enabled !== undefined) setVoiceEnabled(chatbot.voice_enabled || false);
   }, [
-    chatbot.widget_icon, chatbot.widget_welcome, chatbot.widget_position,
+    chatbot.widget_welcome, chatbot.widget_position,
     chatbot.quick_prompts, chatbot.follow_up_prompts, chatbot.greeting_prompts, chatbot.greeting_prompt_duration, chatbot.widget_logo_url,
     chatbot.widget_header_color, chatbot.widget_user_bubble_color, chatbot.widget_assistant_bubble_color,
     chatbot.widget_font_family, chatbot.widget_font_size, chatbot.widget_text_color,
@@ -114,7 +101,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
   // Sync preview state to parent
   useEffect(() => {
     onPreviewChange({
-      icon,
+      icon: '',
       welcome,
       position,
       quickPrompts,
@@ -130,10 +117,9 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
       width,
       height,
     });
-  }, [icon, welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, headerColor, userBubbleColor, assistantBubbleColor, fontFamily, fontSize, textColor, width, height, voiceEnabled]);
+  }, [welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, headerColor, userBubbleColor, assistantBubbleColor, fontFamily, fontSize, textColor, width, height, voiceEnabled]);
 
   const hasChanges =
-    icon !== (chatbot.widget_icon || '🤖') ||
     welcome !== (chatbot.widget_welcome || 'Hi! How can I help you today?') ||
     position !== ((chatbot.widget_position as typeof position) || 'right') ||
     JSON.stringify(quickPrompts) !== JSON.stringify(chatbot.quick_prompts || []) ||
@@ -155,7 +141,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     updateMutation.mutate({
       chatbotId: chatbot.id,
       settings: {
-        widget_icon: icon,
+        widget_icon: '',
         widget_welcome: welcome,
         widget_position: position,
         quick_prompts: quickPrompts,
@@ -285,9 +271,12 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
         <div className="space-y-5">
           {/* Logo Upload */}
           <div className="card p-5">
-            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
+            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-1">
               Logo
             </h3>
+            <p className="text-[12px] text-label-tertiary mb-4">
+              Used as the widget icon, chat avatar, and toggle button. A chat icon is shown by default.
+            </p>
             {logoUrl ? (
               <div className="flex items-center gap-4">
                 <img
@@ -333,30 +322,6 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
             {uploadLogoMutation.isPending && (
               <p className="text-[12px] text-label-tertiary mt-2">Uploading...</p>
             )}
-          </div>
-
-          {/* Icon */}
-          <div className="card p-5">
-            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
-              Icon
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {ICON_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setIcon(opt.value)}
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-[20px] transition-all duration-200 border-2 ${
-                    icon === opt.value
-                      ? 'border-accent bg-accent/[0.06] scale-110 shadow-sm'
-                      : 'border-transparent bg-surface-secondary/60 hover:bg-surface-secondary'
-                  }`}
-                  title={opt.label}
-                >
-                  {opt.value}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Colors */}

@@ -741,6 +741,12 @@ export const WIDGET_STYLES = /* css */ `
     border-radius: 50%;
   }
 
+  .cb-welcome-chat-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: var(--cb-header, #0071e3);
+  }
+
   .cb-toggle-logo {
     width: 100%;
     height: 100%;

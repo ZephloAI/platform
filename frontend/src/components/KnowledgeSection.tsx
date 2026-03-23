@@ -82,7 +82,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {chatbot.status !== 'crawling' && (
         <div>
           {/* Tab bar */}
-          <div className="flex gap-0 mb-4 bg-surface-secondary rounded-xl p-1 w-fit">
+          <div className="flex gap-0 mb-4 bg-surface-secondary rounded-xl p-1 md:w-fit">
             <button
               onClick={() => setActiveTab('website')}
               className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ${

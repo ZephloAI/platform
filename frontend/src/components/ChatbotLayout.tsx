@@ -121,6 +121,7 @@ function ChatbotLayout() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
 
@@ -140,11 +141,14 @@ function ChatbotLayout() {
   const otherChatbots = chatbots?.filter((c) => c.id !== chatbotId) || [];
 
   const navLinkClass = (active: boolean) =>
-    `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-smooth ${
+    `w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-smooth ${
       active
         ? 'bg-accent-light text-accent'
         : 'text-label-secondary hover:bg-surface-secondary hover:text-label-primary'
     }`;
+
+  const sidebarExpandedWidth = 'w-[260px] md:w-[220px]';
+  const sidebarCollapsedWidth = 'w-[60px]';
 
   return (
     <div className="h-screen bg-surface-primary flex overflow-hidden">
@@ -157,129 +161,68 @@ function ChatbotLayout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] md:w-[220px] bg-white border-r border-black/[0.04] flex flex-col transform transition-transform duration-300 ease-smooth md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 ${collapsed ? sidebarCollapsedWidth : sidebarExpandedWidth} bg-white border-r border-black/[0.04] flex flex-col transform transition-all duration-300 ease-smooth md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         {/* Brand */}
-        <div className="px-4 pt-4 pb-2">
-          <Link to="/dashboard" className="flex items-center gap-2 px-2 py-1">
-            <img src="/logo.svg" alt="Flunkie" className="w-6 h-6" />
-            <span className="text-[14px] font-display font-bold text-label-primary tracking-tight">
-              Flunkie
-            </span>
+        <div className={`${collapsed ? 'px-2 pt-4 pb-2' : 'px-4 pt-4 pb-2'}`}>
+          <Link
+            to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
+            className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2 px-2'} py-1`}
+          >
+            <img src="/logo.svg" alt="Flunkie" className="w-6 h-6 shrink-0" />
+            {!collapsed && (
+              <span className="text-[14px] font-display font-bold text-label-primary tracking-tight">
+                Flunkie
+              </span>
+            )}
           </Link>
         </div>
 
-        {/* Chatbot switcher */}
-        <div className="px-4 pb-3" ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-surface-secondary transition-colors ease-smooth"
-          >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
-              {chatbot?.name?.charAt(0).toUpperCase() || 'C'}
-            </div>
-            <span className="text-[13px] font-display font-semibold text-label-primary truncate flex-1 text-left">
-              {chatbot?.name || 'Loading...'}
-            </span>
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className={`text-label-quaternary shrink-0 transition-transform duration-200 ease-smooth ${dropdownOpen ? 'rotate-180' : ''}`}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {dropdownOpen && (
-            <div className="mt-1 dropdown-glass rounded-xl animate-scale-in z-50 relative">
-              {otherChatbots.length > 0 && (
-                <div className="py-1">
-                  <p className="px-3 py-1.5 text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">
-                    Switch agent
-                  </p>
-                  {otherChatbots.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        setSidebarOpen(false);
-                        navigate(`/chatbots/${c.id}`);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
-                    >
-                      <div className="w-5 h-5 rounded bg-accent-light flex items-center justify-center text-[9px] font-semibold text-accent shrink-0">
-                        {c.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="truncate">{c.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="border-t border-black/[0.04] py-1">
-                <Link
-                  to="/dashboard"
-                  onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                  All Agents
-                </Link>
-                <Link
-                  to="/chatbots/new"
-                  onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent-light transition-colors ease-smooth"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  Create New
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Section navigation */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        <nav className={`flex-1 ${collapsed ? 'px-1.5' : 'px-3'} space-y-0.5 overflow-y-auto`}>
           <div className="border-t border-black/[0.04] mb-2" />
           {NAV_ITEMS.map((item) => (
             <div key={item.key}>
               <button
                 onClick={() => setActiveSection(item.key)}
                 className={navLinkClass(activeSection === item.key)}
+                title={collapsed ? item.label : undefined}
               >
-                <span className={activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}>
+                <span className={`shrink-0 ${activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}`}>
                   {item.icon}
                 </span>
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.key === 'conversations' && unreadCount > 0 && (
-                  <span className="bg-accent text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.key === 'conversations' && unreadCount > 0 && (
+                      <span className="bg-accent text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                    {(item.key === 'config' || item.key === 'tools') && (
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-transform duration-200 ease-smooth ${activeSection === item.key ? 'rotate-180 text-accent' : ''}`}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    )}
+                  </>
                 )}
-                {(item.key === 'config' || item.key === 'tools') && (
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`transition-transform duration-200 ease-smooth ${activeSection === item.key ? 'rotate-180 text-accent' : ''}`}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
+                {collapsed && item.key === 'conversations' && unreadCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 bg-accent w-2 h-2 rounded-full" />
                 )}
               </button>
-              {item.key === 'config' && activeSection === 'config' && (
+              {!collapsed && item.key === 'config' && activeSection === 'config' && (
                 <div className="ml-7 mt-1 space-y-0.5">
                   {CONFIG_SUB_ITEMS.map((sub) => (
                     <button
@@ -296,7 +239,7 @@ function ChatbotLayout() {
                   ))}
                 </div>
               )}
-              {item.key === 'tools' && activeSection === 'tools' && (
+              {!collapsed && item.key === 'tools' && activeSection === 'tools' && (
                 <div className="ml-7 mt-1 space-y-0.5">
                   {TOOLS_SUB_ITEMS.map((sub) => (
                     <button
@@ -317,20 +260,113 @@ function ChatbotLayout() {
           ))}
         </nav>
 
-        {/* Bottom section */}
-        <div className="px-3 pb-4 border-t border-black/[0.04] pt-3">
-          <Link
-            to="/dashboard"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth w-full"
+        {/* Bottom section: agent picker + collapse toggle */}
+        <div className={`border-t border-black/[0.04] ${collapsed ? 'px-1.5 py-3' : 'px-3 py-3'} space-y-1`}>
+          {/* Agent picker */}
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => { if (collapsed) { setCollapsed(false); setTimeout(() => setDropdownOpen(true), 200); } else { setDropdownOpen(!dropdownOpen); } }}
+              className={`flex items-center ${collapsed ? 'justify-center w-full' : 'gap-2.5 w-full px-2'} py-1.5 rounded-lg hover:bg-surface-secondary transition-colors ease-smooth`}
+              title={collapsed ? (chatbot?.name || 'Switch agent') : undefined}
+            >
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
+                {chatbot?.name?.charAt(0).toUpperCase() || 'C'}
+              </div>
+              {!collapsed && (
+                <>
+                  <span className="text-[13px] font-display font-semibold text-label-primary truncate flex-1 text-left">
+                    {chatbot?.name || 'Loading...'}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`text-label-quaternary shrink-0 transition-transform duration-200 ease-smooth ${dropdownOpen ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 15 12 9 18 15" />
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {dropdownOpen && !collapsed && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 dropdown-glass rounded-xl animate-scale-in z-50">
+                {otherChatbots.length > 0 && (
+                  <div className="py-1">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">
+                      Switch agent
+                    </p>
+                    {otherChatbots.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setSidebarOpen(false);
+                          navigate(`/chatbots/${c.id}`);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
+                      >
+                        <div className="w-5 h-5 rounded bg-accent-light flex items-center justify-center text-[9px] font-semibold text-accent shrink-0">
+                          {c.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="truncate">{c.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t border-black/[0.04] py-1">
+                  <Link
+                    to="/dashboard"
+                    onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                    All Agents
+                  </Link>
+                  <Link
+                    to="/chatbots/new"
+                    onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent-light transition-colors ease-smooth"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Create New
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Collapse toggle - desktop only */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className={`hidden md:flex items-center ${collapsed ? 'justify-center w-full' : 'gap-3 w-full px-2'} py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth`}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`shrink-0 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`}
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <path d="M15 9l-3 3 3 3" />
             </svg>
-            Help
-          </Link>
+            {!collapsed && <span>Collapse</span>}
+          </button>
         </div>
       </aside>
 
@@ -427,7 +463,7 @@ function ChatbotLayout() {
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-8">
+            <div className="w-full max-w-5xl mx-auto px-4 py-6 md:px-10 md:py-8 lg:w-3/4">
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           )}

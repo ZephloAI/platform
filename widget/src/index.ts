@@ -262,17 +262,15 @@ export class ChatbotWidget extends HTMLElement {
       }
     `;
 
-    // Avatar content: logo image > emoji icon > default SVG
+    // Avatar content: logo image > default chat SVG
     const avatarContent = logoUrl
       ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-avatar-img">`
-      : icon
-      ? `<span style="font-size:18px;line-height:1">${this.escapeHtml(icon)}</span>`
-      : ICON_BOT;
+      : ICON_CHAT;
 
     // Welcome icon
     const welcomeIcon = logoUrl
       ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
-      : icon ? this.escapeHtml(icon) : "💬";
+      : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
 
     // Toggle button content
     const toggleContent = logoUrl
@@ -889,10 +887,10 @@ export class ChatbotWidget extends HTMLElement {
     // Re-render messages in case new ones were added during voice mode
     this.messagesEl.innerHTML = '';
     if (this.messages.length === 0) {
-      const { title, icon, welcome, logoUrl } = this.state;
+      const { title, welcome, logoUrl } = this.state;
       const welcomeIcon = logoUrl
         ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
-        : icon ? this.escapeHtml(icon) : "\u{1F4AC}";
+        : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
       this.messagesEl.innerHTML = `
         <div class="cb-welcome">
           <div class="cb-welcome-icon">${welcomeIcon}</div>
@@ -1461,10 +1459,10 @@ export class ChatbotWidget extends HTMLElement {
     }
 
     // Reset messages area with welcome screen
-    const { title, icon, welcome, logoUrl } = this.state;
+    const { title, welcome, logoUrl } = this.state;
     const welcomeIcon = logoUrl
       ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
-      : icon ? this.escapeHtml(icon) : "💬";
+      : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
     this.messagesEl.innerHTML = `
       <div class="cb-welcome">
         <div class="cb-welcome-icon">${welcomeIcon}</div>
@@ -1504,10 +1502,10 @@ export class ChatbotWidget extends HTMLElement {
       if (this.personMode) {
         avatarEl.innerHTML = ICON_PERSON;
       } else {
-        const { icon, logoUrl } = this.state;
+        const { logoUrl } = this.state;
         avatarEl.innerHTML = logoUrl
           ? `<img src="${this.escapeHtml(logoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-          : icon ? this.escapeHtml(icon) : ICON_BOT;
+          : ICON_CHAT;
       }
     }
   }
