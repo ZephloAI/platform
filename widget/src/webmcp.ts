@@ -60,6 +60,10 @@ class ToolRegistry {
     }
   }
 
+  clear(): void {
+    this.tools.clear();
+  }
+
   getSchemas(): ToolSchema[] {
     return Array.from(this.tools.values()).map(({ name, description, inputSchema }) => ({
       name,

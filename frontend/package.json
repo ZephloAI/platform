@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@flunkie/flunkie": "^0.0.1-beta",
     "@tanstack/react-query": "^5.60.0",
     "axios": "^1.7.0",
     "react": "^18.3.1",

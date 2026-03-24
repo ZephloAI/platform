@@ -16,6 +16,7 @@ import OnboardingPage from './pages/OnboardingPage';
 function App() {
   return (
     <>
+    <DashboardAssistant />
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
@@ -69,7 +70,6 @@ function App() {
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-    <DashboardAssistant />
     </>
   );
 }

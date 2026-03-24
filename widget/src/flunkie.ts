@@ -30,6 +30,11 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
   const { key, chatbotId, apiUrl } = options;
   if (!key.startsWith("flk_")) throw new Error("Invalid API key format");
 
+  // Clean up any existing widget (e.g. from React StrictMode remount)
+  document.querySelectorAll("chatbot-widget").forEach((el) => el.remove());
+  document.querySelectorAll("script[data-chatbot-id]").forEach((el) => el.remove());
+  toolRegistry.clear();
+
   setApiKey(key);
 
   // Create a script element for getScriptConfig() to find
@@ -65,6 +70,7 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
     },
     destroy() {
       formScanner.disconnect();
+      toolRegistry.clear();
       widget.remove();
       scriptEl.remove();
     },

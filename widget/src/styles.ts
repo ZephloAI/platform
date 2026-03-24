@@ -77,13 +77,17 @@ export const WIDGET_STYLES = /* css */ `
   }
 
   .cb-toggle.has-logo {
-    background: transparent;
+    background: white;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .cb-toggle.has-logo:hover {
-    background: transparent;
+    background: white;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2), 0 3px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .cb-toggle.has-logo .cb-icon-chat {
+    display: none;
   }
 
   /* When open with a logo, revert to accent color and hide the logo */

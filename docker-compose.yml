@@ -135,6 +135,9 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        ENV: ${ENV:-dev}
+        NPM_TOKEN: ${NPM_TOKEN}
     ports:
       - "80:80"
     environment:

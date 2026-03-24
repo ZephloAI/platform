@@ -1,7 +1,27 @@
 {
-  "name": "flunkie",
-  "version": "0.1.0",
-  "description": "Flunkie - AI chatbot widget SDK",
+  "name": "@flunkie/flunkie",
+  "version": "0.0.2-beta",
+  "description": "Flunkie - AI chatbot widget for your website. Drop-in script tag or npm install.",
+  "author": "Flunkie",
+  "license": "Elastic-2.0",
+  "keywords": [
+    "chatbot",
+    "widget",
+    "ai",
+    "chat",
+    "customer-support",
+    "llm",
+    "embed",
+    "web-component"
+  ],
+  "homepage": "https://github.com/flunkie/flunkie#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flunkie/flunkie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/flunkie/flunkie/issues"
+  },
   "main": "dist/flunkie.esm.js",
   "module": "dist/flunkie.esm.js",
   "types": "dist/types.d.ts",
@@ -12,10 +32,20 @@
       "require": "./dist/flunkie.esm.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "dist/flunkie.js",
+    "dist/chatbot-widget.js",
+    "src/index.ts"
+  ],
   "scripts": {
     "build": "node build.mjs",
-    "watch": "node build.mjs --watch"
+    "watch": "node build.mjs --watch",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

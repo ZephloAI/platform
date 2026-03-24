@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import Flunkie from '@flunkie/flunkie';
+import type { FlunkieInstance } from '@flunkie/flunkie';
 import * as chatbotApi from '../api/chatbots';
 
 // ---------------------------------------------------------------------------
 // DashboardAssistant
-// Loads the Flunkie widget via script tag and registers dashboard tools
-// so the agent can help users manage their agents from the dashboard.
+// Initialises the Flunkie widget via the npm package and registers dashboard
+// tools so the agent can help users manage their agents from the dashboard.
 //
 // All tools delegate to the shared chatbot API service (api/chatbots.ts)
 // so business logic lives in one place.
@@ -24,34 +26,17 @@ function getConfig(): AppConfig {
   return (window as any).__APP_CONFIG__ || {};
 }
 
-interface FlunkieInstance {
-  registerTool(tool: {
-    name: string;
-    description: string;
-    inputSchema: Record<string, unknown>;
-    execute: (params: Record<string, unknown>) => Promise<string> | string;
-  }): void;
-  webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
-  destroy(): void;
-}
-
-interface FlunkieGlobal {
-  default: {
-    initialize(opts: {
-      key: string;
-      chatbotId: number;
-      apiUrl?: string;
-    }): FlunkieInstance;
-  };
-}
-
-const WIDGET_SCRIPT_PATH = '/widget/flunkie.js';
+const showUserProp = {
+  show_user: {
+    type: 'boolean',
+    description: 'If true, navigate the user to see the result in the dashboard',
+  },
+} as const;
 
 function DashboardAssistant() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const instanceRef = useRef<FlunkieInstance | null>(null);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
 
   useEffect(() => {
     const config = getConfig();
@@ -60,51 +45,25 @@ function DashboardAssistant() {
 
     if (!CHATBOT_ID || !API_KEY) return;
 
-    // Guard against double-mount (React StrictMode remounts components)
-    if (document.querySelector(`script[src="${WIDGET_SCRIPT_PATH}"]`)) return;
+    const instance = Flunkie.initialize({
+      key: API_KEY,
+      chatbotId: CHATBOT_ID,
+    });
 
-    // Set the SDK flag before loading the script so the widget's
-    // auto-inject code (which checks this flag) is skipped.
-    // initialize() will create the widget element itself.
-    (window as any).__FLUNKIE_SDK__ = true;
+    instanceRef.current = instance;
+    registerTools(instance);
 
-    const script = document.createElement('script');
-    script.src = WIDGET_SCRIPT_PATH;
-    script.async = true;
-    scriptRef.current = script;
-
-    script.onload = () => {
-      const flunkie = (window as unknown as { Flunkie: FlunkieGlobal }).Flunkie;
-      if (!flunkie?.default?.initialize) return;
-
-      const agent = flunkie.default.initialize({
-        key: API_KEY,
-        chatbotId: CHATBOT_ID,
-      });
-
-      instanceRef.current = agent;
-      registerTools(agent);
-
-      // Expose to console for debugging: DashboardAssistant.tools()
-      (window as any).DashboardAssistant = {
-        tools: () => agent.webMcpTools(),
-      };
+    (window as any).DashboardAssistant = {
+      tools: () => instance.webMcpTools(),
     };
 
-    document.head.appendChild(script);
-
-    // No cleanup — the widget stays alive for the entire session.
-    // Removing it on unmount causes a second instance under React StrictMode.
+    return () => {
+      instance.destroy();
+      instanceRef.current = null;
+      delete (window as any).DashboardAssistant;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Helper: optional show_user property for tool schemas
-  const showUserProp = {
-    show_user: {
-      type: 'boolean',
-      description: 'If true, navigate the user to see the result in the dashboard',
-    },
-  } as const;
 
   function registerTools(agent: FlunkieInstance) {
     // ---- list_chatbots ----
@@ -287,7 +246,6 @@ function DashboardAssistant() {
         const chatbotId = params.chatbot_id as number;
         let urls = params.selected_urls as string[] | undefined;
 
-        // If no specific URLs provided, discover first
         if (!urls || urls.length === 0) {
           const discovered = await chatbotApi.discoverUrls(chatbotId, params.website_url as string);
           urls = discovered.urls.map((u) => u.url);
@@ -421,7 +379,7 @@ function DashboardAssistant() {
 
         const snippets: Record<string, string> = {
           script: `<script src="${origin}/widget/flunkie.js"></script>\n<script>\n  Flunkie.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: ${chatbotId}\n  });\n</script>`,
-          npm: `npm install flunkie\n\nimport Flunkie from "flunkie";\n\nFlunkie.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: ${chatbotId}\n});`,
+          npm: `npm install @flunkie/flunkie\n\nimport Flunkie from "@flunkie/flunkie";\n\nFlunkie.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: ${chatbotId}\n});`,
           legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${chatbotId}"\n></script>`,
         };
 
@@ -431,7 +389,6 @@ function DashboardAssistant() {
     });
   }
 
-  // This component renders nothing — the widget injects itself into the DOM
   return null;
 }
 
