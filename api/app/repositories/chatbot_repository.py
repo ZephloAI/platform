@@ -25,3 +25,11 @@ class ChatbotRepository(BaseRepository[Chatbot]):
             .options(selectinload(Chatbot.crawl_jobs), selectinload(Chatbot.documents))
         )
         return result.scalar_one_or_none()
+
+    async def get_by_public_id(self, public_id: str) -> Chatbot | None:
+        """Get a chatbot by its public UUID."""
+        result = await self.db.execute(
+            select(Chatbot).where(Chatbot.public_id == public_id)
+        )
+        return result.scalar_one_or_none()
+

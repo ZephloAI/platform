@@ -17,7 +17,7 @@ interface ChatResponse {
  *   3. Send the message
  * Exposes connectionStatus and resetSession for "New Chat".
  */
-export function useChatSocket(chatbotId: number) {
+export function useChatSocket(chatbotId: string) {
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -102,7 +102,7 @@ export function useChatSocket(chatbotId: number) {
 
   const sendMessage = useCallback(
     async (
-      _chatbotId: number,
+      _chatbotId: string,
       message: string,
       _sessionId: string | null,
     ): Promise<ChatResponse> => {

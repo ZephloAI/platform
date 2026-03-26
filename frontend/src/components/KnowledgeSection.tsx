@@ -36,7 +36,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
     if (!websiteUrl.trim()) return;
 
     discoverMutation.mutate(
-      { chatbotId: chatbot.id, websiteUrl: websiteUrl.trim() },
+      { chatbotId: chatbot.public_id, websiteUrl: websiteUrl.trim() },
       {
         onSuccess: (data) => {
           setDiscoveredUrls(data.urls);
@@ -49,7 +49,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   // -- Crawl all selected URLs --
   const handleCrawlSelected = () => {
     startCrawlMutation.mutate(
-      { chatbotId: chatbot.id, selectedUrls },
+      { chatbotId: chatbot.public_id, selectedUrls },
       {
         onSuccess: () => {
           setDiscoveredUrls([]);
@@ -210,7 +210,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                   setDragOver(false);
                   const file = e.dataTransfer.files[0];
                   if (file && file.type === 'application/pdf') {
-                    uploadDocMutation.mutate({ chatbotId: chatbot.id, file });
+                    uploadDocMutation.mutate({ chatbotId: chatbot.public_id, file });
                   }
                 }}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
@@ -237,7 +237,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        uploadDocMutation.mutate({ chatbotId: chatbot.id, file });
+                        uploadDocMutation.mutate({ chatbotId: chatbot.public_id, file });
                       }
                     }}
                   />
@@ -296,7 +296,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                         )}
                         {/* Delete button */}
                         <button
-                          onClick={() => deleteDocMutation.mutate({ chatbotId: chatbot.id, documentId: doc.id })}
+                          onClick={() => deleteDocMutation.mutate({ chatbotId: chatbot.public_id, documentId: doc.id })}
                           disabled={deleteDocMutation.isPending}
                           className="p-1 text-label-quaternary hover:text-red-500 transition-colors"
                           title="Delete document"
@@ -373,7 +373,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
           </h2>
           {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && chatbot.status !== 'crawling' && (
             <button
-              onClick={() => recrawlMutation.mutate(chatbot.id)}
+              onClick={() => recrawlMutation.mutate(chatbot.public_id)}
               disabled={recrawlMutation.isPending}
               className="btn-secondary text-[12px] flex items-center gap-1.5"
             >
@@ -428,7 +428,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
             <button
               onClick={() => {
                 updateChatbotMutation.mutate({
-                  chatbotId: chatbot.id,
+                  chatbotId: chatbot.public_id,
                   data: {
                     name: chatbot.name,
                     description: chatbot.description,
@@ -458,7 +458,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                 value={chatbot.recrawl_interval_hours ?? 48}
                 onChange={(e) => {
                   updateChatbotMutation.mutate({
-                    chatbotId: chatbot.id,
+                    chatbotId: chatbot.public_id,
                     data: {
                       name: chatbot.name,
                       description: chatbot.description,

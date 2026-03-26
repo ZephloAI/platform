@@ -1,56 +1,72 @@
 """Document management endpoints."""
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.repositories.chatbot_repository import ChatbotRepository
 from app.schemas.document import DocumentResponse, DocumentStatusUpdate
 from app.services.document_service import DocumentService
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
 
+async def _resolve_chatbot(db: AsyncSession, agent_id: str):
+    """Resolve a chatbot by its public_id. Raises 404 if not found."""
+    repo = ChatbotRepository(db)
+    chatbot = await repo.get_by_public_id(agent_id)
+    if not chatbot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found",
+        )
+    return chatbot
+
+
 @router.post(
-    "/chatbots/{chatbot_id}/documents",
+    "/agents/{agent_id}/documents",
     response_model=DocumentResponse,
 )
 async def upload_document(
-    chatbot_id: int,
+    agent_id: str,
     file: UploadFile = File(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a PDF document to add to the chatbot's knowledge base."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = DocumentService(db)
-    return await service.upload(chatbot_id, user.id, file)
+    return await service.upload(chatbot.id, user.id, file)
 
 
 @router.get(
-    "/chatbots/{chatbot_id}/documents",
+    "/agents/{agent_id}/documents",
     response_model=list[DocumentResponse],
 )
 async def list_documents(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List all documents for a chatbot."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = DocumentService(db)
-    return await service.list_documents(chatbot_id, user.id)
+    return await service.list_documents(chatbot.id, user.id)
 
 
-@router.delete("/chatbots/{chatbot_id}/documents/{document_id}")
+@router.delete("/agents/{agent_id}/documents/{document_id}")
 async def delete_document(
-    chatbot_id: int,
+    agent_id: str,
     document_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a document from the chatbot's knowledge base."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = DocumentService(db)
-    await service.delete_document(chatbot_id, document_id, user.id)
+    await service.delete_document(chatbot.id, document_id, user.id)
     return {"ok": True}
 
 

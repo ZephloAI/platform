@@ -61,6 +61,7 @@ class GreetingPrompt(BaseModel):
 class ChatbotResponse(BaseModel):
     """Schema for chatbot list/detail responses."""
     id: int
+    public_id: str
     organization_id: int | None = None
     name: str
     description: str | None = None
@@ -187,7 +188,7 @@ class ChatbotMiniAnalytics(BaseModel):
 
 class PublicWidgetConfig(BaseModel):
     """Public config returned to the embeddable widget. No sensitive data."""
-    chatbot_id: int
+    chatbot_id: str
     name: str
     is_active: bool = True
     widget_icon: str | None = None

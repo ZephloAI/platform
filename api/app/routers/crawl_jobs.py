@@ -11,12 +11,13 @@ Flow:
   -> Response returned to client
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.repositories.chatbot_repository import ChatbotRepository
 from app.schemas.crawl_job import (
     CrawlJobResponse,
     CrawlJobUpdate,
@@ -29,12 +30,24 @@ from app.services.crawl_service import CrawlService
 router = APIRouter(tags=["crawl-jobs"])
 
 
+async def _resolve_chatbot(db: AsyncSession, agent_id: str):
+    """Resolve a chatbot by its public_id. Raises 404 if not found."""
+    repo = ChatbotRepository(db)
+    chatbot = await repo.get_by_public_id(agent_id)
+    if not chatbot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found",
+        )
+    return chatbot
+
+
 @router.post(
-    "/api/chatbots/{chatbot_id}/discover",
+    "/api/agents/{agent_id}/discover",
     response_model=DiscoverResponse,
 )
 async def discover_urls(
-    chatbot_id: int,
+    agent_id: str,
     body: DiscoverRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -49,17 +62,18 @@ async def discover_urls(
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     Raises 502 if the crawler service is unreachable.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = CrawlService(db)
-    return await service.discover_urls(chatbot_id, user.id, body.website_url)
+    return await service.discover_urls(chatbot.id, user.id, body.website_url)
 
 
 @router.post(
-    "/api/chatbots/{chatbot_id}/crawl",
+    "/api/agents/{agent_id}/crawl",
     response_model=CrawlJobResponse,
     status_code=201,
 )
 async def start_crawl(
-    chatbot_id: int,
+    agent_id: str,
     body: CrawlStartRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -74,17 +88,18 @@ async def start_crawl(
 
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = CrawlService(db)
-    return await service.start_crawl(chatbot_id, user.id, body.selected_urls)
+    return await service.start_crawl(chatbot.id, user.id, body.selected_urls)
 
 
 @router.post(
-    "/api/chatbots/{chatbot_id}/recrawl",
+    "/api/agents/{agent_id}/recrawl",
     response_model=CrawlJobResponse,
     status_code=201,
 )
 async def recrawl(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -95,8 +110,9 @@ async def recrawl(
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     Raises 400 if no previous crawl URLs are stored.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = CrawlService(db)
-    return await service.start_recrawl(chatbot_id, user.id)
+    return await service.start_recrawl(chatbot.id, user.id)
 
 
 @router.get("/api/crawl-jobs/{crawl_job_id}", response_model=CrawlJobResponse)

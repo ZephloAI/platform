@@ -139,7 +139,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
   const handleSave = () => {
     updateMutation.mutate({
-      chatbotId: chatbot.id,
+      chatbotId: chatbot.public_id,
       settings: {
         widget_icon: '',
         widget_welcome: welcome,
@@ -164,7 +164,7 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
   const handleLogoUpload = (file: File) => {
     uploadLogoMutation.mutate(
-      { chatbotId: chatbot.id, file },
+      { chatbotId: chatbot.public_id, file },
       {
         onSuccess: (data) => {
           setLogoUrl(data.url);

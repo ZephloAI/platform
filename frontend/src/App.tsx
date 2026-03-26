@@ -42,7 +42,7 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/chatbots/new" element={<CreateChatbotPage />} />
+        <Route path="/agents/new" element={<CreateChatbotPage />} />
       </Route>
 
       {/* Organization settings - own sidebar layout */}
@@ -55,9 +55,9 @@ function App() {
         }
       />
 
-      {/* Chatbot detail pages - sidebar layout */}
+      {/* Agent detail pages - sidebar layout */}
       <Route
-        path="/chatbots/:id"
+        path="/agents/:id"
         element={
           <ProtectedRoute>
             <ChatbotLayout />

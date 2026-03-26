@@ -55,6 +55,7 @@ export interface AuthState {
 /** An agent linked to a user's website */
 export interface Chatbot {
   id: number;
+  public_id: string;
   name: string;
   description: string | null;
   instructions: string | null;

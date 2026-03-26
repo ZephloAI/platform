@@ -10,7 +10,7 @@ import ChatWidget from '../components/ChatWidget';
 
 function ChatPreviewPage() {
   const { id } = useParams<{ id: string }>();
-  const chatbotId = Number(id);
+  const chatbotId = id!;
   const { data: chatbot, isLoading } = useChatbot(chatbotId);
 
   // Loading
@@ -39,7 +39,7 @@ function ChatPreviewPage() {
     return (
       <div className="max-w-3xl mx-auto animate-fade-in">
         <Link
-          to={`/chatbots/${chatbot.id}`}
+          to={`/agents/${chatbot.public_id}`}
           className="inline-flex items-center gap-1.5 text-[13px] text-label-tertiary hover:text-label-primary font-medium transition-colors duration-200 mb-6"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,7 +69,7 @@ function ChatPreviewPage() {
       {/* Header */}
       <div className="mb-5">
         <Link
-          to={`/chatbots/${chatbot.id}`}
+          to={`/agents/${chatbot.public_id}`}
           className="inline-flex items-center gap-1.5 text-[13px] text-label-tertiary hover:text-label-primary font-medium transition-colors duration-200"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

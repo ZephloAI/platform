@@ -20,9 +20,9 @@ from app.repositories.chatbot_repository import ChatbotRepository
 router = APIRouter(prefix="/api/public", tags=["public-chat"])
 
 
-@router.get("/chatbots/{chatbot_id}/config", response_model=PublicWidgetConfig)
+@router.get("/agents/{agent_id}/config", response_model=PublicWidgetConfig)
 async def get_widget_config(
-    chatbot_id: int,
+    agent_id: str,
     db: AsyncSession = Depends(get_db),
     api_key=Depends(validate_api_key),
 ):
@@ -34,7 +34,7 @@ async def get_widget_config(
     without authentication (backward compatible).
     """
     chatbot_repo = ChatbotRepository(db)
-    chatbot = await chatbot_repo.get_by_id(chatbot_id)
+    chatbot = await chatbot_repo.get_by_public_id(agent_id)
 
     # If an API key was provided, verify it belongs to the same organization
     if api_key and chatbot:
@@ -44,7 +44,7 @@ async def get_widget_config(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="API key does not match this chatbot's organization",
                 )
-        elif api_key.chatbot_id and api_key.chatbot_id != chatbot_id:
+        elif api_key.chatbot_id and api_key.chatbot_id != chatbot.id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="API key does not match this chatbot",
@@ -57,7 +57,7 @@ async def get_widget_config(
         )
 
     return PublicWidgetConfig(
-        chatbot_id=chatbot.id,
+        chatbot_id=chatbot.public_id,
         name=chatbot.name,
         is_active=chatbot.is_active if chatbot.is_active is not None else True,
         widget_icon=chatbot.widget_icon,

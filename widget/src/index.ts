@@ -33,7 +33,7 @@ interface Message {
 }
 
 interface WidgetState {
-  chatbotId: number;
+  chatbotId: string;
   apiUrl: string;
   title: string;
   icon: string;
@@ -57,11 +57,11 @@ interface WidgetState {
 
 // ---- Helper: detect initial config from the <script> tag ----
 
-function getScriptConfig(): { chatbotId: number; apiUrl: string } {
+function getScriptConfig(): { chatbotId: string; apiUrl: string } {
   const scripts = document.querySelectorAll("script[data-chatbot-id]");
   const el = scripts[scripts.length - 1] as HTMLScriptElement | null;
 
-  const chatbotId = Number(el?.dataset.chatbotId || "0");
+  const chatbotId = el?.dataset.chatbotId || "";
   const apiUrl =
     el?.dataset.apiUrl ||
     (el?.src ? new URL(el.src).origin : window.location.origin);
@@ -1618,16 +1618,16 @@ export class ChatbotWidget extends HTMLElement {
    * Stores api_key and chatbotId, then triggers connectedCallback if not already run.
    */
   private sdkApiKey: string | null = null;
-  private sdkChatbotId: number | null = null;
+  private sdkChatbotId: string | null = null;
 
-  initFromSdk(apiKey: string, chatbotId: number): void {
+  initFromSdk(apiKey: string, chatbotId: string | number): void {
     this.sdkApiKey = apiKey;
-    this.sdkChatbotId = chatbotId;
+    this.sdkChatbotId = String(chatbotId);
     setApiKey(apiKey);
 
     // If connectedCallback already ran, re-initialize with new config
     if (this.state) {
-      this.state.chatbotId = chatbotId;
+      this.state.chatbotId = String(chatbotId);
       // Re-fetch config with the new chatbotId
       this.connectedCallback();
     }
@@ -1656,7 +1656,7 @@ interface FlunkieSDKHandle {
 }
 
 interface FlunkieSDK {
-  initialize(config: { api_key: string; chatbotId: number }): FlunkieSDKHandle;
+  initialize(config: { api_key: string; chatbotId: string | number }): FlunkieSDKHandle;
 }
 
 declare global {
@@ -1670,7 +1670,7 @@ declare global {
 
 // Expose Flunkie SDK globally
 window.Flunkie = {
-  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: number }): FlunkieSDKHandle {
+  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: string | number }): FlunkieSDKHandle {
     (window as any).__FLUNKIE_SDK__ = true;
 
     // Create and inject the widget element

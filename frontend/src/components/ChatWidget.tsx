@@ -10,7 +10,7 @@ import type { ChatMessage } from '../types';
 // ============================================================
 
 interface ChatWidgetProps {
-  chatbotId: number;
+  chatbotId: string;
 }
 
 function ChatWidget({ chatbotId }: ChatWidgetProps) {

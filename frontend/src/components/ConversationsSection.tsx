@@ -46,7 +46,7 @@ function truncate(text: string, maxLength: number): string {
 
 function ConversationsSection() {
   const { id } = useParams<{ id: string }>();
-  const chatbotId = Number(id);
+  const chatbotId = id!;
 
   const { data: conversations, isLoading: listLoading } = useConversations(chatbotId);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);

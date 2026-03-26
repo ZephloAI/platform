@@ -19,6 +19,7 @@ from app.dependencies import get_current_user
 from app.models.chat_session import ChatSession
 from app.models.message import Message
 from app.models.user import User
+from app.repositories.chatbot_repository import ChatbotRepository
 from app.schemas.chat import (
     AdminMessageRequest,
     MessageResponse,
@@ -33,12 +34,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["conversations"])
 
 
+async def _resolve_chatbot(db: AsyncSession, agent_id: str):
+    """Resolve a chatbot by its public_id. Raises 404 if not found."""
+    repo = ChatbotRepository(db)
+    chatbot = await repo.get_by_public_id(agent_id)
+    if not chatbot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found",
+        )
+    return chatbot
+
+
 @router.get(
-    "/api/chatbots/{chatbot_id}/conversations",
+    "/api/agents/{agent_id}/conversations",
     response_model=list[SessionListItem],
 )
 async def list_conversations(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -48,6 +61,8 @@ async def list_conversations(
     Returns sessions with last message info, ordered with person-mode
     sessions first, then by updated_at descending.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
+
     # Subquery: last message content and timestamp per session
     last_msg_sub = (
         select(
@@ -77,7 +92,7 @@ async def list_conversations(
         )
         .outerjoin(last_msg_sub, ChatSession.id == last_msg_sub.c.session_id)
         .outerjoin(count_sub, ChatSession.id == count_sub.c.session_id)
-        .where(ChatSession.chatbot_id == chatbot_id)
+        .where(ChatSession.chatbot_id == chatbot.id)
         .order_by(
             # Person-mode sessions first
             case((ChatSession.mode == "person", 0), else_=1),

@@ -93,7 +93,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       mcp_servers: updated,
       webmcp_enabled: webMcpEnabled,
     };
-    updateMutation.mutate({ chatbotId: chatbot.id, settings });
+    updateMutation.mutate({ chatbotId: chatbot.public_id, settings });
   };
 
   const saveWebMcpToggle = (enabled: boolean) => {
@@ -119,7 +119,7 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       mcp_servers: servers,
       webmcp_enabled: enabled,
     };
-    updateMutation.mutate({ chatbotId: chatbot.id, settings });
+    updateMutation.mutate({ chatbotId: chatbot.public_id, settings });
   };
 
   const handleSave = () => {

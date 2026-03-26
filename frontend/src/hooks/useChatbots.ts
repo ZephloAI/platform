@@ -12,7 +12,7 @@ import * as chatbotApi from '../api/chatbots';
 // Centralized keys make cache invalidation predictable
 const QUERY_KEYS = {
   chatbots: (orgId?: number) => ['chatbots', orgId] as const,
-  chatbot: (id: number) => ['chatbots', id] as const,
+  chatbot: (id: string) => ['chatbots', id] as const,
   crawlJob: (id: number) => ['crawlJobs', id] as const,
 };
 
@@ -31,9 +31,9 @@ export function useChatbots() {
 }
 
 /**
- * Fetch a single chatbot by ID, including its crawl jobs.
+ * Fetch a single chatbot by public_id, including its crawl jobs.
  */
-export function useChatbot(id: number) {
+export function useChatbot(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.chatbot(id),
     queryFn: (): Promise<Chatbot> => chatbotApi.getChatbot(id),
@@ -70,7 +70,7 @@ export function useUpdateChatbot() {
       chatbotId,
       data,
     }: {
-      chatbotId: number;
+      chatbotId: string;
       data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number };
     }): Promise<Chatbot> => chatbotApi.updateChatbot(chatbotId, data),
     onSuccess: (_data, { chatbotId }) => {
@@ -87,7 +87,7 @@ export function useDeleteChatbot() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number): Promise<void> => chatbotApi.deleteChatbot(id),
+    mutationFn: (id: string): Promise<void> => chatbotApi.deleteChatbot(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatbots'] });
     },
@@ -103,7 +103,7 @@ export function useDiscoverUrls() {
       chatbotId,
       websiteUrl,
     }: {
-      chatbotId: number;
+      chatbotId: string;
       websiteUrl: string;
     }) => chatbotApi.discoverUrls(chatbotId, websiteUrl),
   });
@@ -121,7 +121,7 @@ export function useStartCrawl() {
       chatbotId,
       selectedUrls,
     }: {
-      chatbotId: number;
+      chatbotId: string;
       selectedUrls: string[];
     }): Promise<CrawlJob> => chatbotApi.startCrawl(chatbotId, selectedUrls),
     onSuccess: (_data, { chatbotId }) => {
@@ -138,7 +138,7 @@ export function useRecrawl() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (chatbotId: number): Promise<CrawlJob> =>
+    mutationFn: (chatbotId: string): Promise<CrawlJob> =>
       chatbotApi.recrawl(chatbotId),
     onSuccess: (_data, chatbotId) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
@@ -154,7 +154,7 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ chatbotId, file }: { chatbotId: number; file: File }) =>
+    mutationFn: ({ chatbotId, file }: { chatbotId: string; file: File }) =>
       chatbotApi.uploadDocument(chatbotId, file),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
@@ -170,7 +170,7 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ chatbotId, documentId }: { chatbotId: number; documentId: number }) =>
+    mutationFn: ({ chatbotId, documentId }: { chatbotId: string; documentId: number }) =>
       chatbotApi.deleteDocument(chatbotId, documentId),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
@@ -186,7 +186,7 @@ export function useUploadLogo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ chatbotId, file }: { chatbotId: number; file: File }) =>
+    mutationFn: ({ chatbotId, file }: { chatbotId: string; file: File }) =>
       chatbotApi.uploadLogo(chatbotId, file),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
@@ -206,7 +206,7 @@ export function useUpdateWidgetSettings() {
       chatbotId,
       settings,
     }: {
-      chatbotId: number;
+      chatbotId: string;
       settings: WidgetSettings;
     }): Promise<WidgetSettings> => chatbotApi.updateWidgetSettings(chatbotId, settings),
     onSuccess: (_data, { chatbotId }) => {

@@ -15,7 +15,7 @@ function DashboardPage() {
   const { data: analytics, isLoading: analyticsLoading } = useOrgAnalytics(activeOrg?.id);
   const { data: chatbotAnalytics } = useOrgChatbotAnalytics(activeOrg?.id);
 
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleDeleteConfirm = () => {
     if (deleteTarget) {
@@ -36,7 +36,7 @@ function DashboardPage() {
         </h1>
         {hasAgents && (
           <Link
-            to="/chatbots/new"
+            to="/agents/new"
             className="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-xl"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -124,7 +124,7 @@ function DashboardPage() {
                   key={chatbot.id}
                   chatbot={chatbot}
                   analytics={chatbotAnalytics?.[chatbot.id]}
-                  onDelete={() => setDeleteTarget({ id: chatbot.id, name: chatbot.name })}
+                  onDelete={() => setDeleteTarget({ id: chatbot.public_id, name: chatbot.name })}
                 />
               ))}
             </div>
@@ -159,7 +159,7 @@ function DashboardPage() {
               Point it at your website and it'll answer questions for your visitors.
             </p>
             <Link
-              to="/chatbots/new"
+              to="/agents/new"
               className="btn-accent px-5 py-2.5 text-[13px] font-semibold rounded-xl"
             >
               Get Started

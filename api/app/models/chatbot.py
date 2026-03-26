@@ -5,6 +5,8 @@ Represents a chatbot tied to a specific website.
 Status tracks crawl state. is_active controls whether the widget accepts chat.
 """
 
+from uuid import uuid4
+
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func
 from sqlalchemy.orm import relationship
 
@@ -15,6 +17,7 @@ class Chatbot(Base):
     __tablename__ = "chatbots"
 
     id = Column(Integer, primary_key=True, index=True)
+    public_id = Column(String, unique=True, index=True, default=lambda: str(uuid4()))
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)

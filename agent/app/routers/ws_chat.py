@@ -139,15 +139,25 @@ async def ws_chat(ws: WebSocket):
         return
 
     try:
-        chatbot_id = int(chatbot_id_str)
         session_uuid = uuid.UUID(session_id)
     except (ValueError, TypeError):
-        await ws.close(code=4001, reason="Invalid session_id or chatbot_id")
+        await ws.close(code=4001, reason="Invalid session_id")
         return
 
-    # --- Validate session in DB ---
+    # --- Resolve chatbot by public_id (UUID) only ---
     conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
     try:
+        chatbot_row = await conn.fetchrow(
+            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled FROM chatbots WHERE public_id = $1",
+            chatbot_id_str,
+        )
+
+        if not chatbot_row:
+            await ws.close(code=4002, reason="Chatbot not found")
+            return
+
+        chatbot_id = chatbot_row["id"]
+
         session_row = await conn.fetchrow(
             "SELECT id FROM chat_sessions WHERE id = $1 AND chatbot_id = $2",
             session_uuid, chatbot_id,
@@ -155,17 +165,8 @@ async def ws_chat(ws: WebSocket):
         if not session_row:
             await ws.close(code=4001, reason="Invalid session")
             return
-
-        chatbot_row = await conn.fetchrow(
-            "SELECT name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled FROM chatbots WHERE id = $1",
-            chatbot_id,
-        )
     finally:
         await conn.close()
-
-    if not chatbot_row:
-        await ws.close(code=4002, reason="Chatbot not found")
-        return
 
     chatbot_name = chatbot_row["name"]
     follow_up_prompts = json.loads(chatbot_row["follow_up_prompts"] or "[]")

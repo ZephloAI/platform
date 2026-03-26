@@ -26,19 +26,19 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
 
   useEffect(() => {
     apiClient
-      .get(`/api/chatbots/${chatbot.id}/metrics`)
+      .get(`/api/agents/${chatbot.public_id}/metrics`)
       .then((res) => setMetrics(res.data))
       .catch(() => {});
-  }, [chatbot.id]);
+  }, [chatbot.public_id]);
 
   const origin = window.location.origin;
 
   const handleToggleActive = async () => {
     try {
-      await apiClient.put(`/api/chatbots/${chatbot.id}`, {
+      await apiClient.put(`/api/agents/${chatbot.public_id}`, {
         is_active: !chatbot.is_active,
       });
-      queryClient.invalidateQueries({ queryKey: ['chatbots', chatbot.id] });
+      queryClient.invalidateQueries({ queryKey: ['chatbots', chatbot.public_id] });
       queryClient.invalidateQueries({ queryKey: ['chatbots'] });
     } catch {
       // silently ignore
@@ -49,7 +49,7 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
 <script>
   Flunkie.initialize({
     key: "YOUR_API_KEY",
-    chatbotId: ${chatbot.id}
+    chatbotId: "${chatbot.public_id}"
   });
 </script>`;
 
@@ -59,12 +59,12 @@ import Flunkie from "flunkie";
 
 Flunkie.initialize({
   key: "YOUR_API_KEY",
-  chatbotId: ${chatbot.id}
+  chatbotId: "${chatbot.public_id}"
 });`;
 
   const legacyCode = `<script
   src="${origin}/widget/chatbot-widget.js"
-  data-chatbot-id="${chatbot.id}"
+  data-chatbot-id="${chatbot.public_id}"
 ></script>`;
 
   const embedCodeMap: Record<EmbedTab, string> = {
@@ -114,7 +114,7 @@ Flunkie.initialize({
         {chatbot.is_active && (
           <div className="pt-4 mt-4 border-t border-black/[0.04]">
             <Link
-              to={`/chatbots/${chatbot.id}/chat`}
+              to={`/agents/${chatbot.public_id}/chat`}
               className="inline-flex items-center gap-2 text-[13px] font-medium text-accent hover:text-accent/80 transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

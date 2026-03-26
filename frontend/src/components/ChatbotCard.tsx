@@ -72,14 +72,14 @@ function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
     <div className="flex items-center gap-4 px-3 py-3 md:px-5 md:py-3.5 hover:bg-surface-secondary/50 transition-colors group">
       {/* Icon + Name */}
       <Link
-        to={`/chatbots/${chatbot.id}`}
+        to={`/agents/${chatbot.public_id}`}
         className="w-9 h-9 rounded-xl bg-accent-light flex items-center justify-center shrink-0"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </Link>
-      <Link to={`/chatbots/${chatbot.id}`} className="min-w-0 flex-1 md:flex-none md:w-40 shrink-0">
+      <Link to={`/agents/${chatbot.public_id}`} className="min-w-0 flex-1 md:flex-none md:w-40 shrink-0">
         <p className="text-[14px] font-display font-semibold text-label-primary truncate group-hover:text-accent transition-colors">
           {chatbot.name}
         </p>
@@ -99,7 +99,7 @@ function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
           title={isActive ? 'Active' : 'Inactive'}
         />
         <Link
-          to={`/chatbots/${chatbot.id}`}
+          to={`/agents/${chatbot.public_id}`}
           className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-black/[0.05] transition-colors"
           title="Edit"
         >

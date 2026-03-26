@@ -21,7 +21,7 @@ function CreateChatbotPage() {
       { name: name.trim() },
       {
         onSuccess: (chatbot) => {
-          navigate(`/chatbots/${chatbot.id}`);
+          navigate(`/agents/${chatbot.public_id}`);
         },
         onError: () => {
           setError('Failed to create agent. Please try again.');

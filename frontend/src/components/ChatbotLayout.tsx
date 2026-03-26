@@ -88,7 +88,7 @@ function ChatbotLayout() {
   const { user, logout } = useAuth();
   const activeOrg = useOrgStore((state) => state.activeOrganization);
   const { id } = useParams<{ id: string }>();
-  const chatbotId = Number(id);
+  const chatbotId = id!;
   const { data: chatbot } = useChatbot(chatbotId);
   const { data: chatbots } = useChatbots();
   const { data: conversations } = useConversations(chatbotId);
@@ -138,7 +138,7 @@ function ChatbotLayout() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const otherChatbots = chatbots?.filter((c) => c.id !== chatbotId) || [];
+  const otherChatbots = chatbots?.filter((c) => c.public_id !== chatbotId) || [];
 
   const navLinkClass = (active: boolean) =>
     `w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-smooth ${
@@ -305,7 +305,7 @@ function ChatbotLayout() {
                         onClick={() => {
                           setDropdownOpen(false);
                           setSidebarOpen(false);
-                          navigate(`/chatbots/${c.id}`);
+                          navigate(`/agents/${c.public_id}`);
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
                       >
@@ -329,7 +329,7 @@ function ChatbotLayout() {
                     All Agents
                   </Link>
                   <Link
-                    to="/chatbots/new"
+                    to="/agents/new"
                     onClick={() => { setDropdownOpen(false); setSidebarOpen(false); }}
                     className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-accent font-medium hover:bg-accent-light transition-colors ease-smooth"
                   >

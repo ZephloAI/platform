@@ -43,7 +43,7 @@ export interface ChatResponse {
 }
 
 export interface WidgetConfig {
-  chatbot_id: number;
+  chatbot_id: string;
   name: string;
   widget_icon: string | null;
   widget_welcome: string | null;
@@ -71,10 +71,10 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
  */
 export async function fetchConfig(
   apiUrl: string,
-  chatbotId: number,
+  chatbotId: string,
 ): Promise<WidgetConfig | null> {
   try {
-    const res = await fetch(`${apiUrl}/api/public/chatbots/${chatbotId}/config`, {
+    const res = await fetch(`${apiUrl}/api/public/agents/${chatbotId}/config`, {
       headers: authHeaders(),
     });
     if (!res.ok) return null;
@@ -89,7 +89,7 @@ export async function fetchConfig(
  */
 export async function createSession(
   apiUrl: string,
-  chatbotId: number,
+  chatbotId: string,
 ): Promise<string> {
   const res = await fetch(`${apiUrl}/api/session`, {
     method: 'POST',
@@ -109,7 +109,7 @@ export async function createSession(
 export class ChatSocket {
   private ws: WebSocket | null = null;
   private apiUrl: string;
-  private chatbotId: number;
+  private chatbotId: string;
   private sessionId: string;
   private pending: ((value: ChatResponse) => void) | null = null;
   private pendingReject: ((reason: Error) => void) | null = null;
@@ -124,7 +124,7 @@ export class ChatSocket {
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
 
-  constructor(apiUrl: string, chatbotId: number, sessionId: string) {
+  constructor(apiUrl: string, chatbotId: string, sessionId: string) {
     this.apiUrl = apiUrl;
     this.chatbotId = chatbotId;
     this.sessionId = sessionId;

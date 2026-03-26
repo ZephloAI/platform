@@ -15,7 +15,7 @@ interface ChatbotContext {
 
 function ChatbotDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const chatbotId = Number(id);
+  const chatbotId = id!;
   const { data: chatbot, isLoading, error } = useChatbot(chatbotId);
   const { activeSection, activeConfigTab, activeToolsTab } = useOutletContext<ChatbotContext>();
 

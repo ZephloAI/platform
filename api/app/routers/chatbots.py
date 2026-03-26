@@ -36,9 +36,22 @@ from app.schemas.chatbot import (
     WidgetSettingsUpdate,
     WidgetSettingsResponse,
 )
+from app.repositories.chatbot_repository import ChatbotRepository
 from app.services.chatbot_service import ChatbotService
 
-router = APIRouter(prefix="/api/chatbots", tags=["chatbots"])
+router = APIRouter(prefix="/api/agents", tags=["agents"])
+
+
+async def _resolve_chatbot(db: AsyncSession, agent_id: str):
+    """Resolve a chatbot by its public_id. Raises 404 if not found."""
+    repo = ChatbotRepository(db)
+    chatbot = await repo.get_by_public_id(agent_id)
+    if not chatbot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found",
+        )
+    return chatbot
 
 
 @router.get("", response_model=list[ChatbotResponse])
@@ -87,21 +100,22 @@ async def create_chatbot(
     )
 
 
-@router.put("/{chatbot_id}", response_model=ChatbotResponse)
+@router.put("/{agent_id}", response_model=ChatbotResponse)
 async def update_chatbot(
-    chatbot_id: int,
+    agent_id: str,
     body: ChatbotUpdate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update chatbot general settings (name, description, instructions)."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    return await service.update_chatbot(chatbot_id, user.id, body)
+    return await service.update_chatbot(chatbot.id, user.id, body)
 
 
-@router.get("/{chatbot_id}", response_model=ChatbotDetailResponse)
+@router.get("/{agent_id}", response_model=ChatbotDetailResponse)
 async def get_chatbot(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -110,41 +124,46 @@ async def get_chatbot(
 
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    return await service.get_chatbot(chatbot_id, user.id)
+    return await service.get_chatbot(chatbot.id, user.id)
 
 
-@router.get("/{chatbot_id}/widget-settings", response_model=WidgetSettingsResponse)
+@router.get("/{agent_id}/widget-settings", response_model=WidgetSettingsResponse)
 async def get_widget_settings(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get widget customization settings for a chatbot."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    return await service.get_chatbot(chatbot_id, user.id)
+    return await service.get_chatbot(chatbot.id, user.id)
 
 
-@router.put("/{chatbot_id}/widget-settings", response_model=WidgetSettingsResponse)
+@router.put("/{agent_id}/widget-settings", response_model=WidgetSettingsResponse)
 async def update_widget_settings(
-    chatbot_id: int,
+    agent_id: str,
     body: WidgetSettingsUpdate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update widget customization settings for a chatbot."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    return await service.update_widget_settings(chatbot_id, user.id, body)
+    return await service.update_widget_settings(chatbot.id, user.id, body)
 
 
-@router.post("/{chatbot_id}/logo")
+@router.post("/{agent_id}/logo")
 async def upload_logo(
-    chatbot_id: int,
+    agent_id: str,
     file: UploadFile = File(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a logo image for the chatbot widget."""
+    chatbot = await _resolve_chatbot(db, agent_id)
+
     # Validate file type
     allowed_types = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
     if file.content_type not in allowed_types:
@@ -164,31 +183,31 @@ async def upload_logo(
 
     # Verify ownership
     service = ChatbotService(db)
-    await service.get_chatbot(chatbot_id, user.id)
+    await service.get_chatbot(chatbot.id, user.id)
 
     # Upload to S3
     from app.services.s3_storage import upload_logo as do_upload
-    url = await do_upload(file, chatbot_id)
+    url = await do_upload(file, chatbot.id)
 
     # Update chatbot record
-    from app.repositories.chatbot_repository import ChatbotRepository
     repo = ChatbotRepository(db)
-    await repo.update(chatbot_id, widget_logo_url=url)
+    await repo.update(chatbot.id, widget_logo_url=url)
 
     return {"url": url}
 
 
-@router.get("/{chatbot_id}/metrics", response_model=ChatbotMetrics)
+@router.get("/{agent_id}/metrics", response_model=ChatbotMetrics)
 async def get_chatbot_metrics(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get resolution metrics for a single chatbot."""
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    await service.get_chatbot(chatbot_id, user.id)
+    await service.get_chatbot(chatbot.id, user.id)
 
-    return await _compute_metrics(db, chatbot_id=chatbot_id)
+    return await _compute_metrics(db, chatbot_id=chatbot.id)
 
 
 async def _compute_metrics(
@@ -435,9 +454,9 @@ async def _compute_analytics(
     )
 
 
-@router.delete("/{chatbot_id}")
+@router.delete("/{agent_id}")
 async def delete_chatbot(
-    chatbot_id: int,
+    agent_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -446,6 +465,7 @@ async def delete_chatbot(
 
     Raises 404 if the chatbot doesn't exist or doesn't belong to the user.
     """
+    chatbot = await _resolve_chatbot(db, agent_id)
     service = ChatbotService(db)
-    await service.delete_chatbot(chatbot_id, user.id)
+    await service.delete_chatbot(chatbot.id, user.id)
     return {"ok": True}

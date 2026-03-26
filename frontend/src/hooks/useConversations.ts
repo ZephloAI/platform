@@ -9,18 +9,18 @@ import type { ConversationSession, ConversationDetail } from '../types';
 
 // --- Query Keys ---
 const QUERY_KEYS = {
-  conversations: (chatbotId: number) => ['conversations', chatbotId] as const,
+  conversations: (chatbotId: string) => ['conversations', chatbotId] as const,
   conversation: (sessionId: string) => ['conversation', sessionId] as const,
 };
 
 /**
  * Fetch conversations for a chatbot. Polls every 5 seconds.
  */
-export function useConversations(chatbotId: number) {
+export function useConversations(chatbotId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.conversations(chatbotId),
     queryFn: async (): Promise<ConversationSession[]> => {
-      const response = await apiClient.get(`/api/chatbots/${chatbotId}/conversations`);
+      const response = await apiClient.get(`/api/agents/${chatbotId}/conversations`);
       return response.data;
     },
     refetchInterval: 5000,

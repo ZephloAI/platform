@@ -17,7 +17,7 @@ function GeneralSection({ chatbot }: GeneralSectionProps) {
   const handleSave = async () => {
     setSaved(false);
     await updateChatbot.mutateAsync({
-      chatbotId: chatbot.id,
+      chatbotId: chatbot.public_id,
       data: {
         name: name.trim(),
         description: description.trim() || null,

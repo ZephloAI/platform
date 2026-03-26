@@ -1,0 +1,8 @@
+src/
+build.mjs
+tsconfig.json
+test.html
+TOOLS.md
+node_modules/
+.DS_Store
+*.tgz
