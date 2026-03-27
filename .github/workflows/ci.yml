@@ -1,62 +1,53 @@
 # CI Pipeline - Build, push Docker images, and update manifests for ArgoCD
-# Builds all services on every push to main.
-# Runs on self-hosted runner (unlimited minutes).
+# Builds all services sequentially on every push to main.
+# Sequential to avoid resource contention on self-hosted runner.
 name: CI - Build, Push & Deploy
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "infra/k8s/overlays/production/kustomization.yaml"
   workflow_dispatch:
 
 jobs:
-  build-api:
+  build-and-push:
     runs-on: self-hosted
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
       - name: Build and push API
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           docker build --platform linux/amd64 -t flunkie/api:${{ github.sha }} -t flunkie/api:latest ./api
           docker push flunkie/api:${{ github.sha }}
           docker push flunkie/api:latest
 
-  build-crawler:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and push Crawler
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          docker build --platform linux/amd64 -t flunkie/crawler:${{ github.sha }} -t flunkie/crawler:latest ./crawler
-          docker push flunkie/crawler:${{ github.sha }}
-          docker push flunkie/crawler:latest
-
-  build-agent:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and push Agent
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          docker build --platform linux/amd64 -t flunkie/agent:${{ github.sha }} -t flunkie/agent:latest ./agent
-          docker push flunkie/agent:${{ github.sha }}
-          docker push flunkie/agent:latest
-
-  build-frontend:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
       - name: Build and push Frontend
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           docker build --platform linux/amd64 -t flunkie/frontend:${{ github.sha }} -t flunkie/frontend:latest \
             -f frontend/Dockerfile --build-arg ENV=dev --build-arg NGINX_CONF=nginx-k8s.conf .
           docker push flunkie/frontend:${{ github.sha }}
           docker push flunkie/frontend:latest
 
+      - name: Build and push Agent
+        run: |
+          docker build --platform linux/amd64 -t flunkie/agent:${{ github.sha }} -t flunkie/agent:latest ./agent
+          docker push flunkie/agent:${{ github.sha }}
+          docker push flunkie/agent:latest
+
+      - name: Build and push Crawler
+        run: |
+          docker build --platform linux/amd64 -t flunkie/crawler:${{ github.sha }} -t flunkie/crawler:latest ./crawler
+          docker push flunkie/crawler:${{ github.sha }}
+          docker push flunkie/crawler:latest
+
   # Update image tags in git so ArgoCD auto-deploys
   update-manifests:
-    needs: [build-api, build-crawler, build-agent, build-frontend]
+    needs: build-and-push
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -88,9 +79,9 @@ jobs:
           git commit -m "ci: update image tags to ${{ github.sha }}"
           git push
 
-  # Clean up Docker images after builds, keep cache from last 6 hours
+  # Clean up Docker images after builds
   cleanup:
-    needs: [build-api, build-crawler, build-agent, build-frontend, update-manifests]
+    needs: [build-and-push, update-manifests]
     if: always()
     runs-on: self-hosted
     steps:
