@@ -1,73 +1,15 @@
-# CI Pipeline - Build, push Docker images, and deploy to k8s
-# Triggers on push to main when service code changes.
+# CI Pipeline - Build, push Docker images, and update manifests for ArgoCD
+# Builds all services on every push to main.
 # Runs on self-hosted runner (unlimited minutes).
 name: CI - Build, Push & Deploy
 
 on:
   push:
     branches: [main]
-    paths:
-      - "api/**"
-      - "crawler/**"
-      - "agent/**"
-      - "frontend/**"
-      - "widget/**"
   workflow_dispatch:
-    inputs:
-      service:
-        description: "Service to build (api, crawler, agent, frontend, or all)"
-        required: true
-        default: "all"
 
 jobs:
-  # Detect which services have changed files
-  detect-changes:
-    runs-on: self-hosted
-    outputs:
-      api: ${{ steps.changes.outputs.api }}
-      crawler: ${{ steps.changes.outputs.crawler }}
-      agent: ${{ steps.changes.outputs.agent }}
-      frontend: ${{ steps.changes.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Detect changed services
-        id: changes
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            INPUT="${{ github.event.inputs.service }}"
-            if [ "$INPUT" = "all" ]; then
-              echo "api=true" >> $GITHUB_OUTPUT
-              echo "crawler=true" >> $GITHUB_OUTPUT
-              echo "agent=true" >> $GITHUB_OUTPUT
-              echo "frontend=true" >> $GITHUB_OUTPUT
-            else
-              echo "api=$([[ '$INPUT' == 'api' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-              echo "crawler=$([[ '$INPUT' == 'crawler' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-              echo "agent=$([[ '$INPUT' == 'agent' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-              echo "frontend=$([[ '$INPUT' == 'frontend' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-            fi
-          else
-            CHANGED=$(git diff --name-only HEAD~1 HEAD)
-            echo "api=$(echo '$CHANGED' | grep -q '^api/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "crawler=$(echo '$CHANGED' | grep -q '^crawler/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "agent=$(echo '$CHANGED' | grep -q '^agent/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "frontend=$(echo '$CHANGED' | grep -qE '^(frontend|widget)/' && echo true || echo false)" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Show detected changes
-        run: |
-          echo "api=${{ steps.changes.outputs.api }}"
-          echo "crawler=${{ steps.changes.outputs.crawler }}"
-          echo "agent=${{ steps.changes.outputs.agent }}"
-          echo "frontend=${{ steps.changes.outputs.frontend }}"
-
-  # Build and push Docker images
   build-api:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.api == 'true'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -79,8 +21,6 @@ jobs:
           docker push flunkie/api:latest
 
   build-crawler:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.crawler == 'true'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -92,8 +32,6 @@ jobs:
           docker push flunkie/crawler:latest
 
   build-agent:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.agent == 'true'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -105,8 +43,6 @@ jobs:
           docker push flunkie/agent:latest
 
   build-frontend:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -120,8 +56,7 @@ jobs:
 
   # Update image tags in git so ArgoCD auto-deploys
   update-manifests:
-    needs: [detect-changes, build-api, build-crawler, build-agent, build-frontend]
-    if: always() && !cancelled() && (needs.build-api.result == 'success' || needs.build-crawler.result == 'success' || needs.build-agent.result == 'success' || needs.build-frontend.result == 'success')
+    needs: [build-api, build-crawler, build-agent, build-frontend]
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -133,22 +68,15 @@ jobs:
           FILE=infra/k8s/overlays/production/kustomization.yaml
           SHA="${{ github.sha }}"
 
-          # Update newTag for each changed service using python for reliable yaml editing
           python3 -c "
-          import re, sys
+          import re
           content = open('$FILE').read()
-          changes = {
-            'api': '${{ needs.detect-changes.outputs.api }}',
-            'crawler': '${{ needs.detect-changes.outputs.crawler }}',
-            'agent': '${{ needs.detect-changes.outputs.agent }}',
-            'frontend': '${{ needs.detect-changes.outputs.frontend }}',
-          }
-          for svc, changed in changes.items():
-            if changed == 'true':
-              pattern = rf'(name: docker\.io/flunkie/{svc}\n\s+newTag:) .+'
-              content = re.sub(pattern, rf'\1 $SHA', content)
+          for svc in ['api', 'crawler', 'agent', 'frontend']:
+            pattern = rf'(name: docker\.io/flunkie/{svc}\n\s+newTag:) .+'
+            content = re.sub(pattern, rf'\1 $SHA', content)
           open('$FILE', 'w').write(content)
           "
+          echo "Updated tags to $SHA:"
           cat $FILE | grep -A1 "name: docker.io/flunkie"
 
       - name: Commit and push updated tags
