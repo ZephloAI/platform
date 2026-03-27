@@ -10,7 +10,7 @@ spec:
 
   # Only allow manifests from our repository
   sourceRepos:
-    - "https://github.com/YOUR_ORG/website-agent.git"  # TODO: Replace with your actual repo URL
+    - "https://github.com/FlunkieAI/platform.git"
 
   # Allowed deployment targets
   destinations:

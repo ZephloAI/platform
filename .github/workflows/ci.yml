@@ -118,52 +118,47 @@ jobs:
           docker push flunkie/frontend:${{ github.sha }}
           docker push flunkie/frontend:latest
 
-  # Deploy to k8s cluster
-  deploy:
+  # Update image tags in git so ArgoCD auto-deploys
+  update-manifests:
     needs: [detect-changes, build-api, build-crawler, build-agent, build-frontend]
     if: always() && !cancelled() && (needs.build-api.result == 'success' || needs.build-crawler.result == 'success' || needs.build-agent.result == 'success' || needs.build-frontend.result == 'success')
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up kubectl
+      - name: Update image tags in kustomization
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
+          FILE=infra/k8s/overlays/production/kustomization.yaml
+          SHA="${{ github.sha }}"
 
-      - name: Apply manifests
-        run: kubectl apply -k infra/k8s/overlays/production
+          # Update newTag for each changed service using python for reliable yaml editing
+          python3 -c "
+          import re, sys
+          content = open('$FILE').read()
+          changes = {
+            'api': '${{ needs.detect-changes.outputs.api }}',
+            'crawler': '${{ needs.detect-changes.outputs.crawler }}',
+            'agent': '${{ needs.detect-changes.outputs.agent }}',
+            'frontend': '${{ needs.detect-changes.outputs.frontend }}',
+          }
+          for svc, changed in changes.items():
+            if changed == 'true':
+              pattern = rf'(name: docker\.io/flunkie/{svc}\n\s+newTag:) .+'
+              content = re.sub(pattern, rf'\1 $SHA', content)
+          open('$FILE', 'w').write(content)
+          "
+          cat $FILE | grep -A1 "name: docker.io/flunkie"
 
-      - name: Restart changed services
+      - name: Commit and push updated tags
         run: |
-          if [ "${{ needs.detect-changes.outputs.api }}" = "true" ]; then
-            kubectl rollout restart deployment api -n agent-saas
-            echo "Restarted api"
-          fi
-          if [ "${{ needs.detect-changes.outputs.crawler }}" = "true" ]; then
-            kubectl rollout restart deployment crawler -n agent-saas
-            echo "Restarted crawler"
-          fi
-          if [ "${{ needs.detect-changes.outputs.agent }}" = "true" ]; then
-            kubectl rollout restart deployment agent -n agent-saas
-            echo "Restarted agent"
-          fi
-          if [ "${{ needs.detect-changes.outputs.frontend }}" = "true" ]; then
-            kubectl rollout restart deployment frontend -n agent-saas
-            echo "Restarted frontend"
-          fi
-
-      - name: Verify deployment
-        run: |
-          echo "Waiting for rollouts..."
-          kubectl get pods -n agent-saas
-          echo "---"
-          echo "Deployment complete!"
-
-      - name: Cleanup kubeconfig
-        if: always()
-        run: rm -f ~/.kube/config
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add infra/k8s/overlays/production/kustomization.yaml
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "ci: update image tags to ${{ github.sha }}"
+          git push
 
   # Clean up Docker images after builds, keep cache from last 6 hours
   cleanup:

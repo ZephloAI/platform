@@ -57,14 +57,14 @@ interface WidgetState {
 
 // ---- Helper: detect initial config from the <script> tag ----
 
+const DEFAULT_API_URL = "https://app.flunkie.ai";
+
 function getScriptConfig(): { chatbotId: string; apiUrl: string } {
   const scripts = document.querySelectorAll("script[data-chatbot-id]");
   const el = scripts[scripts.length - 1] as HTMLScriptElement | null;
 
   const chatbotId = el?.dataset.chatbotId || "";
-  const apiUrl =
-    el?.dataset.apiUrl ||
-    (el?.src ? new URL(el.src).origin : window.location.origin);
+  const apiUrl = (window as any).FLAPI || DEFAULT_API_URL;
 
   return { chatbotId, apiUrl };
 }

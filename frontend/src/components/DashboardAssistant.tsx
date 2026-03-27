@@ -40,7 +40,7 @@ function DashboardAssistant() {
 
   useEffect(() => {
     const config = getConfig();
-    const CHATBOT_ID = Number(config.ASSISTANT_CHATBOT_ID);
+    const CHATBOT_ID = config.ASSISTANT_CHATBOT_ID;
     const API_KEY = config.ASSISTANT_API_KEY;
 
     if (!CHATBOT_ID || !API_KEY) return;
