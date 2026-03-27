@@ -1,6 +1,6 @@
 # CI Pipeline - Build, push Docker images, and update manifests for ArgoCD
 # Builds all services sequentially on every push to main.
-# Sequential to avoid resource contention on self-hosted runner.
+# Sequential to avoid resource contention on ubuntu-24.04 runner.
 name: CI - Build, Push & Deploy
 
 on:
@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
   # Update image tags in git so ArgoCD auto-deploys
   update-manifests:
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,7 +83,7 @@ jobs:
   cleanup:
     needs: [build-and-push, update-manifests]
     if: always()
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     steps:
       - name: Prune Docker images older than 6 hours
         run: docker image prune -af --filter "until=6h"
