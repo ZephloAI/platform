@@ -1,0 +1,164 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: agent-saas
+
+resources:
+  - ../../base
+
+# Image tags are updated by CI/CD pipeline
+images:
+  - name: docker.io/flunkie/frontend
+    newTag: latest
+  - name: docker.io/flunkie/api
+    newTag: latest
+  - name: docker.io/flunkie/agent
+    newTag: latest
+  - name: docker.io/flunkie/crawler
+    newTag: latest
+
+# Staging: single replicas to save resources
+replicas:
+  - name: frontend
+    count: 1
+  - name: api
+    count: 1
+  - name: agent
+    count: 1
+  - name: crawler
+    count: 1
+
+# Staging: lower resource limits
+patches:
+  - target:
+      kind: Deployment
+      name: api
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: api
+      spec:
+        template:
+          spec:
+            containers:
+              - name: api
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 250m
+                    memory: 256Mi
+
+  - target:
+      kind: Deployment
+      name: agent
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: agent
+      spec:
+        template:
+          spec:
+            containers:
+              - name: agent
+                resources:
+                  requests:
+                    cpu: 250m
+                    memory: 768Mi
+                  limits:
+                    cpu: 500m
+                    memory: 1536Mi
+
+  - target:
+      kind: Deployment
+      name: crawler
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: crawler
+      spec:
+        template:
+          spec:
+            containers:
+              - name: crawler
+                resources:
+                  requests:
+                    cpu: 250m
+                    memory: 512Mi
+                  limits:
+                    cpu: 500m
+                    memory: 1Gi
+
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        template:
+          spec:
+            containers:
+              - name: frontend
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                  limits:
+                    cpu: 100m
+                    memory: 128Mi
+
+  # Staging: lower HPA limits
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: frontend
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: frontend
+      spec:
+        minReplicas: 1
+        maxReplicas: 2
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: api
+      spec:
+        minReplicas: 1
+        maxReplicas: 2
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: agent
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: agent
+      spec:
+        minReplicas: 1
+        maxReplicas: 2
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: crawler
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: crawler
+      spec:
+        minReplicas: 1
+        maxReplicas: 2

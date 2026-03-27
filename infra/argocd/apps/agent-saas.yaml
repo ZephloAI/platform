@@ -1,0 +1,31 @@
+# ArgoCD Application - Main Chatbot SaaS deployment
+# Syncs Kustomize production overlay to the agent-saas namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agent-saas
+  namespace: argocd
+spec:
+  project: agent-saas
+
+  source:
+    repoURL: "https://github.com/YOUR_ORG/website-agent.git"  # TODO: Replace with your actual repo URL
+    targetRevision: main
+    path: infra/k8s/overlays/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agent-saas
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

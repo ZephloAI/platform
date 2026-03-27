@@ -1,0 +1,43 @@
+# Update Manifests - Update image tags in Kustomize overlays
+# Triggered by CI pipeline after successful builds, or manually via workflow_dispatch.
+# ArgoCD detects the manifest changes and auto-syncs the cluster.
+name: Update Manifests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update image tags in kustomization.yaml
+        run: |
+          cd infra/k8s/overlays/production
+
+          SERVICES="api crawler agent frontend"
+          IMAGE_TAG="${{ github.sha }}"
+          REGISTRY="docker.io/${{ secrets.DOCKERHUB_USERNAME }}"
+
+          for SERVICE in $SERVICES; do
+            echo "Updating $SERVICE image to ${REGISTRY}/${SERVICE}:${IMAGE_TAG}"
+            kustomize edit set image "${SERVICE}=${REGISTRY}/${SERVICE}:${IMAGE_TAG}"
+          done
+
+      - name: Commit and push updated manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add infra/k8s/overlays/production/kustomization.yaml
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+
+          git commit -m "ci: update image tags to ${{ github.sha }}"
+          git push

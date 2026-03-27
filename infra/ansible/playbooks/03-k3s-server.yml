@@ -1,0 +1,27 @@
+---
+# K3s HA control plane installation (3-node etcd cluster)
+#
+# Runs in two phases:
+#   1. Init server (us-server-1) - creates cluster with embedded etcd
+#   2. Joining servers (us-server-2, eu-server-1) - join as additional control plane nodes
+#
+# All 3 nodes are full servers (control plane + workloads), giving:
+#   - 3-node etcd quorum (tolerates 1 node failure)
+#   - Control plane in both US and EU regions
+#   - Easy to add worker nodes to either region later
+
+- name: "Phase 1: Initialize k3s cluster (first server)"
+  hosts: k3s_server
+  become: true
+  serial: 1
+  order: sorted
+  roles:
+    - role: k3s_server
+      when: k3s_init | default(false)
+
+- name: "Phase 2: Join additional k3s servers"
+  hosts: k3s_server
+  become: true
+  roles:
+    - role: k3s_server
+      when: not (k3s_init | default(false))

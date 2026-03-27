@@ -1,0 +1,27 @@
+---
+# Master playbook - runs all provisioning steps in order
+#
+# Usage:
+#   ansible-playbook playbooks/site.yml
+#   ansible-playbook playbooks/site.yml --tags "base,wireguard"  # Run specific stages
+#   ansible-playbook playbooks/site.yml --start-at-task "Install k3s server"  # Resume from task
+
+- name: "Stage 1: Base server provisioning"
+  import_playbook: 01-base.yml
+  tags: [base]
+
+- name: "Stage 2: WireGuard mesh network"
+  import_playbook: 02-wireguard.yml
+  tags: [wireguard]
+
+- name: "Stage 3: K3s HA control plane (all 3 servers)"
+  import_playbook: 03-k3s-server.yml
+  tags: [k3s, k3s-server]
+
+- name: "Stage 4: Post-cluster setup (ingress, ArgoCD, secrets)"
+  import_playbook: 05-post-cluster.yml
+  tags: [post-cluster]
+
+- name: "Stage 5: Monitoring stack"
+  import_playbook: 06-monitoring.yml
+  tags: [monitoring]

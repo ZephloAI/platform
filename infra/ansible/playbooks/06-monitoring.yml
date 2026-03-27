@@ -1,0 +1,10 @@
+---
+# Monitoring stack installation
+# Installs kube-prometheus-stack (Prometheus, Grafana, AlertManager)
+
+- name: Monitoring stack installation
+  hosts: k3s_server
+  become: true
+  run_once: true
+  roles:
+    - monitoring

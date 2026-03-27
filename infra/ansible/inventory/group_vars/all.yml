@@ -1,0 +1,37 @@
+---
+# Shared variables for all hosts
+
+# --- K3s Configuration ---
+k3s_version: "v1.31.4+k3s1"
+k3s_install_url: "https://get.k3s.io"
+
+# --- Domain & Registry ---
+domain: "app.flunkie.ai"
+container_registry: "docker.io/flunkie"  # Replace with your Docker Hub org
+
+# --- WireGuard Configuration ---
+wireguard_port: 51820
+wireguard_network: "10.10.0.0/24"
+wireguard_interface: "wg0"
+
+# --- Kubernetes Networking ---
+cluster_cidr: "10.42.0.0/16"
+service_cidr: "10.43.0.0/16"
+
+# --- k3s Server Reference (WireGuard IP of the control plane) ---
+k3s_server_ip: "10.10.0.1"
+k3s_server_url: "https://{{ k3s_server_ip }}:6443"
+
+# --- Helm Chart Versions ---
+metallb_version: "0.14.8"
+argocd_chart_version: "7.7.5"
+nginx_ingress_chart_version: "4.11.3"
+sealed_secrets_chart_version: "2.16.2"
+kube_prometheus_stack_version: "65.1.1"
+
+# --- Namespace ---
+app_namespace: "agent-saas"
+
+# --- Deploy User ---
+deploy_user: "deploy"
+deploy_user_ssh_pub_key: "~/.ssh/id_ed25519.pub"  # Path on ansible controller

@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent
+  namespace: agent-saas
+  labels:
+    app: agent
+    app.kubernetes.io/name: agent
+    app.kubernetes.io/part-of: agent-saas
+    app.kubernetes.io/component: backend
+  annotations:
+    description: "WebSocket-enabled agent service for LLM chat"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+        app.kubernetes.io/name: agent
+        app.kubernetes.io/part-of: agent-saas
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-credentials
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/region
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: agent
+      containers:
+        - name: agent
+          image: docker.io/flunkie/agent:latest
+          ports:
+            - containerPort: 8002
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DATABASE_URL
+            - name: DATABASE_URL_ASYNCPG
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DATABASE_URL_ASYNCPG
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: OPENROUTER_API_KEY
+            - name: LLM_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: LLM_MODEL
+            - name: ELEVEN_LABS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ELEVEN_LABS_API_KEY
+            - name: ELEVEN_LABS_VOICE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ELEVEN_LABS_VOICE_ID
+            - name: ELEVEN_LABS_MODEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ELEVEN_LABS_MODEL_ID
+          # Startup probe: give the agent up to 5 min to load models
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi

@@ -1,0 +1,31 @@
+# ArgoCD AppProject for Chatbot SaaS
+# Defines the project scope, allowed sources, and destination namespaces.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: agent-saas
+  namespace: argocd
+spec:
+  description: Chatbot SaaS platform - LLM agent website chatbot
+
+  # Only allow manifests from our repository
+  sourceRepos:
+    - "https://github.com/YOUR_ORG/website-agent.git"  # TODO: Replace with your actual repo URL
+
+  # Allowed deployment targets
+  destinations:
+    - namespace: agent-saas
+      server: https://kubernetes.default.svc
+    - namespace: ingress-nginx
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+
+  # Allow creating cluster-scoped resources
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding

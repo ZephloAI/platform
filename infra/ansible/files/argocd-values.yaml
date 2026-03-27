@@ -1,0 +1,111 @@
+---
+# ArgoCD Helm values
+# Customized for k3s cluster with ingress-nginx
+
+# --- Server Configuration ---
+server:
+  service:
+    type: ClusterIP
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    hosts:
+      - argocd.flunkie.ai
+    tls:
+      - hosts:
+          - argocd.flunkie.ai
+        secretName: argocd-server-tls
+
+  # Run in insecure mode behind ingress (TLS terminated at ingress)
+  extraArgs:
+    - --insecure
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- Repository Credentials ---
+# Configure your Git repositories here
+configs:
+  repositories:
+    # Example: private repo via SSH
+    # my-private-repo:
+    #   url: git@github.com:your-org/your-repo.git
+    #   sshPrivateKeySecret:
+    #     name: argocd-repo-creds
+    #     key: sshPrivateKey
+
+    # Example: private repo via HTTPS
+    # my-https-repo:
+    #   url: https://github.com/your-org/your-repo.git
+    #   usernameSecret:
+    #     name: argocd-repo-creds
+    #     key: username
+    #   passwordSecret:
+    #     name: argocd-repo-creds
+    #     key: password
+    {}
+
+  # ArgoCD configmap settings
+  cm:
+    # Enable status badge
+    statusbadge.enabled: "true"
+    # Application resync period (seconds)
+    timeout.reconciliation: "180"
+
+  params:
+    # Server runs behind TLS-terminating ingress
+    server.insecure: true
+
+# --- Controller ---
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# --- Repo Server ---
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- Redis ---
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# --- ApplicationSet Controller ---
+applicationSet:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# --- Notifications ---
+notifications:
+  enabled: false

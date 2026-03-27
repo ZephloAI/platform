@@ -1,0 +1,214 @@
+---
+# Base server provisioning tasks
+# Installs essential packages, hardens the server, and configures system settings
+
+# --- System Update ---
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    autoremove: true
+
+# --- Essential Packages ---
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - jq
+      - htop
+      - iotop
+      - wireguard-tools
+      - ufw
+      - fail2ban
+      - ntp
+      - open-iscsi
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - unzip
+      - python3-pip
+    state: present
+
+# --- Enable open-iscsi for storage ---
+- name: Enable and start iscsid
+  systemd:
+    name: iscsid
+    enabled: true
+    state: started
+
+# --- Disable Swap ---
+- name: Disable swap immediately
+  command: swapoff -a
+  changed_when: true
+
+- name: Remove swap entries from fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '\sswap\s'
+    state: absent
+    backup: true
+
+# --- Kernel Modules ---
+- name: Load br_netfilter kernel module
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Ensure br_netfilter loads on boot
+  copy:
+    content: "br_netfilter\n"
+    dest: /etc/modules-load.d/br_netfilter.conf
+    mode: "0644"
+
+# --- Sysctl Settings ---
+- name: Configure sysctl for Kubernetes networking
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+    state: present
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward", value: "1" }
+    - { key: "fs.inotify.max_user_instances", value: "512" }
+    - { key: "fs.inotify.max_user_watches", value: "524288" }
+
+# --- UFW Firewall ---
+- name: Reset UFW to defaults
+  ufw:
+    state: reset
+
+- name: Set UFW default deny incoming
+  ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set UFW default allow outgoing
+  ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH (port 22)
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: "SSH access"
+
+- name: Allow HTTP (port 80)
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    comment: "HTTP traffic"
+
+- name: Allow HTTPS (port 443)
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    comment: "HTTPS traffic"
+
+- name: Allow WireGuard (port 51820/udp)
+  ufw:
+    rule: allow
+    port: "{{ wireguard_port | string }}"
+    proto: udp
+    comment: "WireGuard VPN"
+
+# k3s internal traffic over WireGuard network
+- name: Allow k3s API server from WireGuard network
+  ufw:
+    rule: allow
+    from_ip: "{{ wireguard_network }}"
+    port: "6443"
+    proto: tcp
+    comment: "k3s API server"
+
+- name: Allow kubelet from WireGuard network
+  ufw:
+    rule: allow
+    from_ip: "{{ wireguard_network }}"
+    port: "10250"
+    proto: tcp
+    comment: "Kubelet API"
+
+- name: Allow etcd from WireGuard network
+  ufw:
+    rule: allow
+    from_ip: "{{ wireguard_network }}"
+    port: "2379:2380"
+    proto: tcp
+    comment: "etcd client/peer"
+
+- name: Allow VXLAN from WireGuard network
+  ufw:
+    rule: allow
+    from_ip: "{{ wireguard_network }}"
+    port: "8472"
+    proto: udp
+    comment: "Flannel VXLAN"
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+# --- Fail2Ban ---
+- name: Configure fail2ban for SSH
+  copy:
+    content: |
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 5
+      bantime = 3600
+      findtime = 600
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+
+# --- Deploy User ---
+- name: Create deploy user
+  user:
+    name: "{{ deploy_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    create_home: true
+
+- name: Allow deploy user passwordless sudo
+  lineinfile:
+    path: /etc/sudoers.d/deploy
+    line: "{{ deploy_user }} ALL=(ALL) NOPASSWD:ALL"
+    create: true
+    validate: "visudo -cf %s"
+    mode: "0440"
+
+- name: Set up SSH authorized keys for deploy user
+  authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ lookup('file', deploy_user_ssh_pub_key) }}"
+    state: present
+
+# --- NTP ---
+- name: Enable and start NTP
+  systemd:
+    name: ntp
+    enabled: true
+    state: started
