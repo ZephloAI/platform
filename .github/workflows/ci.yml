@@ -162,7 +162,7 @@ jobs:
 
   # Clean up Docker images after builds, keep cache from last 6 hours
   cleanup:
-    needs: [build-api, build-crawler, build-agent, build-frontend, deploy]
+    needs: [build-api, build-crawler, build-agent, build-frontend, update-manifests]
     if: always()
     runs-on: self-hosted
     steps:
