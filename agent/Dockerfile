@@ -1,16 +1,42 @@
+# Stage 1: Build dependencies
+FROM python:3.13-slim AS builder
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade pip wheel
+
+# CPU-only PyTorch (no CUDA libs ~1.5GB saved)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+# Stage 2: Final slim image
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install dependencies first (leverages Docker layer caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy only installed packages and cached model from builder
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
+    mkdir -p /home/appuser/.cache  && \
+    chown -R appuser:appuser /home/appuser/.cache
+
+ENV HF_HOME=/home/appuser/.cache/huggingface
+
+# Pre-download the embedding model during build so it's baked into the image
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" && \
+    chown -R appuser:appuser /home/appuser/.cache
+
 COPY . .
+RUN chown -R appuser:appuser /app
 
-# Expose port 8002 for the agent service
+USER appuser
+
 EXPOSE 8002
 
-# Run the FastAPI app with uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -1,8 +1,8 @@
-fastapi==0.110.0
+fastapi>=0.110.0
 uvicorn[standard]
-agno==2.5.2
+agno>=2.5.2
 qdrant-client
-sentence-transformers
+sentence-transformers>=3.4.0
 pydantic-settings
 python-dotenv
 openai

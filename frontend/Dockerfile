@@ -15,7 +15,6 @@ FROM node:20-alpine AS frontend-build
 WORKDIR /app
 ARG NPM_TOKEN
 ARG ENV=prod
-
 # Copy the built widget so we can link it in dev
 COPY --from=widget-build /widget /widget
 
@@ -39,9 +38,10 @@ RUN npm run build
 
 # Stage 3: Serve with nginx
 FROM nginx:alpine
+ARG NGINX_CONF=nginx.conf
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY --from=widget-build /widget/dist /usr/share/nginx/html/widget
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/${NGINX_CONF} /etc/nginx/conf.d/default.conf
 COPY frontend/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 EXPOSE 80
