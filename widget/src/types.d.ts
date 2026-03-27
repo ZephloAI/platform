@@ -1,6 +1,6 @@
 export interface FlunkieOptions {
   key: string;
-  chatbotId: number;
+  chatbotId: string;
   apiUrl?: string;
 }
 

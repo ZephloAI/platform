@@ -13,7 +13,7 @@ import { ChatbotWidget } from "./index";
 
 export interface FlunkieOptions {
   key: string;
-  chatbotId: string | number;
+  chatbotId: string;
   apiUrl?: string;
 }
 
@@ -41,7 +41,7 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
   const scriptEl = document.createElement("script");
   scriptEl.dataset.chatbotId = String(chatbotId);
   // Store as string for widget to pick up
-  if (apiUrl) scriptEl.dataset.apiUrl = apiUrl;
+  if (apiUrl) (window as any).FLAPI = apiUrl;
   document.head.appendChild(scriptEl);
 
   // Create the widget
