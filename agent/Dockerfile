@@ -28,10 +28,6 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuse
 
 ENV HF_HOME=/home/appuser/.cache/huggingface
 
-# Pre-download the embedding model during build so it's baked into the image
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" && \
-    chown -R appuser:appuser /home/appuser/.cache
-
 COPY . .
 RUN chown -R appuser:appuser /app
 

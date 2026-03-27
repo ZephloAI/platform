@@ -19,7 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Playwright/Chromium
 RUN crawl4ai-setup
 
-
 # Stage 2: Final slim image
 FROM python:3.11-slim
 
