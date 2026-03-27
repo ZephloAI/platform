@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: agent-saas
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # Shared configuration
+  - configmap.yaml
+
+  # Secrets (SealedSecrets)
+  - secrets/sealed-secrets.yaml
+
+  # Application services
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - frontend/hpa.yaml
+
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/hpa.yaml
+
+  - agent/deployment.yaml
+  - agent/service.yaml
+  - agent/hpa.yaml
+
+  - crawler/deployment.yaml
+  - crawler/service.yaml
+  - crawler/hpa.yaml
+
+  # Stateful services
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+
+  - qdrant/statefulset.yaml
+  - qdrant/service.yaml
+
+  - redis/deployment.yaml
+  - redis/service.yaml
+
+  # Ingress
+  - ingress/ingress.yaml
+
+  # Database migration job
+  - jobs/db-migrate.yaml
+
+  # Pod disruption budgets
+  - pdb/api-pdb.yaml
+  - pdb/agent-pdb.yaml
+  - pdb/frontend-pdb.yaml

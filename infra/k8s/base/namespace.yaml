@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-saas
+  labels:
+    app.kubernetes.io/part-of: agent-saas
+    app.kubernetes.io/managed-by: kustomize

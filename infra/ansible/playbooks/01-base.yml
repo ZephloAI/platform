@@ -1,0 +1,9 @@
+---
+# Base server provisioning
+# Hardens all servers with essential packages, firewall, fail2ban, and system tuning
+
+- name: Base server provisioning
+  hosts: all
+  become: true
+  roles:
+    - base

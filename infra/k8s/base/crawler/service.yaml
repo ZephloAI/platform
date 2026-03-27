@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crawler
+  namespace: agent-saas
+  labels:
+    app: crawler
+    app.kubernetes.io/name: crawler
+    app.kubernetes.io/part-of: agent-saas
+spec:
+  type: ClusterIP
+  selector:
+    app: crawler
+  ports:
+    - port: 8001
+      targetPort: 8001
+      protocol: TCP

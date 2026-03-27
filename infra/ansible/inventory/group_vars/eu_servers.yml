@@ -1,0 +1,6 @@
+---
+# Region-specific variables for EU servers
+
+node_region: eu
+node_zone: eu-west
+node_location: "EU West"

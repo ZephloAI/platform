@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crawler
+  namespace: agent-saas
+  labels:
+    app: crawler
+    app.kubernetes.io/name: crawler
+    app.kubernetes.io/part-of: agent-saas
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crawler
+  template:
+    metadata:
+      labels:
+        app: crawler
+        app.kubernetes.io/name: crawler
+        app.kubernetes.io/part-of: agent-saas
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-credentials
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/region
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: crawler
+      containers:
+        - name: crawler
+          image: docker.io/flunkie/crawler:latest
+          ports:
+            - containerPort: 8001
+              protocol: TCP
+          # SYS_ADMIN capability required for Chromium in Crawl4AI
+          securityContext:
+            capabilities:
+              add:
+                - SYS_ADMIN
+          envFrom:
+            - configMapRef:
+                name: app-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 2Gi

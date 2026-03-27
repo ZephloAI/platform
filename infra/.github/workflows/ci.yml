@@ -1,0 +1,116 @@
+# CI Pipeline - Build and push Docker images for changed services
+# Triggers on push to main when service code changes.
+# Uses matrix strategy to build only the services that were modified.
+name: CI - Build and Push
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "crawler/**"
+      - "agent/**"
+      - "frontend/**"
+      - "widget/**"
+
+jobs:
+  # Detect which services have changed files
+  detect-changes:
+    runs-on: self-hosted
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      crawler: ${{ steps.filter.outputs.crawler }}
+      agent: ${{ steps.filter.outputs.agent }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      widget: ${{ steps.filter.outputs.widget }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+            crawler:
+              - 'crawler/**'
+            agent:
+              - 'agent/**'
+            frontend:
+              - 'frontend/**'
+            widget:
+              - 'widget/**'
+
+  # Build and push Docker images for changed services
+  build:
+    needs: detect-changes
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        include:
+          - service: api
+            changed: ${{ needs.detect-changes.outputs.api }}
+          - service: crawler
+            changed: ${{ needs.detect-changes.outputs.crawler }}
+          - service: agent
+            changed: ${{ needs.detect-changes.outputs.agent }}
+          - service: frontend
+            changed: ${{ needs.detect-changes.outputs.frontend }}
+          - service: widget
+            changed: ${{ needs.detect-changes.outputs.widget }}
+    # Only run if the service has changes
+    if: ${{ needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.crawler == 'true' || needs.detect-changes.outputs.agent == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.widget == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ matrix.changed == 'true' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        if: ${{ matrix.changed == 'true' }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        if: ${{ matrix.changed == 'true' }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        if: ${{ matrix.changed == 'true' && matrix.service != 'frontend' }}
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: |
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        if: ${{ matrix.changed == 'true' && matrix.service == 'frontend' }}
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          build-args: |
+            ENV=dev
+            NGINX_CONF=nginx-k8s.conf
+          push: true
+          tags: |
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
+
+  # Update k8s manifests with new image tags
+  update-manifests:
+    needs: build
+    if: ${{ always() && needs.build.result == 'success' }}
+    uses: ./.github/workflows/update-manifests.yml
+    secrets: inherit

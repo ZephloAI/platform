@@ -1,0 +1,136 @@
+---
+# Post-cluster setup
+# Installs ingress controller, sealed-secrets, ArgoCD, and creates namespaces
+# Runs on the control plane node which has kubectl access
+
+- name: Post-cluster setup
+  hosts: k3s_server
+  become: true
+  run_once: true
+  tasks:
+    # --- Helm Installation ---
+    - name: Check if Helm is installed
+      command: which helm
+      register: helm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Helm
+      when: helm_check.rc != 0
+      shell: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+
+    # --- Add Helm Repositories ---
+    - name: Add ingress-nginx Helm repo
+      command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    - name: Add sealed-secrets Helm repo
+      command: helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    - name: Add ArgoCD Helm repo
+      command: helm repo add argo https://argoproj.github.io/argo-helm
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    - name: Update Helm repos
+      command: helm repo update
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    # --- Nginx Ingress Controller (DaemonSet with hostNetwork) ---
+    - name: Install nginx-ingress-controller
+      command: >
+        helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx
+        --namespace ingress-nginx --create-namespace
+        --version {{ nginx_ingress_chart_version }}
+        --set controller.kind=DaemonSet
+        --set controller.hostNetwork=true
+        --set controller.dnsPolicy=ClusterFirstWithHostNet
+        --set controller.service.type=ClusterIP
+        --set controller.publishService.enabled=false
+        --set controller.metrics.enabled=true
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    # --- Sealed Secrets ---
+    - name: Install sealed-secrets controller
+      command: >
+        helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets
+        --namespace kube-system
+        --version {{ sealed_secrets_chart_version }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    # --- ArgoCD ---
+    - name: Copy ArgoCD values file
+      copy:
+        src: "{{ playbook_dir }}/../files/argocd-values.yaml"
+        dest: /tmp/argocd-values.yaml
+        mode: "0644"
+
+    - name: Install ArgoCD
+      command: >
+        helm upgrade --install argocd argo/argo-cd
+        --namespace argocd --create-namespace
+        --version {{ argocd_chart_version }}
+        --values /tmp/argocd-values.yaml
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    - name: Clean up ArgoCD values file
+      file:
+        path: /tmp/argocd-values.yaml
+        state: absent
+
+    # --- Application Namespace ---
+    - name: Create application namespace
+      command: kubectl create namespace {{ app_namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: ns_create
+      changed_when: ns_create.rc == 0
+      failed_when: ns_create.rc != 0 and 'already exists' not in ns_create.stderr
+
+    # --- Docker Hub Pull Secret ---
+    - name: Check if Docker Hub pull secret exists
+      command: kubectl get secret dockerhub-pull-secret -n {{ app_namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: secret_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create Docker Hub pull secret
+      when: secret_check.rc != 0
+      command: >
+        kubectl create secret docker-registry dockerhub-pull-secret
+        --namespace {{ app_namespace }}
+        --docker-server=https://index.docker.io/v1/
+        --docker-username=REPLACE_WITH_USERNAME
+        --docker-password=REPLACE_WITH_TOKEN
+        --docker-email=REPLACE_WITH_EMAIL
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: true
+
+    # --- Wait for ArgoCD to be ready ---
+    - name: Wait for ArgoCD server to be ready
+      command: >
+        kubectl rollout status deployment/argocd-server
+        -n argocd --timeout=300s
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      changed_when: false

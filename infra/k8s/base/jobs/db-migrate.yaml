@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: agent-saas
+  labels:
+    app: db-migrate
+    app.kubernetes.io/name: db-migrate
+    app.kubernetes.io/part-of: agent-saas
+    app.kubernetes.io/component: migration
+  annotations:
+    # ArgoCD PreSync hook runs migrations before deploying app services
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+        app.kubernetes.io/part-of: agent-saas
+    spec:
+      # Pin to US region where the database lives
+      nodeSelector:
+        topology.kubernetes.io/region: us
+      imagePullSecrets:
+        - name: dockerhub-credentials
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: docker.io/flunkie/api:latest
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

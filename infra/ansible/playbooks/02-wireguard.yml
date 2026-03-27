@@ -1,0 +1,9 @@
+---
+# WireGuard mesh network setup
+# Creates a full-mesh VPN between all nodes for secure inter-node communication
+
+- name: WireGuard mesh network setup
+  hosts: all
+  become: true
+  roles:
+    - wireguard

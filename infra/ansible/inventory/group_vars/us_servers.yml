@@ -1,0 +1,6 @@
+---
+# Region-specific variables for US servers
+
+node_region: us
+node_zone: us-central
+node_location: "US Central"

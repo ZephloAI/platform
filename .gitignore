@@ -26,6 +26,12 @@ frontend/dist/
 # Docker
 docker-compose.override.yml
 
+# Secrets & Certificates - NEVER commit these
+infra/cloudflare/*.pem
+infra/cloudflare/*.key
+*.secrets
+.env.secrets
+
 # OS
 .DS_Store
 Thumbs.db
