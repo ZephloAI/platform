@@ -1,0 +1,18 @@
+# Nightly Docker cleanup on self-hosted runner
+# Removes all images, containers, and build cache older than 48 hours
+name: Nightly Docker Cleanup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 3 AM UTC daily
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Prune everything older than 48 hours
+        run: docker system prune -af --filter "until=48h"
+
+      - name: Show disk usage after cleanup
+        run: docker system df

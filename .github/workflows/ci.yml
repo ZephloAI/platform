@@ -1,0 +1,181 @@
+# CI Pipeline - Build, push Docker images, and deploy to k8s
+# Triggers on push to main when service code changes.
+# Runs on self-hosted runner (unlimited minutes).
+name: CI - Build, Push & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "crawler/**"
+      - "agent/**"
+      - "frontend/**"
+      - "widget/**"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build (api, crawler, agent, frontend, or all)"
+        required: true
+        default: "all"
+
+jobs:
+  # Detect which services have changed files
+  detect-changes:
+    runs-on: self-hosted
+    outputs:
+      api: ${{ steps.changes.outputs.api }}
+      crawler: ${{ steps.changes.outputs.crawler }}
+      agent: ${{ steps.changes.outputs.agent }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT="${{ github.event.inputs.service }}"
+            if [ "$INPUT" = "all" ]; then
+              echo "api=true" >> $GITHUB_OUTPUT
+              echo "crawler=true" >> $GITHUB_OUTPUT
+              echo "agent=true" >> $GITHUB_OUTPUT
+              echo "frontend=true" >> $GITHUB_OUTPUT
+            else
+              echo "api=$([[ '$INPUT' == 'api' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+              echo "crawler=$([[ '$INPUT' == 'crawler' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+              echo "agent=$([[ '$INPUT' == 'agent' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+              echo "frontend=$([[ '$INPUT' == 'frontend' ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            fi
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            echo "api=$(echo '$CHANGED' | grep -q '^api/' && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "crawler=$(echo '$CHANGED' | grep -q '^crawler/' && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "agent=$(echo '$CHANGED' | grep -q '^agent/' && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "frontend=$(echo '$CHANGED' | grep -qE '^(frontend|widget)/' && echo true || echo false)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show detected changes
+        run: |
+          echo "api=${{ steps.changes.outputs.api }}"
+          echo "crawler=${{ steps.changes.outputs.crawler }}"
+          echo "agent=${{ steps.changes.outputs.agent }}"
+          echo "frontend=${{ steps.changes.outputs.frontend }}"
+
+  # Build and push Docker images
+  build-api:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.api == 'true'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push API
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker build --platform linux/amd64 -t flunkie/api:${{ github.sha }} -t flunkie/api:latest ./api
+          docker push flunkie/api:${{ github.sha }}
+          docker push flunkie/api:latest
+
+  build-crawler:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.crawler == 'true'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push Crawler
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker build --platform linux/amd64 -t flunkie/crawler:${{ github.sha }} -t flunkie/crawler:latest ./crawler
+          docker push flunkie/crawler:${{ github.sha }}
+          docker push flunkie/crawler:latest
+
+  build-agent:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.agent == 'true'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push Agent
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker build --platform linux/amd64 -t flunkie/agent:${{ github.sha }} -t flunkie/agent:latest ./agent
+          docker push flunkie/agent:${{ github.sha }}
+          docker push flunkie/agent:latest
+
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push Frontend
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker build --platform linux/amd64 -t flunkie/frontend:${{ github.sha }} -t flunkie/frontend:latest \
+            -f frontend/Dockerfile --build-arg ENV=dev --build-arg NGINX_CONF=nginx-k8s.conf .
+          docker push flunkie/frontend:${{ github.sha }}
+          docker push flunkie/frontend:latest
+
+  # Deploy to k8s cluster
+  deploy:
+    needs: [detect-changes, build-api, build-crawler, build-agent, build-frontend]
+    if: always() && !cancelled() && (needs.build-api.result == 'success' || needs.build-crawler.result == 'success' || needs.build-agent.result == 'success' || needs.build-frontend.result == 'success')
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Apply manifests
+        run: kubectl apply -k infra/k8s/overlays/production
+
+      - name: Restart changed services
+        run: |
+          if [ "${{ needs.detect-changes.outputs.api }}" = "true" ]; then
+            kubectl rollout restart deployment api -n agent-saas
+            echo "Restarted api"
+          fi
+          if [ "${{ needs.detect-changes.outputs.crawler }}" = "true" ]; then
+            kubectl rollout restart deployment crawler -n agent-saas
+            echo "Restarted crawler"
+          fi
+          if [ "${{ needs.detect-changes.outputs.agent }}" = "true" ]; then
+            kubectl rollout restart deployment agent -n agent-saas
+            echo "Restarted agent"
+          fi
+          if [ "${{ needs.detect-changes.outputs.frontend }}" = "true" ]; then
+            kubectl rollout restart deployment frontend -n agent-saas
+            echo "Restarted frontend"
+          fi
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for rollouts..."
+          kubectl get pods -n agent-saas
+          echo "---"
+          echo "Deployment complete!"
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f ~/.kube/config
+
+  # Clean up Docker images after builds, keep cache from last 6 hours
+  cleanup:
+    needs: [build-api, build-crawler, build-agent, build-frontend, deploy]
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Prune Docker images older than 6 hours
+        run: docker image prune -af --filter "until=6h"
+
+      - name: Prune build cache older than 6 hours
+        run: docker builder prune -af --filter "until=6h"
+
+      - name: Show disk usage
+        run: docker system df
