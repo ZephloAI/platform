@@ -79,7 +79,7 @@ function DashboardAssistant() {
         if (params.show_user) navigate('/dashboard');
         if (chatbots.length === 0) return 'No agents found. The user can create one.';
         return chatbots
-          .map((c) => `- ${c.name} (ID: ${c.id}, status: ${c.status}${c.website_url ? `, url: ${c.website_url}` : ''})`)
+          .map((c) => `- ${c.name} (ID: ${c.id}, uuid: ${c.public_id}, status: ${c.status}${c.website_url ? `, url: ${c.website_url}` : ''})`)
           .join('\n');
       },
     });
@@ -91,7 +91,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           ...showUserProp,
         },
         required: ['chatbot_id'],
@@ -130,7 +130,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID to update' },
+          chatbot_id: { type: 'string', description: 'The agent UUID to update' },
           name: { type: 'string', description: 'New name (optional)' },
           description: { type: 'string', description: 'New description (optional)' },
           instructions: { type: 'string', description: 'Custom instructions for the AI (optional)' },
@@ -161,7 +161,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID to delete' },
+          chatbot_id: { type: 'string', description: 'The agent UUID to delete' },
           ...showUserProp,
         },
         required: ['chatbot_id'],
@@ -210,7 +210,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           website_url: { type: 'string', description: 'The website URL to discover pages from' },
           ...showUserProp,
         },
@@ -231,7 +231,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           website_url: { type: 'string', description: 'The website URL — discovers and crawls all pages' },
           selected_urls: {
             type: 'array',
@@ -265,7 +265,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID to check crawl status for' },
+          chatbot_id: { type: 'string', description: 'The agent UUID to check crawl status for' },
           ...showUserProp,
         },
         required: ['chatbot_id'],
@@ -293,7 +293,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           name: { type: 'string', description: 'A name for this API key (e.g. "Production")' },
           ...showUserProp,
         },
@@ -314,7 +314,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           ...showUserProp,
         },
         required: ['chatbot_id'],
@@ -342,7 +342,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           key_id: { type: 'number', description: 'The API key ID to revoke' },
           ...showUserProp,
         },
@@ -362,7 +362,7 @@ function DashboardAssistant() {
       inputSchema: {
         type: 'object',
         properties: {
-          chatbot_id: { type: 'number', description: 'The agent ID' },
+          chatbot_id: { type: 'string', description: 'The agent UUID' },
           format: {
             type: 'string',
             enum: ['script', 'npm', 'legacy'],
