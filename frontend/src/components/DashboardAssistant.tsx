@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import Flunkie from '@flunkie/flunkie';
+import Flunkie, { navigateProp } from '@flunkie/flunkie';
 import type { FlunkieInstance } from '@flunkie/flunkie';
 import * as chatbotApi from '../api/chatbots';
 
@@ -26,12 +26,6 @@ function getConfig(): AppConfig {
   return (window as any).__APP_CONFIG__ || {};
 }
 
-const showUserProp = {
-  show_user: {
-    type: 'boolean',
-    description: 'If true, navigate the user to see the result in the dashboard',
-  },
-} as const;
 
 function DashboardAssistant() {
   const navigate = useNavigate();
@@ -72,11 +66,11 @@ function DashboardAssistant() {
       description: 'List all agents for the current user. Returns name, id, status, and website URL for each.',
       inputSchema: {
         type: 'object',
-        properties: { ...showUserProp },
+        properties: { ...navigateProp },
       },
       execute: async (params) => {
         const chatbots = await chatbotApi.listChatbots();
-        if (params.show_user) navigate('/dashboard');
+        if (params.navigate) navigate('/dashboard');
         if (chatbots.length === 0) return 'No agents found. The user can create one.';
         return chatbots
           .map((c) => `- ${c.name} (ID: ${c.id}, uuid: ${c.public_id}, status: ${c.status}${c.website_url ? `, url: ${c.website_url}` : ''})`)
@@ -92,13 +86,13 @@ function DashboardAssistant() {
         type: 'object',
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         const chatbot = await chatbotApi.getChatbot(params.chatbot_id as string);
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
         return JSON.stringify(chatbot, null, 2);
       },
     });
@@ -111,14 +105,14 @@ function DashboardAssistant() {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Name for the new agent' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['name'],
       },
       execute: async (params) => {
         const chatbot = await chatbotApi.createChatbot({ name: params.name as string });
         queryClient.invalidateQueries({ queryKey: ['chatbots'] });
-        if (params.show_user) navigate(`/agents/${chatbot.public_id}`);
+        if (params.navigate) navigate(`/agents/${chatbot.public_id}`);
         return JSON.stringify({ id: chatbot.id, name: chatbot.name, status: chatbot.status });
       },
     });
@@ -134,7 +128,7 @@ function DashboardAssistant() {
           name: { type: 'string', description: 'New name (optional)' },
           description: { type: 'string', description: 'New description (optional)' },
           instructions: { type: 'string', description: 'Custom instructions for the AI (optional)' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
@@ -149,7 +143,7 @@ function DashboardAssistant() {
         await chatbotApi.updateChatbot(chatbotId, data);
         queryClient.invalidateQueries({ queryKey: ['chatbots', chatbotId] });
         queryClient.invalidateQueries({ queryKey: ['chatbots'] });
-        if (params.show_user) navigate(`/agents/${chatbotId}?section=details`);
+        if (params.navigate) navigate(`/agents/${chatbotId}?section=details`);
         return JSON.stringify({ id: chatbotId, ...data });
       },
     });
@@ -162,14 +156,14 @@ function DashboardAssistant() {
         type: 'object',
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID to delete' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         await chatbotApi.deleteChatbot(params.chatbot_id as string);
         queryClient.invalidateQueries({ queryKey: ['chatbots'] });
-        if (params.show_user) navigate('/dashboard');
+        if (params.navigate) navigate('/dashboard');
         return `Deleted agent ${params.chatbot_id}.`;
       },
     });
@@ -212,14 +206,14 @@ function DashboardAssistant() {
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
           website_url: { type: 'string', description: 'The website URL to discover pages from' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id', 'website_url'],
       },
       execute: async (params) => {
         const result = await chatbotApi.discoverUrls(params.chatbot_id as string, params.website_url as string);
         const urls = result.urls.map((u) => u.url);
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=knowledge`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=knowledge`);
         return JSON.stringify({ count: urls.length, urls });
       },
     });
@@ -238,7 +232,7 @@ function DashboardAssistant() {
             items: { type: 'string' },
             description: 'Specific URLs to crawl (optional — if omitted, discovers all pages first)',
           },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
@@ -253,7 +247,7 @@ function DashboardAssistant() {
 
         const job = await chatbotApi.startCrawl(chatbotId, urls);
         queryClient.invalidateQueries({ queryKey: ['chatbots', chatbotId] });
-        if (params.show_user) navigate(`/agents/${chatbotId}?section=knowledge`);
+        if (params.navigate) navigate(`/agents/${chatbotId}?section=knowledge`);
         return JSON.stringify({ job_id: job.id, pages_count: urls.length });
       },
     });
@@ -266,14 +260,14 @@ function DashboardAssistant() {
         type: 'object',
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID to check crawl status for' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         const chatbot = await chatbotApi.getChatbot(params.chatbot_id as string);
         const jobs = chatbot.crawl_jobs || [];
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=knowledge`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=knowledge`);
         if (jobs.length === 0) return 'No crawl jobs found for this agent.';
         return JSON.stringify(
           jobs.map((j) => ({
@@ -295,14 +289,14 @@ function DashboardAssistant() {
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
           name: { type: 'string', description: 'A name for this API key (e.g. "Production")' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id', 'name'],
       },
       execute: async (params) => {
         const key = await chatbotApi.createApiKey(params.chatbot_id as string, params.name as string);
         await navigator.clipboard.writeText(key.key);
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
         return `Created API key "${key.name}" and copied it to the user's clipboard. This is the only time the full key is available.`;
       },
     });
@@ -315,13 +309,13 @@ function DashboardAssistant() {
         type: 'object',
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
       execute: async (params) => {
         const keys = await chatbotApi.listApiKeys(params.chatbot_id as string);
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
         if (keys.length === 0) return 'No API keys found for this agent.';
         return JSON.stringify(
           keys.map((k) => ({
@@ -344,13 +338,13 @@ function DashboardAssistant() {
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
           key_id: { type: 'number', description: 'The API key ID to revoke' },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id', 'key_id'],
       },
       execute: async (params) => {
         await chatbotApi.revokeApiKey(params.chatbot_id as string, params.key_id as number);
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
         return `Revoked API key ${params.key_id}.`;
       },
     });
@@ -368,7 +362,7 @@ function DashboardAssistant() {
             enum: ['script', 'npm', 'legacy'],
             description: 'Embed format: "script" (default), "npm", or "legacy"',
           },
-          ...showUserProp,
+          ...navigateProp,
         },
         required: ['chatbot_id'],
       },
@@ -384,7 +378,7 @@ function DashboardAssistant() {
           legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
         };
 
-        if (params.show_user) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
         return (snippets[format] || snippets.script) as string;
       },
     });

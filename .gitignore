@@ -45,3 +45,6 @@ docs
 
 .agents/
 .agents/*
+
+# Testbench
+widget-testbench/
