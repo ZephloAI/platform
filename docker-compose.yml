@@ -141,8 +141,9 @@ services:
     ports:
       - "80:80"
     environment:
-      - ASSISTANT_CHATBOT_ID=${ASSISTANT_CHATBOT_ID:-12077b9d-4b0f-4ef9-b2e0-b1afc1d8c073}
-      - ASSISTANT_API_KEY=${ASSISTANT_API_KEY}
+      - ASSISTANT_CHATBOT_ID=${ASSISTANT_CHATBOT_ID:-}
+      - ASSISTANT_API_KEY=${ASSISTANT_API_KEY:-}
+      - APP_ENV=${APP_ENV:-}
     depends_on:
       - api
     restart: unless-stopped
