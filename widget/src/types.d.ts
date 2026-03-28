@@ -17,6 +17,13 @@ export interface ToolDefinition {
   execute: (params: Record<string, unknown>) => Promise<string> | string;
 }
 
+export declare const navigateProp: {
+  readonly navigate: {
+    readonly type: 'boolean';
+    readonly description: string;
+  };
+};
+
 export interface FlunkieInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;

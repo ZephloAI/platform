@@ -1004,6 +1004,85 @@ export const WIDGET_STYLES = /* css */ `
     pointer-events: none;
   }
 
+  /* ---- Voice Level Meter ---- */
+  .cb-voice-level-meter {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex: 1;
+    height: 32px;
+  }
+  .cb-voice-level-bar {
+    width: 4px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--cb-accent);
+    transition: height 0.15s ease;
+  }
+  .cb-voice-level-meter.active .cb-voice-level-bar {
+    animation: cb-level-bounce 0.8s ease-in-out infinite;
+  }
+  .cb-voice-level-meter.active .cb-voice-level-bar:nth-child(1) { animation-delay: 0s; }
+  .cb-voice-level-meter.active .cb-voice-level-bar:nth-child(2) { animation-delay: 0.1s; }
+  .cb-voice-level-meter.active .cb-voice-level-bar:nth-child(3) { animation-delay: 0.2s; }
+  .cb-voice-level-meter.active .cb-voice-level-bar:nth-child(4) { animation-delay: 0.3s; }
+  .cb-voice-level-meter.active .cb-voice-level-bar:nth-child(5) { animation-delay: 0.4s; }
+  .cb-voice-level-meter.speaking .cb-voice-level-bar {
+    background: #34c759;
+  }
+  @keyframes cb-level-bounce {
+    0%, 100% { height: 6px; }
+    50% { height: 24px; }
+  }
+
+  /* ---- Mobile voice mode: minimal bottom bar ---- */
+  .cb-panel.cb-voice-mobile {
+    width: 95vw !important;
+    height: 56px !important;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 12px;
+    border-radius: 28px;
+    background: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-overlay {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 8px 16px;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-status {
+    display: none;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-level-meter {
+    display: flex;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-back-btn {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.15);
+    color: white;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-back-btn:hover {
+    background: rgba(255,255,255,0.2);
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-mic-btn {
+    width: 40px;
+    height: 40px;
+    background: white;
+    color: #1a1a1a;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-level-bar {
+    background: white;
+  }
+  .cb-panel.cb-voice-mobile .cb-voice-level-meter.speaking .cb-voice-level-bar {
+    background: #34c759;
+  }
+
   @keyframes cb-voice-pulse {
     0%, 100% { box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3); transform: scale(1); }
     50% { box-shadow: 0 4px 32px rgba(255, 59, 48, 0.5); transform: scale(1.06); }
@@ -1047,7 +1126,38 @@ export const WIDGET_STYLES = /* css */ `
     background: rgba(0, 113, 227, 0.06);
   }
 
-  /* ---- Responsive: full-screen on small viewports ---- */
+  /* ---- Close button (mobile only) ---- */
+  .cb-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+  }
+  .cb-close-btn svg { width: 18px; height: 18px; }
+  .cb-close-btn:hover { background: rgba(255,255,255,0.15); }
+
+  /* ---- Minimized state: only input bar visible ---- */
+  .cb-panel.minimized .cb-header,
+  .cb-panel.minimized .cb-messages,
+  .cb-panel.minimized .cb-input-prompts,
+  .cb-panel.minimized .cb-footer { display: none; }
+
+  .cb-panel.minimized {
+    height: auto !important;
+    min-height: unset;
+    border-radius: 18px 18px 0 0;
+  }
+  .cb-panel.minimized .cb-input-area {
+    cursor: pointer;
+    border-radius: 18px 18px 0 0;
+  }
+
+  /* ---- Responsive: overlay on small viewports ---- */
   @media (max-width: 440px) {
     :host {
       bottom: 0;
@@ -1055,17 +1165,33 @@ export const WIDGET_STYLES = /* css */ `
       left: 0;
     }
 
-    .cb-panel {
-      width: 100vw !important;
-      height: 100vh !important;
-      height: 100dvh !important;
-      bottom: 0;
-      right: 0;
-      border-radius: 0;
+    .cb-close-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
+    /* All panels become a near-full-screen overlay on mobile */
+    .cb-panel,
     .cb-panel.sidebar {
-      width: 100vw !important;
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%) translateY(20px) scale(0.98);
+      width: 95vw !important;
+      height: 85vh !important;
+      height: 85dvh !important;
+      border-radius: 16px 16px 0 0;
+    }
+    .cb-panel.open,
+    .cb-panel.sidebar.open {
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .cb-panel.minimized {
+      width: 95vw !important;
+      height: auto !important;
     }
 
     .cb-panel.open ~ .cb-toggle {
