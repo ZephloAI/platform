@@ -12,7 +12,15 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
 # Create the async engine (connects to PostgreSQL via asyncpg)
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=False,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True,
+)
 
 # Session factory - creates new AsyncSession instances
 # expire_on_commit=False so we can access attributes after commit
