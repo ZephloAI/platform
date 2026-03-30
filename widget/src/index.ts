@@ -17,6 +17,7 @@ import { ChatSocket, fetchConfig, createSession, setApiKey, type ChatSource, typ
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
+import * as storage from "./storage";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE, ICON_PERSON } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
@@ -99,6 +100,7 @@ export class ChatbotWidget extends HTMLElement {
   private sessionRetried = false;  // prevent infinite retry loops
   private mcpUnsubscribe: (() => void) | null = null;
   private mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
+  private isMinimized = false;
   private personMode = false;
   private voiceMode = false;
   private voiceMicBtn: HTMLButtonElement | null = null;
@@ -173,11 +175,11 @@ export class ChatbotWidget extends HTMLElement {
     }
 
     // Create or reuse session, then create WebSocket client
-    let sessionId = localStorage.getItem(`cb_session_${chatbotId}`);
+    let sessionId = storage.getItem(`cb_session_${chatbotId}`);
     if (!sessionId) {
       try {
         sessionId = await createSession(apiUrl, chatbotId);
-        localStorage.setItem(`cb_session_${chatbotId}`, sessionId);
+        storage.setItem(`cb_session_${chatbotId}`, sessionId);
       } catch {
         // Session creation failed — will retry on first message
       }
@@ -196,8 +198,8 @@ export class ChatbotWidget extends HTMLElement {
       });
     }
 
-    // Load existing messages from localStorage (if any)
-    const savedMessages = localStorage.getItem(`cb_messages_${chatbotId}`);
+    // Load existing messages from storage (if any)
+    const savedMessages = storage.getItem(`cb_messages_${chatbotId}`);
     if (savedMessages) {
       try {
         this.messages = JSON.parse(savedMessages);
@@ -294,6 +296,9 @@ export class ChatbotWidget extends HTMLElement {
           <button class="cb-new-chat-btn" aria-label="New conversation" title="New conversation">
             ${ICON_NEW_CHAT}
           </button>
+          <button class="cb-close-btn" aria-label="Close chat">
+            ${ICON_CLOSE}
+          </button>
         </div>
 
         <!-- Messages -->
@@ -354,6 +359,9 @@ export class ChatbotWidget extends HTMLElement {
     this.newChatBtn = this.shadow.querySelector(".cb-new-chat-btn")!;
     this.greetingsEl = this.shadow.querySelector(".cb-greeting-bubbles");
     this.micBtn = this.shadow.querySelector(".cb-mic-btn");
+
+    const closeBtn = this.shadow.querySelector('.cb-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.toggle());
 
     // Show greeting bubbles on initial load
     if (this.state.greetingPrompts.length > 0 && this.greetingsEl) {
@@ -417,6 +425,14 @@ export class ChatbotWidget extends HTMLElement {
     }
     this.sendBtn.addEventListener("click", () => this.send());
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
+
+    // Tap input area to restore from minimized state
+    const inputArea = this.shadow.querySelector('.cb-input-area');
+    if (inputArea) {
+      inputArea.addEventListener('click', () => {
+        if (this.isMinimized) this.restore();
+      });
+    }
 
     this.textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -631,8 +647,9 @@ export class ChatbotWidget extends HTMLElement {
       this.dismissGreetings();
     }
 
-    // Stop voice/audio when closing the widget
+    // Stop voice/audio and restore minimized state when closing
     if (!this.isOpen) {
+      if (this.isMinimized) this.restore();
       if (this.voiceMode) {
         this.exitVoiceMode();
       } else if (this.currentAudio) {
@@ -648,9 +665,9 @@ export class ChatbotWidget extends HTMLElement {
       this.isOpen ? "Close chat" : "Open chat",
     );
 
-    // Push page content for sidebar mode
+    // Push page content for sidebar mode (skip on mobile — always overlay)
     const isSidebar = this.state.position.includes('sidebar');
-    if (isSidebar) {
+    if (isSidebar && !this.isMobile()) {
       const side = this.state.position === 'left-sidebar' ? 'marginLeft' : 'marginRight';
       document.body.style[side] = this.isOpen ? `${SIDEBAR_WIDTH}px` : '';
     }
@@ -658,6 +675,21 @@ export class ChatbotWidget extends HTMLElement {
     if (this.isOpen) {
       setTimeout(() => this.textarea.focus(), 300);
     }
+  }
+
+  private isMobile(): boolean {
+    return window.innerWidth <= 440;
+  }
+
+  private minimize() {
+    this.isMinimized = true;
+    this.panel.classList.add('minimized');
+  }
+
+  private restore() {
+    this.isMinimized = false;
+    this.panel.classList.remove('minimized');
+    setTimeout(() => this.textarea.focus(), 100);
   }
 
   private injectHostTransition() {
@@ -798,6 +830,7 @@ export class ChatbotWidget extends HTMLElement {
 
     // Shrink panel to compact voice size
     this.panel.classList.add('cb-voice-active');
+    if (this.isMobile()) this.panel.classList.add('cb-voice-mobile');
 
     // Hide normal panel content, show voice overlay
     const header = this.shadow.querySelector('.cb-header') as HTMLElement;
@@ -811,12 +844,19 @@ export class ChatbotWidget extends HTMLElement {
     if (inputPrompts) inputPrompts.style.display = 'none';
     if (footer) footer.style.display = 'none';
 
-    // Create voice overlay — horizontal layout: [back] [status] [mic]
+    // Create voice overlay — horizontal layout: [back] [status/level meter] [mic]
     const overlay = document.createElement('div');
     overlay.className = 'cb-voice-overlay';
     overlay.innerHTML = `
       <button class="cb-voice-back-btn" aria-label="Back to chat">${ICON_KEYBOARD} Chat</button>
       <div class="cb-voice-status"></div>
+      <div class="cb-voice-level-meter">
+        <div class="cb-voice-level-bar"></div>
+        <div class="cb-voice-level-bar"></div>
+        <div class="cb-voice-level-bar"></div>
+        <div class="cb-voice-level-bar"></div>
+        <div class="cb-voice-level-bar"></div>
+      </div>
       <button class="cb-voice-mic-btn" aria-label="Microphone">${ICON_MIC}</button>
     `;
     this.panel.appendChild(overlay);
@@ -867,6 +907,7 @@ export class ChatbotWidget extends HTMLElement {
     this.voiceMicBtn = null;
     this.voiceStatusEl = null;
     this.panel.classList.remove('cb-voice-active');
+    this.panel.classList.remove('cb-voice-mobile');
 
     // Restore normal panel content
     const header = this.shadow.querySelector('.cb-header') as HTMLElement;
@@ -910,6 +951,12 @@ export class ChatbotWidget extends HTMLElement {
   private setVoiceStatus(text: string) {
     if (this.voiceStatusEl) {
       this.voiceStatusEl.textContent = text;
+    }
+    // Update level meter animation state
+    const meter = this.voiceOverlay?.querySelector('.cb-voice-level-meter') as HTMLElement | null;
+    if (meter) {
+      meter.classList.toggle('active', text === 'Listening...' || text === 'Speaking...');
+      meter.classList.toggle('speaking', text === 'Speaking...');
     }
   }
 
@@ -994,7 +1041,7 @@ export class ChatbotWidget extends HTMLElement {
       try {
         const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
         this.sessionId = sessionId;
-        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
         this.setupMcpListener();
@@ -1118,7 +1165,7 @@ export class ChatbotWidget extends HTMLElement {
       try {
         const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
         this.sessionId = sessionId;
-        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
         this.setupMcpListener();
@@ -1202,11 +1249,11 @@ export class ChatbotWidget extends HTMLElement {
       this.chatSocket.close();
       this.chatSocket = null;
     }
-    localStorage.removeItem(`cb_session_${this.state.chatbotId}`);
+    storage.removeItem(`cb_session_${this.state.chatbotId}`);
     try {
       const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
       this.sessionId = sessionId;
-      localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+      storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status: ConnectionStatus) => this.updateStatusDot(status);
       this.setupMcpListener();
@@ -1253,7 +1300,7 @@ export class ChatbotWidget extends HTMLElement {
       try {
         const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
         this.sessionId = sessionId;
-        localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
         this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
         this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
         this.setupMcpListener();
@@ -1413,7 +1460,7 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   private saveMessages() {
-    localStorage.setItem(
+    storage.setItem(
       `cb_messages_${this.state.chatbotId}`,
       JSON.stringify(this.messages),
     );
@@ -1437,19 +1484,20 @@ export class ChatbotWidget extends HTMLElement {
     this.chatSocket = null;
 
     // Clear session, messages, and person mode
+    if (this.isMinimized) this.restore();
     this.sessionId = null;
     this.messages = [];
     this.personMode = false;
     this.updateHeaderForMode();
     this.updateInputPlaceholder();
-    localStorage.removeItem(`cb_session_${this.state.chatbotId}`);
-    localStorage.removeItem(`cb_messages_${this.state.chatbotId}`);
+    storage.removeItem(`cb_session_${this.state.chatbotId}`);
+    storage.removeItem(`cb_messages_${this.state.chatbotId}`);
 
     // Create a new session
     try {
       const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
       this.sessionId = sessionId;
-      localStorage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
+      storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
       this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
       this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
       this.setupMcpListener();
@@ -1579,6 +1627,10 @@ export class ChatbotWidget extends HTMLElement {
       statusDiv.textContent = "Message sent";
       this.messagesEl.appendChild(statusDiv);
       this.scrollToBottom();
+    });
+
+    this.chatSocket.onNavigate(() => {
+      if (this.isOpen) this.minimize();
     });
 
     this.mcpUnsubscribe = this.chatSocket.onMcpResult((results) => {

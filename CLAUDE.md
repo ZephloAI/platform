@@ -16,3 +16,7 @@ This project conatins several microservices for a llm agent as a website chatbot
 - When you make changes to any service kindly rebuild, upgrade alembic (if it is needed) and deploy the latest changes on docker
 
 - Don't use string formating like "Name: $s".format(name) rather us python f-string like f"Name: {name}". This is much more cleaner
+
+- Always use the UUID as the agent identifier, never the numeric id.
+
+- We are referring this as an agent platform, anywhere we find reference of chatbot replace it with Agent.
