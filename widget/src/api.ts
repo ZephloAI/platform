@@ -120,6 +120,7 @@ export class ChatSocket {
   private adminMessageHandler: ((content: string) => void) | null = null;
   private modeChangedHandler: ((mode: string) => void) | null = null;
   private waitingHandler: (() => void) | null = null;
+  private navigateHandler: (() => void) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -136,11 +137,9 @@ export class ChatSocket {
   }
 
   private buildWsUrl(): string {
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = this.apiUrl.includes("://")
-      ? new URL(this.apiUrl).host
-      : window.location.host;
-    return `${proto}//${host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
+    const url = new URL(this.apiUrl);
+    const proto = url.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${url.host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
   }
 
   setFlunkieToolHandler(handler: (req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
@@ -171,6 +170,10 @@ export class ChatSocket {
 
   onWaiting(handler: () => void): void {
     this.waitingHandler = handler;
+  }
+
+  onNavigate(handler: () => void): void {
+    this.navigateHandler = handler;
   }
 
   private getFlunkieToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
@@ -216,9 +219,10 @@ export class ChatSocket {
 
     // Handle tool call from agent
     if (data.message_type === "web_tool_call" && this.flunkieToolHandler) {
+      const args = data.details.arguments || {};
       const result = await this.flunkieToolHandler({
         tool: data.details.tool,
-        arguments: data.details.arguments || {},
+        arguments: args,
       });
       this.ws?.send(JSON.stringify({
         message_type: "tool_result",
@@ -226,6 +230,9 @@ export class ChatSocket {
         content: result.content,
         error: result.error,
       }));
+      if (args.navigate === true && this.navigateHandler) {
+        this.navigateHandler();
+      }
       return;
     }
 
@@ -269,36 +276,55 @@ export class ChatSocket {
     };
   }
 
+  private static MAX_RETRIES = 3;
+  private static BASE_DELAY_MS = 1000;
+
   async connect(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
 
-    this.setStatus('connecting');
+    let lastError: Error | null = null;
     const wsUrl = this.buildWsUrl();
 
-    return new Promise((resolve, reject) => {
-      this.ws = new WebSocket(wsUrl);
+    for (let attempt = 0; attempt <= ChatSocket.MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = ChatSocket.BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        await new Promise(r => setTimeout(r, delay));
+      }
 
-      this.ws.onopen = () => {
-        this.setStatus('connected');
-        this.ws!.send(JSON.stringify({
-          message_type: "init",
-          flunkie_tools: this.getFlunkieToolSchemas(),
-        }));
-        resolve();
-      };
+      this.setStatus('connecting');
 
-      this.ws.onmessage = (event) => this.handleMessage(event);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          this.ws = new WebSocket(wsUrl);
 
-      this.ws.onerror = () => {
-        this.setStatus('disconnected');
-        reject(new Error("WebSocket connection error"));
-      };
+          this.ws.onopen = () => {
+            this.setStatus('connected');
+            this.ws!.send(JSON.stringify({
+              message_type: "init",
+              flunkie_tools: this.getFlunkieToolSchemas(),
+            }));
+            this.setupWsHandlers();
+            resolve();
+          };
 
-      this.ws.onclose = () => {
-        this.setStatus('disconnected');
+          this.ws.onerror = () => {
+            this.setStatus('disconnected');
+            reject(new Error("WebSocket connection error"));
+          };
+
+          this.ws.onclose = () => {
+            this.setStatus('disconnected');
+            this.ws = null;
+          };
+        });
+        return;
+      } catch (err) {
+        lastError = err as Error;
         this.ws = null;
-      };
-    });
+      }
+    }
+
+    throw lastError ?? new Error("WebSocket connection failed");
   }
 
   async sendMessage(message: string, voice?: boolean): Promise<ChatResponse> {

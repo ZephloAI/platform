@@ -78,6 +78,13 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
   };
 }
 
+export const navigateProp = {
+  navigate: {
+    type: 'boolean',
+    description: 'If true, minimize the chat so the user can see the result on the page',
+  },
+} as const;
+
 const Flunkie = { initialize };
 export default Flunkie;
 
