@@ -15,7 +15,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
@@ -28,3 +28,6 @@ class User(Base):
         "Chatbot", back_populates="user", cascade="all, delete-orphan"
     )
     memberships = relationship("OrganizationMember", back_populates="user")
+    oauth_providers = relationship(
+        "UserOAuthProvider", back_populates="user", cascade="all, delete-orphan"
+    )

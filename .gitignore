@@ -48,3 +48,7 @@ docs
 
 # Testbench
 widget-testbench/
+
+# Demo dependencies and builds
+demo/
+demo

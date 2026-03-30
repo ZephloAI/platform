@@ -66,6 +66,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
+   * Log in via OAuth provider (Google or Microsoft).
+   * Sends the provider's ID token to the backend for verification.
+   */
+  oauthLogin: async (provider: string, idToken: string) => {
+    const response = await apiClient.post('/api/auth/oauth', { provider, id_token: idToken });
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    set({ user, token, isAuthenticated: true });
+
+    // Fetch organizations after OAuth login
+    useOrgStore.getState().fetchOrganizations();
+  },
+
+  /**
    * Update user fields in state and localStorage.
    */
   updateUser: (updates: Partial<User>) => {
