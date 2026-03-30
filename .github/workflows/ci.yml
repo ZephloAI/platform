@@ -29,7 +29,9 @@ jobs:
       - name: Build and push Frontend
         run: |
           docker build --platform linux/amd64 -t flunkie/frontend:${{ github.sha }} -t flunkie/frontend:latest \
-            -f frontend/Dockerfile --build-arg ENV=dev --build-arg NGINX_CONF=nginx-k8s.conf .
+            -f frontend/Dockerfile --build-arg ENV=dev --build-arg NGINX_CONF=nginx-k8s.conf \
+            --build-arg VITE_GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --build-arg VITE_MICROSOFT_CLIENT_ID="${{ secrets.MICROSOFT_CLIENT_ID }}" .
           docker push flunkie/frontend:${{ github.sha }}
           docker push flunkie/frontend:latest
 
