@@ -17,6 +17,7 @@ from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.invitation import Invitation
 from app.models.document import Document
+from app.models.oauth_provider import UserOAuthProvider
 
 __all__ = [
     "Base",
@@ -31,4 +32,5 @@ __all__ = [
     "OrganizationMember",
     "Invitation",
     "Document",
+    "UserOAuthProvider",
 ]

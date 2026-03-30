@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 1440  # 24 hours
 
+    # OAuth provider settings
+    GOOGLE_CLIENT_ID: str = ""
+    MICROSOFT_CLIENT_ID: str = ""
+    MICROSOFT_TENANT_ID: str = "common"
+
     # External service URLs
     CRAWLER_SERVICE_URL: str = "http://localhost:8001"
     AGENT_SERVICE_URL: str = "http://localhost:8002"

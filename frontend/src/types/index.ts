@@ -48,6 +48,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  oauthLogin: (provider: string, idToken: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }

@@ -24,7 +24,7 @@ from app.agent import create_agent, clean_response, extract_resolution, connect_
 from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.tts import text_to_speech
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
-from app.webmcp_tools import create_web_tools
+from app.webmcp_tools import create_web_tools, WebSocketDispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -177,11 +177,17 @@ async def ws_chat(ws: WebSocket):
     await ws.accept()
     active_connections[session_id] = ws
 
+    # --- Set up dispatcher for safe concurrent WebSocket reads ---
+    dispatcher = WebSocketDispatcher(ws)
+
     # --- Wait for init message (always sent by widget on connect) ---
     init_raw = await ws.receive_text()
     init_data = json.loads(init_raw)
     flunkie_tool_schemas = init_data.get("flunkie_tools", [])
-    print(init_data)
+    logger.info(f"Init message received: session={session_id}, tools={len(flunkie_tool_schemas)}")
+
+    # Start dispatcher AFTER init so the init read is synchronous
+    await dispatcher.start()
 
     page_context = {}
 
@@ -200,7 +206,7 @@ async def ws_chat(ws: WebSocket):
     mcp_tools = await connect_mcp_servers(mcp_configs)
 
     # --- Build web tool functions from schemas ---
-    web_tool_fns = create_web_tools(flunkie_tool_schemas, ws) if flunkie_tool_schemas else []
+    web_tool_fns = create_web_tools(flunkie_tool_schemas, dispatcher) if flunkie_tool_schemas else []
     all_tools = list(mcp_tools) + web_tool_fns
 
     # --- Create ONE agent for the lifetime of this connection ---
@@ -215,12 +221,8 @@ async def ws_chat(ws: WebSocket):
 
     try:
         while True:
-            raw = await ws.receive_text()
+            raw = await dispatcher.get_user_message()
             data = json.loads(raw)
-
-            # Skip tool results — handled inline by web tool functions
-            if data.get("message_type") == "tool_result":
-                continue
 
             # Handle page context updates from widget SDK
             if data.get("message_type") == "context_update":
@@ -237,7 +239,7 @@ async def ws_chat(ws: WebSocket):
                     )
                 finally:
                     await conn.close()
-                await ws.send_json({
+                await dispatcher.send_json({
                     "message_type": "mode_changed",
                     "mode": "person",
                     "session_id": session_id,
@@ -256,7 +258,7 @@ async def ws_chat(ws: WebSocket):
                 # In person mode: store the user message and notify admin, skip AI
                 await store_message(session_id, "user", message)
                 await mark_session_unread(session_id)
-                await ws.send_json({
+                await dispatcher.send_json({
                     "message_type": "waiting",
                     "response": "",
                     "sources": [],
@@ -378,7 +380,7 @@ async def ws_chat(ws: WebSocket):
             if voice and response_text.strip():
                 audio = await text_to_speech(response_text)
 
-            await ws.send_json(
+            await dispatcher.send_json(
                 {
                     "message_type": "response",
                     "response": response_text,
@@ -399,10 +401,12 @@ async def ws_chat(ws: WebSocket):
     except Exception as e:
         logger.exception(f"WebSocket error (chatbot_id={chatbot_id})")
         try:
-            await ws.send_json({"message_type": "error", "error": str(e)})
+            await dispatcher.send_json({"message_type": "error", "error": str(e)})
         except Exception:
             pass
     finally:
+        # Stop the dispatcher read loop
+        await dispatcher.stop()
         # Remove from active connections
         active_connections.pop(session_id, None)
         # Disconnect all MCP servers

@@ -14,8 +14,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.schemas.user import UserCreate, LoginRequest, LoginResponse
+from app.schemas.user import UserCreate, LoginRequest, LoginResponse, OAuthRequest
 from app.services.auth_service import AuthService
+from app.services.oauth_service import OAuthService
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -49,3 +50,16 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     """
     auth_service = AuthService(db)
     return await auth_service.login(body.email, body.password)
+
+
+@router.post("/oauth", response_model=LoginResponse)
+async def oauth_login(body: OAuthRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Log in or register via an OAuth provider (Google or Microsoft).
+
+    - Verifies the provider's ID token
+    - Finds or creates the user account
+    - Returns user info + JWT token
+    """
+    oauth_service = OAuthService(db)
+    return await oauth_service.authenticate(body.provider, body.id_token)

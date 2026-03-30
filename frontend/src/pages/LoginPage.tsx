@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAcceptInvitation } from '../hooks/useOrganization';
+import OAuthButtons from '../components/OAuthButtons';
 
 // ============================================================
 // LoginPage
@@ -76,6 +77,12 @@ function LoginPage() {
               {error}
             </div>
           )}
+
+          {/* OAuth buttons */}
+          <OAuthButtons
+            onSuccess={() => navigate('/dashboard')}
+            onError={(msg) => setError(msg)}
+          />
 
           {/* Email */}
           <div>

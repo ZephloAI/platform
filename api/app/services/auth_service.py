@@ -85,7 +85,7 @@ class AuthService:
         Raises 401 if credentials are invalid.
         """
         user = await self.user_repo.get_by_email(email)
-        if not user or not pwd_context.verify(password, user.password_hash):
+        if not user or not user.password_hash or not pwd_context.verify(password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
