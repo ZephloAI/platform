@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../config/msalConfig';
@@ -21,6 +21,20 @@ function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
   const { instance } = useMsal();
   const acceptInvitation = useAcceptInvitation();
   const [loading, setLoading] = useState<'google' | 'microsoft' | null>(null);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(320);
+
+  useEffect(() => {
+    if (!googleBtnRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const width = Math.floor(entry.contentRect.width);
+      if (width > 0) setGoogleBtnWidth(width);
+    });
+    observer.observe(googleBtnRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const handleInvitation = async () => {
     const pendingToken = sessionStorage.getItem('pendingInvitationToken');
@@ -52,37 +66,28 @@ function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
   const handleMicrosoftLogin = async () => {
     setLoading('microsoft');
     try {
-      const result = await instance.loginPopup(loginRequest);
-      if (!result.idToken) {
-        onError('Microsoft login failed. No token received.');
-        setLoading(null);
-        return;
-      }
-      await oauthLogin('microsoft', result.idToken);
-      await handleInvitation();
-      onSuccess();
+      // Use redirect flow — redirects to Microsoft login page and back.
+      // The response is handled in main.tsx via handleRedirectPromise().
+      await instance.loginRedirect(loginRequest);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Microsoft login failed.';
       onError(message);
-    } finally {
       setLoading(null);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Google Login */}
-      <div className="flex justify-center">
-        <div className="w-full [&>div]:!w-full [&>div>div]:!w-full [&_iframe]:!w-full">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => onError('Google login failed.')}
-            width="360"
-            text="continue_with"
-            shape="pill"
-            size="large"
-          />
-        </div>
+      <div ref={googleBtnRef} className="w-full">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => onError('Google login failed.')}
+          width={googleBtnWidth}
+          text="continue_with"
+          shape="rectangular"
+          size="large"
+        />
       </div>
 
       {/* Microsoft Login */}
@@ -90,7 +95,7 @@ function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
         type="button"
         onClick={handleMicrosoftLogin}
         disabled={loading !== null}
-        className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl
+        className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg
                    bg-white border border-separator text-label-primary text-sm font-medium
                    hover:bg-surface-secondary transition-all duration-200
                    disabled:opacity-50 disabled:cursor-not-allowed"

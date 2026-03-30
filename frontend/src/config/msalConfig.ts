@@ -1,13 +1,14 @@
-import { PublicClientApplication } from '@azure/msal-browser';
+import { PublicClientApplication, BrowserCacheLocation } from '@azure/msal-browser';
 
 const msalConfig = {
   auth: {
     clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
     authority: 'https://login.microsoftonline.com/common',
     redirectUri: window.location.origin,
+    navigateToLoginRequestUrl: false,
   },
   cache: {
-    cacheLocation: 'sessionStorage' as const,
+    cacheLocation: BrowserCacheLocation.SessionStorage,
   },
 };
 
