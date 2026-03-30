@@ -7,6 +7,12 @@ These define the shape of data for user registration, login, and responses.
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
+class OAuthRequest(BaseModel):
+    """Schema for OAuth login — provider name and ID token."""
+    provider: str
+    id_token: str
+
+
 class UserCreate(BaseModel):
     """Schema for user registration."""
     email: EmailStr

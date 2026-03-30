@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAcceptInvitation } from '../hooks/useOrganization';
 import { useAuthStore } from '../stores/authStore';
+import OAuthButtons from '../components/OAuthButtons';
 
 // ============================================================
 // RegisterPage
@@ -90,6 +91,12 @@ function RegisterPage() {
               {error}
             </div>
           )}
+
+          {/* OAuth buttons */}
+          <OAuthButtons
+            onSuccess={() => navigate('/dashboard')}
+            onError={(msg) => setError(msg)}
+          />
 
           {/* Name fields */}
           <div className="grid grid-cols-2 gap-4">

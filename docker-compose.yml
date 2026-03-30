@@ -58,6 +58,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-common}
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,6 +141,8 @@ services:
       args:
         ENV: ${ENV:-dev}
         NPM_TOKEN: ${NPM_TOKEN}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
     ports:
       - "80:80"
     environment:
