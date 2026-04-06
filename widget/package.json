@@ -1,8 +1,8 @@
 {
-  "name": "@flunkie/flunkie",
+  "name": "@zephlo/zephlo",
   "version": "0.0.2-beta",
-  "description": "Flunkie - AI chatbot widget for your website. Drop-in script tag or npm install.",
-  "author": "Flunkie",
+  "description": "Zephlo - AI chatbot widget for your website. Drop-in script tag or npm install.",
+  "author": "Zephlo",
   "license": "Elastic-2.0",
   "keywords": [
     "chatbot",
@@ -14,22 +14,22 @@
     "embed",
     "web-component"
   ],
-  "homepage": "https://github.com/flunkie/flunkie#readme",
+  "homepage": "https://github.com/zephlo/zephlo#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/flunkie/flunkie.git"
+    "url": "https://github.com/zephlo/zephlo.git"
   },
   "bugs": {
-    "url": "https://github.com/flunkie/flunkie/issues"
+    "url": "https://github.com/zephlo/zephlo/issues"
   },
-  "main": "dist/flunkie.esm.js",
-  "module": "dist/flunkie.esm.js",
+  "main": "dist/zephlo.esm.js",
+  "module": "dist/zephlo.esm.js",
   "types": "dist/types.d.ts",
   "exports": {
     ".": {
       "types": "./dist/types.d.ts",
-      "import": "./dist/flunkie.esm.js",
-      "require": "./dist/flunkie.esm.js"
+      "import": "./dist/zephlo.esm.js",
+      "require": "./dist/zephlo.esm.js"
     }
   },
   "files": [
@@ -38,7 +38,7 @@
     "LICENSE"
   ],
   "sideEffects": [
-    "dist/flunkie.js",
+    "dist/zephlo.js",
     "dist/chatbot-widget.js",
     "src/index.ts"
   ],

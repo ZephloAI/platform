@@ -1,5 +1,5 @@
 """
-Flunkie web tools — creates plain async functions from tool schemas.
+Zephlo web tools — creates plain async functions from tool schemas.
 
 Each function's signature is built dynamically from inputSchema.properties
 using inspect.Parameter + inspect.Signature. When the LLM calls a tool,

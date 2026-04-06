@@ -5,19 +5,19 @@ import type { ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 
 // Set flag BEFORE the custom element auto-injects
-(window as any).__FLUNKIE_SDK__ = true;
+(window as any).__ZEPHLO_SDK__ = true;
 
 // Import index to register the custom element (but skip auto-inject)
 import "./index";
 import { ChatbotWidget } from "./index";
 
-export interface FlunkieOptions {
+export interface ZephloOptions {
   key: string;
   chatbotId: string;
   apiUrl?: string;
 }
 
-export interface FlunkieInstance {
+export interface ZephloInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
@@ -26,7 +26,7 @@ export interface FlunkieInstance {
   destroy(): void;
 }
 
-function initialize(options: FlunkieOptions): FlunkieInstance {
+function initialize(options: ZephloOptions): ZephloInstance {
   const { key, chatbotId, apiUrl } = options;
   if (!key.startsWith("flk_")) throw new Error("Invalid API key format");
 
@@ -48,7 +48,7 @@ function initialize(options: FlunkieOptions): FlunkieInstance {
   const widget = document.createElement("chatbot-widget") as ChatbotWidget;
   document.body.appendChild(widget);
 
-  // Auto-scan HTML forms with flunkie-tool-name attributes
+  // Auto-scan HTML forms with zephlo-tool-name attributes
   const formScanner = new FormScanner();
   formScanner.scan();
   formScanner.observe();
@@ -85,10 +85,10 @@ export const navigateProp = {
   },
 } as const;
 
-const Flunkie = { initialize };
-export default Flunkie;
+const Zephlo = { initialize };
+export default Zephlo;
 
 // For IIFE/script tag usage
 if (typeof window !== "undefined") {
-  (window as any).Flunkie = Flunkie;
+  (window as any).Zephlo = Zephlo;
 }

@@ -23,8 +23,8 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI application
 app = FastAPI(
-    title="Flunkie API",
-    description="API for the Flunkie website agent platform",
+    title="Zephlo API",
+    description="API for the Zephlo website agent platform",
     version="1.0.0",
     lifespan=lifespan,
 )

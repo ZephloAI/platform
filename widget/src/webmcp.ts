@@ -13,7 +13,7 @@ class ToolRegistry {
 
   register(tool: ToolDefinition): void {
     if (!tool.description) {
-      console.warn(`[Flunkie] Tool "${tool.name}" registered without a description. Add a description for better LLM tool usage.`);
+      console.warn(`[Zephlo] Tool "${tool.name}" registered without a description. Add a description for better LLM tool usage.`);
     }
     this.tools.set(tool.name, tool);
     if ((navigator as any).modelContext) {

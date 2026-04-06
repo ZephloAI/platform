@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flunkie SDK Tool Test</title>
+  <title>Zephlo SDK Tool Test</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; padding: 40px; }
@@ -27,7 +27,7 @@
 </head>
 <body>
 
-  <h1>Flunkie SDK Tool Test</h1>
+  <h1>Zephlo SDK Tool Test</h1>
   <p class="subtitle">Register tools, chat with the agent, and watch the message protocol in action.</p>
 
   <div class="card">
@@ -76,47 +76,47 @@
 
   <div class="card">
     <h2>Declarative Form: Flight Search</h2>
-    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">This form is auto-registered as a tool via <code>flunkie-tool-name</code>. Uses <code>flunkie-auto-submit</code> so the agent fills AND submits.</p>
+    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">This form is auto-registered as a tool via <code>zephlo-tool-name</code>. Uses <code>zephlo-auto-submit</code> so the agent fills AND submits.</p>
     <form
-      flunkie-tool-name="search_flights"
-      flunkie-tool-description="Search for available flights between two cities"
-      flunkie-auto-submit
+      zephlo-tool-name="search_flights"
+      zephlo-tool-description="Search for available flights between two cities"
+      zephlo-auto-submit
       style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"
     >
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Origin</label>
         <input name="origin" type="text" required placeholder="e.g. JFK"
-          flunkie-param-description="Departure airport code (e.g. JFK, LAX)"
+          zephlo-param-description="Departure airport code (e.g. JFK, LAX)"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Destination</label>
         <input name="destination" type="text" required placeholder="e.g. LHR"
-          flunkie-param-description="Arrival airport code (e.g. LHR, NRT)"
+          zephlo-param-description="Arrival airport code (e.g. LHR, NRT)"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Departure Date</label>
         <input name="departure_date" type="date" required
-          flunkie-param-description="Departure date"
+          zephlo-param-description="Departure date"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Return Date</label>
         <input name="return_date" type="date"
-          flunkie-param-description="Return date (leave empty for one-way)"
+          zephlo-param-description="Return date (leave empty for one-way)"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Passengers</label>
         <input name="passengers" type="number" min="1" max="9" required value="1"
-          flunkie-param-description="Number of passengers"
+          zephlo-param-description="Number of passengers"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Cabin Class</label>
         <select name="cabin_class"
-          flunkie-param-description="Cabin class preference"
+          zephlo-param-description="Cabin class preference"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
           <option value="economy">Economy</option>
           <option value="business">Business</option>
@@ -125,7 +125,7 @@
       </div>
       <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px;">
         <input name="direct_only" type="checkbox"
-          flunkie-param-description="Only show direct flights"
+          zephlo-param-description="Only show direct flights"
           style="width: 18px; height: 18px;" />
         <label style="font-size: 13px; font-weight: 500;">Direct flights only</label>
       </div>
@@ -138,22 +138,22 @@
 
   <div class="card">
     <h2>Declarative Form: House Search</h2>
-    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">Fill-only mode (no <code>flunkie-auto-submit</code>). The agent populates the fields and the user reviews before submitting.</p>
+    <p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">Fill-only mode (no <code>zephlo-auto-submit</code>). The agent populates the fields and the user reviews before submitting.</p>
     <form
-      flunkie-tool-name="find_house"
-      flunkie-tool-description="Search for houses available for sale or rent"
+      zephlo-tool-name="find_house"
+      zephlo-tool-description="Search for houses available for sale or rent"
       style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"
     >
       <div style="grid-column: 1 / -1;">
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Location</label>
         <input name="location" type="text" required placeholder="e.g. San Francisco, CA"
-          flunkie-param-description="City, neighborhood, or zip code to search in"
+          zephlo-param-description="City, neighborhood, or zip code to search in"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Listing Type</label>
         <select name="listing_type" required
-          flunkie-param-description="Whether to buy or rent"
+          zephlo-param-description="Whether to buy or rent"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
           <option value="buy">Buy</option>
           <option value="rent">Rent</option>
@@ -162,7 +162,7 @@
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Property Type</label>
         <select name="property_type"
-          flunkie-param-description="Type of property"
+          zephlo-param-description="Type of property"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px; background: #fff;">
           <option value="house">House</option>
           <option value="apartment">Apartment</option>
@@ -173,47 +173,47 @@
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Min Price ($)</label>
         <input name="min_price" type="number" min="0"
-          flunkie-param-description="Minimum price in dollars"
+          zephlo-param-description="Minimum price in dollars"
           placeholder="e.g. 200000"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Max Price ($)</label>
         <input name="max_price" type="number" min="0"
-          flunkie-param-description="Maximum price in dollars"
+          zephlo-param-description="Maximum price in dollars"
           placeholder="e.g. 800000"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Bedrooms</label>
         <input name="bedrooms" type="number" min="1" max="10"
-          flunkie-param-description="Minimum number of bedrooms"
+          zephlo-param-description="Minimum number of bedrooms"
           placeholder="e.g. 3"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div>
         <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px;">Bathrooms</label>
         <input name="bathrooms" type="number" min="1" max="10"
-          flunkie-param-description="Minimum number of bathrooms"
+          zephlo-param-description="Minimum number of bathrooms"
           placeholder="e.g. 2"
           style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 14px;" />
       </div>
       <div style="grid-column: 1 / -1; display: flex; gap: 16px;">
         <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
           <input name="has_garage" type="checkbox"
-            flunkie-param-description="Must have a garage"
+            zephlo-param-description="Must have a garage"
             style="width: 18px; height: 18px;" />
           Garage
         </label>
         <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
           <input name="has_pool" type="checkbox"
-            flunkie-param-description="Must have a pool"
+            zephlo-param-description="Must have a pool"
             style="width: 18px; height: 18px;" />
           Pool
         </label>
         <label style="font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
           <input name="pet_friendly" type="checkbox"
-            flunkie-param-description="Must be pet friendly"
+            zephlo-param-description="Must be pet friendly"
             style="width: 18px; height: 18px;" />
           Pet Friendly
         </label>
@@ -348,7 +348,7 @@
     waitForWidget();
 
     // --- Flight search form: submit handler with respondWith() ---
-    document.querySelector('form[flunkie-tool-name="search_flights"]').addEventListener('submit', function(e) {
+    document.querySelector('form[zephlo-tool-name="search_flights"]').addEventListener('submit', function(e) {
       e.preventDefault();
       const fd = new FormData(e.target);
       const origin = fd.get('origin');
@@ -382,7 +382,7 @@
     });
 
     // --- House search form: regular submit (fill-only, user submits manually) ---
-    document.querySelector('form[flunkie-tool-name="find_house"]').addEventListener('submit', function(e) {
+    document.querySelector('form[zephlo-tool-name="find_house"]').addEventListener('submit', function(e) {
       e.preventDefault();
       const fd = new FormData(e.target);
       const resultsEl = document.getElementById('house-results');

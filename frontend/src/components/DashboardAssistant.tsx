@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import Flunkie, { navigateProp } from '@flunkie/flunkie';
-import type { FlunkieInstance } from '@flunkie/flunkie';
+import Zephlo, { navigateProp } from '@zephlo/zephlo';
+import type { ZephloInstance } from '@zephlo/zephlo';
 import * as chatbotApi from '../api/chatbots';
 
 // ---------------------------------------------------------------------------
 // DashboardAssistant
-// Initialises the Flunkie widget via the npm package and registers dashboard
+// Initialises the Zephlo widget via the npm package and registers dashboard
 // tools so the agent can help users manage their agents from the dashboard.
 //
 // All tools delegate to the shared chatbot API service (api/chatbots.ts)
@@ -30,7 +30,7 @@ function getConfig(): AppConfig {
 function DashboardAssistant() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const instanceRef = useRef<FlunkieInstance | null>(null);
+  const instanceRef = useRef<ZephloInstance | null>(null);
 
   useEffect(() => {
     const config = getConfig();
@@ -39,7 +39,7 @@ function DashboardAssistant() {
 
     if (!CHATBOT_ID || !API_KEY) return;
 
-    const instance = Flunkie.initialize({
+    const instance = Zephlo.initialize({
       key: API_KEY,
       chatbotId: CHATBOT_ID,
     });
@@ -59,7 +59,7 @@ function DashboardAssistant() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function registerTools(agent: FlunkieInstance) {
+  function registerTools(agent: ZephloInstance) {
     // ---- list_chatbots ----
     agent.registerTool({
       name: 'list_chatbots',
@@ -352,7 +352,7 @@ function DashboardAssistant() {
     // ---- get_embed_code ----
     agent.registerTool({
       name: 'get_embed_code',
-      description: 'Get the embed code snippet for adding the Flunkie widget to a website.',
+      description: 'Get the embed code snippet for adding the Zephlo widget to a website.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -373,8 +373,8 @@ function DashboardAssistant() {
         const origin = window.location.origin;
 
         const snippets: Record<string, string> = {
-          script: `<script src="${origin}/widget/flunkie.js"></script>\n<script>\n  Flunkie.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`,
-          npm: `npm install @flunkie/flunkie\n\nimport Flunkie from "@flunkie/flunkie";\n\nFlunkie.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: "${publicId}"\n});`,
+          script: `<script src="${origin}/widget/zephlo.js"></script>\n<script>\n  Zephlo.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`,
+          npm: `npm install @zephlo/zephlo\n\nimport Zephlo from "@zephlo/zephlo";\n\nZephlo.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: "${publicId}"\n});`,
           legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
         };
 

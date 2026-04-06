@@ -74,12 +74,12 @@ function RegisterPage() {
       <div className="max-w-[400px] w-full relative z-10 animate-fade-in">
         {/* Logo and heading */}
         <div className="text-center mb-12 animate-slide-up">
-          <img src="/logo.svg" alt="Flunkie" className="w-16 h-16 mx-auto mb-6" />
+          <img src="/logo.svg" alt="Zephlo" className="w-16 h-16 mx-auto mb-6" />
           <h1 className="heading-xl font-display text-label-primary mb-2">
             Get started
           </h1>
           <p className="text-base text-label-secondary">
-            Create your <span className="font-display font-semibold text-accent">Flunkie</span> account
+            Create your <span className="font-display font-semibold text-accent">Zephlo</span> account
           </p>
         </div>
 

@@ -19,7 +19,7 @@ Go to your dashboard → select a chatbot → **Tools** tab → toggle **Browser
 On any page with the widget, open the browser console and run:
 
 ```js
-const bot = Flunkie.initialize({ key: "flk_your_key", chatbotId: YOUR_ID });
+const bot = Zephlo.initialize({ key: "flk_your_key", chatbotId: YOUR_ID });
 
 bot.registerTool({
   name: "add_to_cart",

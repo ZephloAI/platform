@@ -6,8 +6,8 @@ const minify = !watch;
 
 const builds = [
   { entryPoints: ["src/index.ts"], format: "iife", outfile: "dist/chatbot-widget.js" },
-  { entryPoints: ["src/flunkie.ts"], format: "esm", outfile: "dist/flunkie.esm.js" },
-  { entryPoints: ["src/flunkie.ts"], format: "iife", globalName: "Flunkie", outfile: "dist/flunkie.js" },
+  { entryPoints: ["src/zephlo.ts"], format: "esm", outfile: "dist/zephlo.esm.js" },
+  { entryPoints: ["src/zephlo.ts"], format: "iife", globalName: "Zephlo", outfile: "dist/zephlo.js" },
 ];
 
 for (const build of builds) {

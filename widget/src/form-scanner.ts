@@ -55,7 +55,7 @@ function buildSchemaFromForm(form: HTMLFormElement): InputSchema {
     // Skip non-param input types
     if (field instanceof HTMLInputElement && SKIP_TYPES.has(field.type)) {
       if (field.type === "file") {
-        console.warn(`[Flunkie FormScanner] Skipping file input "${name}" — file inputs can't be set programmatically.`);
+        console.warn(`[Zephlo FormScanner] Skipping file input "${name}" — file inputs can't be set programmatically.`);
       }
       continue;
     }
@@ -96,8 +96,8 @@ function buildSchemaFromForm(form: HTMLFormElement): InputSchema {
       if (field.maxLength > 0 && field.maxLength < 524288) prop.maxLength = field.maxLength;
     }
 
-    // Description from flunkie attribute
-    const desc = field.getAttribute("flunkie-param-description");
+    // Description from zephlo attribute
+    const desc = field.getAttribute("zephlo-param-description");
     if (desc) prop.description = desc;
 
     // Required
@@ -113,7 +113,7 @@ function buildSchemaFromForm(form: HTMLFormElement): InputSchema {
 
 function createFormToolExecute(form: HTMLFormElement): (params: Record<string, unknown>) => Promise<string> {
   return async (params: Record<string, unknown>): Promise<string> => {
-    const autoSubmit = form.hasAttribute("flunkie-auto-submit");
+    const autoSubmit = form.hasAttribute("zephlo-auto-submit");
 
     // Step 1: Populate every field from agent params
     for (const [key, value] of Object.entries(params)) {
@@ -157,9 +157,9 @@ function createFormToolExecute(form: HTMLFormElement): (params: Record<string, u
       return await resultPromise;
     }
 
-    const attrResult = form.getAttribute("flunkie-result");
+    const attrResult = form.getAttribute("zephlo-result");
     if (attrResult) {
-      form.removeAttribute("flunkie-result");
+      form.removeAttribute("zephlo-result");
       return attrResult;
     }
 
@@ -177,18 +177,18 @@ export class FormScanner {
   }
 
   scan(): void {
-    const forms = this.root.querySelectorAll<HTMLFormElement>("form[flunkie-tool-name]:not([flunkie-scanned])");
+    const forms = this.root.querySelectorAll<HTMLFormElement>("form[zephlo-tool-name]:not([zephlo-scanned])");
 
     for (const form of forms) {
-      const name = form.getAttribute("flunkie-tool-name");
+      const name = form.getAttribute("zephlo-tool-name");
       if (!name) continue;
 
-      const description = form.getAttribute("flunkie-tool-description") || "";
+      const description = form.getAttribute("zephlo-tool-description") || "";
       const inputSchema = buildSchemaFromForm(form);
       const execute = createFormToolExecute(form);
 
       toolRegistry.register({ name, description, inputSchema, execute });
-      form.setAttribute("flunkie-scanned", "");
+      form.setAttribute("zephlo-scanned", "");
     }
   }
 
