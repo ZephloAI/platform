@@ -153,6 +153,14 @@ services:
       - api
     restart: unless-stopped
 
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   qdrant_data:

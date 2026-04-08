@@ -6,8 +6,8 @@ k3s_version: "v1.31.4+k3s1"
 k3s_install_url: "https://get.k3s.io"
 
 # --- Domain & Registry ---
-domain: "app.flunkie.ai"
-container_registry: "docker.io/flunkie"  # Replace with your Docker Hub org
+domain: "app.zephlo.ai"
+container_registry: "docker.io/zephlo"  # Replace with your Docker Hub org
 
 # --- WireGuard Configuration ---
 wireguard_port: 51820

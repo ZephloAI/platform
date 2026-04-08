@@ -8,17 +8,21 @@ resources:
 
 # Image tags are updated by CI/CD pipeline
 images:
-  - name: docker.io/flunkie/frontend
+  - name: docker.io/zephlo/landing
     newTag: latest
-  - name: docker.io/flunkie/api
+  - name: docker.io/zephlo/frontend
     newTag: latest
-  - name: docker.io/flunkie/agent
+  - name: docker.io/zephlo/api
     newTag: latest
-  - name: docker.io/flunkie/crawler
+  - name: docker.io/zephlo/agent
+    newTag: latest
+  - name: docker.io/zephlo/crawler
     newTag: latest
 
 # Staging: single replicas to save resources
 replicas:
+  - name: landing
+    count: 1
   - name: frontend
     count: 1
   - name: api
@@ -95,6 +99,27 @@ patches:
 
   - target:
       kind: Deployment
+      name: landing
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: landing
+      spec:
+        template:
+          spec:
+            containers:
+              - name: landing
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                  limits:
+                    cpu: 100m
+                    memory: 128Mi
+
+  - target:
+      kind: Deployment
       name: frontend
     patch: |
       apiVersion: apps/v1
@@ -115,6 +140,18 @@ patches:
                     memory: 128Mi
 
   # Staging: lower HPA limits
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: landing
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: landing
+      spec:
+        minReplicas: 1
+        maxReplicas: 2
+
   - target:
       kind: HorizontalPodAutoscaler
       name: frontend

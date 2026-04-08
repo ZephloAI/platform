@@ -15,10 +15,10 @@
 
 set -euo pipefail
 
-VALID_SERVICES="api crawler agent frontend widget"
+VALID_SERVICES="api crawler agent frontend landing widget"
 REGISTRY="${DOCKER_REGISTRY:-docker.io}"
 PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
-ORG="${DOCKERHUB_USERNAME:-flunkie}"  # Set via env or override here
+ORG="${DOCKERHUB_USERNAME:-zephlo}"  # Set via env or override here
 
 SERVICE="${1:-}"
 TAG="${2:-$(git rev-parse --short HEAD)}"

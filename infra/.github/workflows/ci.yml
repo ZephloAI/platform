@@ -11,6 +11,7 @@ on:
       - "crawler/**"
       - "agent/**"
       - "frontend/**"
+      - "landing/**"
       - "widget/**"
 
 jobs:
@@ -22,6 +23,7 @@ jobs:
       crawler: ${{ steps.filter.outputs.crawler }}
       agent: ${{ steps.filter.outputs.agent }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      landing: ${{ steps.filter.outputs.landing }}
       widget: ${{ steps.filter.outputs.widget }}
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +40,8 @@ jobs:
               - 'agent/**'
             frontend:
               - 'frontend/**'
+            landing:
+              - 'landing/**'
             widget:
               - 'widget/**'
 
@@ -56,10 +60,12 @@ jobs:
             changed: ${{ needs.detect-changes.outputs.agent }}
           - service: frontend
             changed: ${{ needs.detect-changes.outputs.frontend }}
+          - service: landing
+            changed: ${{ needs.detect-changes.outputs.landing }}
           - service: widget
             changed: ${{ needs.detect-changes.outputs.widget }}
     # Only run if the service has changes
-    if: ${{ needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.crawler == 'true' || needs.detect-changes.outputs.agent == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.widget == 'true' }}
+    if: ${{ needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.crawler == 'true' || needs.detect-changes.outputs.agent == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.landing == 'true' || needs.detect-changes.outputs.widget == 'true' }}
 
     steps:
       - uses: actions/checkout@v4

@@ -22,7 +22,7 @@ jobs:
         run: |
           cd infra/k8s/overlays/production
 
-          SERVICES="api crawler agent frontend"
+          SERVICES="api crawler agent frontend landing"
           IMAGE_TAG="${{ github.sha }}"
           REGISTRY="docker.io/${{ secrets.DOCKERHUB_USERNAME }}"
 

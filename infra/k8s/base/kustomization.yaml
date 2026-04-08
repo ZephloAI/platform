@@ -17,6 +17,10 @@ resources:
   - secrets/sealed-secrets.yaml
 
   # Application services
+  - landing/deployment.yaml
+  - landing/service.yaml
+  - landing/hpa.yaml
+
   - frontend/deployment.yaml
   - frontend/service.yaml
   - frontend/hpa.yaml

@@ -28,7 +28,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: docker.io/flunkie/api:latest
+          image: docker.io/zephlo/api:latest
           command: ["alembic", "upgrade", "head"]
           env:
             - name: DATABASE_URL
