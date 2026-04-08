@@ -8,15 +8,13 @@ resources:
 
 # Image tags are updated by CI/CD pipeline
 images:
-  - name: docker.io/zephlo/landing
-    newTag: latest
-  - name: docker.io/zephlo/frontend
+  - name: docker.io/flunkie/frontend
     newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
-  - name: docker.io/zephlo/api
+  - name: docker.io/flunkie/api
     newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
-  - name: docker.io/zephlo/agent
+  - name: docker.io/flunkie/agent
     newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
-  - name: docker.io/zephlo/crawler
+  - name: docker.io/flunkie/crawler
     newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
 
 # Production replica counts
