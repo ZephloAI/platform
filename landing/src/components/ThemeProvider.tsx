@@ -21,6 +21,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     if (stored === "light" || stored === "dark") {
       setTheme(stored);
       document.documentElement.setAttribute("data-theme", stored);
+    } else {
+      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const systemTheme: Theme = systemPrefersDark ? "dark" : "light";
+      setTheme(systemTheme);
+      document.documentElement.setAttribute("data-theme", systemTheme);
     }
   }, []);
 

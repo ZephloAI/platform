@@ -1,13 +1,21 @@
 import type { ReactNode } from "react";
 
 const productLinks = [
-  { label: "Use Cases", href: "#use-cases" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Security", href: "#security" },
+  { label: "Platform", href: "/platform" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Security", href: "/#security" },
+  { label: "Pricing", href: "/pricing" },
+];
+
+const solutionLinks = [
+  { label: "SaaS Onboarding", href: "/onboarding" },
+  { label: "Workflow Automation", href: "/#use-cases" },
+  { label: "Customer Support", href: "/#use-cases" },
+  { label: "In-App Training", href: "/#use-cases" },
 ];
 
 const companyLinks = [
+  { label: "Customers", href: "/customers" },
   { label: "About", href: "/about" },
   { label: "Blog", href: "/blog" },
   { label: "Careers", href: "/careers" },
@@ -52,7 +60,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--subtle-white-04)]" style={{ background: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-6 pt-16 pb-8">
-        <div className="grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-4 lg:gap-16">
+        <div className="grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-5 lg:gap-16">
           <div className="col-span-2 md:col-span-1">
             <a href="/" className="inline-flex items-center gap-2.5">
               <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center">
@@ -67,7 +75,16 @@ export default function Footer() {
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Product</h3>
             <ul className="flex flex-col gap-2.5">
               {productLinks.map((link) => (
-                <li key={link.href}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Solutions</h3>
+            <ul className="flex flex-col gap-2.5">
+              {solutionLinks.map((link) => (
+                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>
@@ -76,7 +93,7 @@ export default function Footer() {
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Company</h3>
             <ul className="flex flex-col gap-2.5">
               {companyLinks.map((link) => (
-                <li key={link.href}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>
@@ -85,7 +102,7 @@ export default function Footer() {
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Legal</h3>
             <ul className="flex flex-col gap-2.5">
               {legalLinks.map((link) => (
-                <li key={link.href}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>

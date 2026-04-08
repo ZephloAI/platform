@@ -301,7 +301,7 @@ export class ChatSocket {
             this.setStatus('connected');
             this.ws!.send(JSON.stringify({
               message_type: "init",
-              flunkie_tools: this.getZephloToolSchemas(),
+              zephlo_tools: this.getZephloToolSchemas(),
             }));
             this.setupWsHandlers();
             resolve();
@@ -357,7 +357,7 @@ export class ChatSocket {
         this.setStatus('connected');
         this.ws!.send(JSON.stringify({
             message_type: "init",
-            flunkie_tools: this.getZephloToolSchemas(),
+            zephlo_tools: this.getZephloToolSchemas(),
         }));
         this.ws!.send(payload);
       };

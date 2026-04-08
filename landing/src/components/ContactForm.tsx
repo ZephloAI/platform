@@ -284,22 +284,20 @@ export default function ContactForm() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <Field
-                    label="Company"
-                    type="text"
-                    placeholder="Company name"
-                    value={form.company}
-                    onChange={(v) => update("company", v)}
-                    required
-                  />
-                  <PhoneField
-                    countryCode={form.countryCode}
-                    phone={form.phone}
-                    onCountryChange={(code) => update("countryCode", code)}
-                    onPhoneChange={(phone) => update("phone", phone)}
-                  />
-                </div>
+                <Field
+                  label="Company"
+                  type="text"
+                  placeholder="Company name"
+                  value={form.company}
+                  onChange={(v) => update("company", v)}
+                  required
+                />
+                <PhoneField
+                  countryCode={form.countryCode}
+                  phone={form.phone}
+                  onCountryChange={(code) => update("countryCode", code)}
+                  onPhoneChange={(phone) => update("phone", phone)}
+                />
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[12px] font-medium text-[var(--foreground)]">
                     Tell us about your use case

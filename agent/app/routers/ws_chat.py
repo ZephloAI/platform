@@ -183,8 +183,8 @@ async def ws_chat(ws: WebSocket):
     # --- Wait for init message (always sent by widget on connect) ---
     init_raw = await ws.receive_text()
     init_data = json.loads(init_raw)
-    flunkie_tool_schemas = init_data.get("flunkie_tools", [])
-    logger.info(f"Init message received: session={session_id}, tools={len(flunkie_tool_schemas)}")
+    zephlo_tool_schemas = init_data.get("zephlo_tools", [])
+    logger.info(f"Init message received: session={session_id}, tools={len(zephlo_tool_schemas)}")
 
     # Start dispatcher AFTER init so the init read is synchronous
     await dispatcher.start()
@@ -206,7 +206,7 @@ async def ws_chat(ws: WebSocket):
     mcp_tools = await connect_mcp_servers(mcp_configs)
 
     # --- Build web tool functions from schemas ---
-    web_tool_fns = create_web_tools(flunkie_tool_schemas, dispatcher) if flunkie_tool_schemas else []
+    web_tool_fns = create_web_tools(zephlo_tool_schemas, dispatcher) if zephlo_tool_schemas else []
     all_tools = list(mcp_tools) + web_tool_fns
 
     # --- Create ONE agent for the lifetime of this connection ---
