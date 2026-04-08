@@ -58,7 +58,7 @@ interface WidgetState {
 
 // ---- Helper: detect initial config from the <script> tag ----
 
-const DEFAULT_API_URL = "https://app.flunkie.ai";
+const DEFAULT_API_URL = "https://app.zephlo.ai";
 
 function getScriptConfig(): { chatbotId: string; apiUrl: string } {
   const scripts = document.querySelectorAll("script[data-chatbot-id]");
@@ -212,7 +212,7 @@ export class ChatbotWidget extends HTMLElement {
     this.bindEvents();
     this.restoreMessages();
 
-    // Auto-scan HTML forms with flunkie-tool-name attributes
+    // Auto-scan HTML forms with zephlo-tool-name attributes
     const formScanner = new FormScanner();
     formScanner.scan();
     formScanner.observe();
@@ -332,7 +332,7 @@ export class ChatbotWidget extends HTMLElement {
 
         <!-- Footer -->
         <div class="cb-footer">
-          Powered by <a href="#" target="_blank">Flunkie</a>
+          Powered by <a href="#" target="_blank">Zephlo</a>
         </div>
       </div>
 
@@ -1591,7 +1591,7 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   /**
-   * Wire up listeners and Flunkie tools on the current chatSocket.
+   * Wire up listeners and Zephlo tools on the current chatSocket.
    * Call this after creating a new ChatSocket instance.
    */
   private setupMcpListener() {
@@ -1601,10 +1601,10 @@ export class ChatbotWidget extends HTMLElement {
     }
     if (!this.chatSocket) return;
 
-    // Wire Flunkie tool handler and schemas on every new socket
+    // Wire Zephlo tool handler and schemas on every new socket
     toolRegistry.discoverExternal();
-    this.chatSocket.setFlunkieToolHandler(async (req) => toolRegistry.execute(req.tool, req.arguments));
-    this.chatSocket.setFlunkieTools(() => toolRegistry.getSchemas());
+    this.chatSocket.setZephloToolHandler(async (req) => toolRegistry.execute(req.tool, req.arguments));
+    this.chatSocket.setZephloTools(() => toolRegistry.getSchemas());
 
     // Wire live chat handlers
     this.chatSocket.onAdminMessage((content) => {
@@ -1666,7 +1666,7 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   /**
-   * Initialize widget from the Flunkie SDK (programmatic init).
+   * Initialize widget from the Zephlo SDK (programmatic init).
    * Stores api_key and chatbotId, then triggers connectedCallback if not already run.
    */
   private sdkApiKey: string | null = null;
@@ -1701,29 +1701,29 @@ if (!customElements.get("chatbot-widget")) {
 }
 
 // Expose global API for host page integration
-interface FlunkieSDKHandle {
+interface ZephloSDKHandle {
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   onMcpResult(callback: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
 }
 
-interface FlunkieSDK {
-  initialize(config: { api_key: string; chatbotId: string | number }): FlunkieSDKHandle;
+interface ZephloSDK {
+  initialize(config: { api_key: string; chatbotId: string | number }): ZephloSDKHandle;
 }
 
 declare global {
   interface Window {
-    Flunkie: FlunkieSDK;
+    Zephlo: ZephloSDK;
     ChatbotWidget?: {
       onMcpResult: (callback: (results: McpToolResult[]) => void) => () => void;
     };
   }
 }
 
-// Expose Flunkie SDK globally
-window.Flunkie = {
-  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: string | number }): FlunkieSDKHandle {
-    (window as any).__FLUNKIE_SDK__ = true;
+// Expose Zephlo SDK globally
+window.Zephlo = {
+  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: string | number }): ZephloSDKHandle {
+    (window as any).__ZEPHLO_SDK__ = true;
 
     // Create and inject the widget element
     if (!document.querySelector("chatbot-widget")) {
@@ -1750,7 +1750,7 @@ window.Flunkie = {
 };
 
 // Backwards-compatible fallback: auto-inject via data-chatbot-id script tag
-if (!(window as any).__FLUNKIE_SDK__) {
+if (!(window as any).__ZEPHLO_SDK__) {
   if (!document.querySelector("chatbot-widget")) {
     document.body.appendChild(document.createElement("chatbot-widget"));
   }

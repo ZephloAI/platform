@@ -1,5 +1,5 @@
 // ============================================================
-// Type Definitions for the Flunkie Platform
+// Type Definitions for the Zephlo Platform
 // ============================================================
 
 /** A single day's count for time-series charts */

@@ -114,9 +114,9 @@ export class ChatSocket {
   private pending: ((value: ChatResponse) => void) | null = null;
   private pendingReject: ((reason: Error) => void) | null = null;
   private mcpListeners: ((results: McpToolResult[]) => void)[] = [];
-  private flunkieToolHandler: ((req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
-  private flunkieToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
-  private flunkieToolGetter: (() => { name: string; description: string; inputSchema: Record<string, unknown> }[]) | null = null;
+  private zephloToolHandler: ((req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>) | null = null;
+  private zephloToolSchemas: { name: string; description: string; inputSchema: Record<string, unknown> }[] = [];
+  private zephloToolGetter: (() => { name: string; description: string; inputSchema: Record<string, unknown> }[]) | null = null;
   private adminMessageHandler: ((content: string) => void) | null = null;
   private modeChangedHandler: ((mode: string) => void) | null = null;
   private waitingHandler: (() => void) | null = null;
@@ -142,15 +142,15 @@ export class ChatSocket {
     return `${proto}//${url.host}/ws/chat?session_id=${this.sessionId}&chatbot_id=${this.chatbotId}`;
   }
 
-  setFlunkieToolHandler(handler: (req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
-    this.flunkieToolHandler = handler;
+  setZephloToolHandler(handler: (req: { tool: string; arguments: Record<string, unknown> }) => Promise<{ content: string; error?: string }>): void {
+    this.zephloToolHandler = handler;
   }
 
-  setFlunkieTools(schemasOrGetter: { name: string; description: string; inputSchema: Record<string, unknown> }[] | (() => { name: string; description: string; inputSchema: Record<string, unknown> }[])): void {
+  setZephloTools(schemasOrGetter: { name: string; description: string; inputSchema: Record<string, unknown> }[] | (() => { name: string; description: string; inputSchema: Record<string, unknown> }[])): void {
     if (typeof schemasOrGetter === 'function') {
-      this.flunkieToolGetter = schemasOrGetter;
+      this.zephloToolGetter = schemasOrGetter;
     } else {
-      this.flunkieToolSchemas = schemasOrGetter;
+      this.zephloToolSchemas = schemasOrGetter;
     }
   }
 
@@ -176,11 +176,11 @@ export class ChatSocket {
     this.navigateHandler = handler;
   }
 
-  private getFlunkieToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
-    if (this.flunkieToolGetter) {
-      return this.flunkieToolGetter();
+  private getZephloToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
+    if (this.zephloToolGetter) {
+      return this.zephloToolGetter();
     }
-    return this.flunkieToolSchemas;
+    return this.zephloToolSchemas;
   }
 
   private async handleMessage(event: MessageEvent): Promise<void> {
@@ -218,9 +218,9 @@ export class ChatSocket {
     }
 
     // Handle tool call from agent
-    if (data.message_type === "web_tool_call" && this.flunkieToolHandler) {
+    if (data.message_type === "web_tool_call" && this.zephloToolHandler) {
       const args = data.details.arguments || {};
-      const result = await this.flunkieToolHandler({
+      const result = await this.zephloToolHandler({
         tool: data.details.tool,
         arguments: args,
       });
@@ -301,7 +301,7 @@ export class ChatSocket {
             this.setStatus('connected');
             this.ws!.send(JSON.stringify({
               message_type: "init",
-              flunkie_tools: this.getFlunkieToolSchemas(),
+              zephlo_tools: this.getZephloToolSchemas(),
             }));
             this.setupWsHandlers();
             resolve();
@@ -357,7 +357,7 @@ export class ChatSocket {
         this.setStatus('connected');
         this.ws!.send(JSON.stringify({
             message_type: "init",
-            flunkie_tools: this.getFlunkieToolSchemas(),
+            zephlo_tools: this.getZephloToolSchemas(),
         }));
         this.ws!.send(payload);
       };

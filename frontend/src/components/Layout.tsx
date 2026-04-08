@@ -31,9 +31,9 @@ function Layout() {
       {/* Top nav */}
       <nav className="h-14 border-b border-black/[0.06] flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
-          <img src="/logo.svg" alt="Flunkie" className="w-7 h-7" />
+          <img src="/logo.svg" alt="Zephlo" className="w-7 h-7" />
           <span className="text-[15px] font-display font-bold text-label-primary tracking-tight">
-            Flunkie
+            Zephlo
           </span>
         </div>
 

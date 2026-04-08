@@ -1,4 +1,4 @@
-export interface FlunkieOptions {
+export interface ZephloOptions {
   key: string;
   chatbotId: string;
   apiUrl?: string;
@@ -24,7 +24,7 @@ export declare const navigateProp: {
   };
 };
 
-export interface FlunkieInstance {
+export interface ZephloInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
@@ -33,12 +33,12 @@ export interface FlunkieInstance {
   destroy(): void;
 }
 
-interface Flunkie {
-  initialize(options: FlunkieOptions): FlunkieInstance;
+interface Zephlo {
+  initialize(options: ZephloOptions): ZephloInstance;
 }
 
-declare const Flunkie: Flunkie;
-export default Flunkie;
+declare const Zephlo: Zephlo;
+export default Zephlo;
 
 // WebMCP browser API type declarations (W3C Draft Community Group Report)
 interface ModelContextTool {

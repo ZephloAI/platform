@@ -171,10 +171,10 @@ function ChatbotLayout() {
             onClick={() => setSidebarOpen(false)}
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2 px-2'} py-1`}
           >
-            <img src="/logo.svg" alt="Flunkie" className="w-6 h-6 shrink-0" />
+            <img src="/logo.svg" alt="Zephlo" className="w-6 h-6 shrink-0" />
             {!collapsed && (
               <span className="text-[14px] font-display font-bold text-label-primary tracking-tight">
-                Flunkie
+                Zephlo
               </span>
             )}
           </Link>

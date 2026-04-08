@@ -1,4 +1,4 @@
-# Flunkie
+# Zephlo
 
 AI chatbot widget for your website. Add a fully-featured chat assistant with a single script tag or npm install.
 
@@ -9,9 +9,9 @@ AI chatbot widget for your website. Add a fully-featured chat assistant with a s
 The fastest way to get started. Add this to your HTML:
 
 ```html
-<script src="https://your-flunkie-instance.com/widget/flunkie.js"></script>
+<script src="https://your-zephlo-instance.com/widget/zephlo.js"></script>
 <script>
-  Flunkie.initialize({
+  Zephlo.initialize({
     key: "YOUR_API_KEY",
     chatbotId: 1
   });
@@ -21,13 +21,13 @@ The fastest way to get started. Add this to your HTML:
 ### npm
 
 ```bash
-npm install flunkie
+npm install zephlo
 ```
 
 ```js
-import Flunkie from "flunkie";
+import Zephlo from "zephlo";
 
-const widget = Flunkie.initialize({
+const widget = Zephlo.initialize({
   key: "YOUR_API_KEY",
   chatbotId: 1
 });
@@ -37,9 +37,9 @@ const widget = Flunkie.initialize({
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
-| `key` | `string` | Yes | Your Flunkie API key |
+| `key` | `string` | Yes | Your Zephlo API key |
 | `chatbotId` | `number` | Yes | The ID of your chatbot agent |
-| `apiUrl` | `string` | No | Custom API URL (defaults to your Flunkie instance) |
+| `apiUrl` | `string` | No | Custom API URL (defaults to your Zephlo instance) |
 
 ## Features
 
@@ -56,7 +56,7 @@ const widget = Flunkie.initialize({
 
 ## SDK Methods
 
-The object returned by `Flunkie.initialize()` exposes these methods:
+The object returned by `Zephlo.initialize()` exposes these methods:
 
 ### `onToolResult(callback)`
 
@@ -110,8 +110,8 @@ widget.destroy();
 Full type definitions are included. Import types directly:
 
 ```ts
-import Flunkie from "flunkie";
-import type { FlunkieOptions, FlunkieInstance, ToolDefinition } from "flunkie";
+import Zephlo from "zephlo";
+import type { ZephloOptions, ZephloInstance, ToolDefinition } from "zephlo";
 ```
 
 ## License

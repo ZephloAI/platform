@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Playwright/Chromium
 RUN crawl4ai-setup
 
+# Pre-download the embedding model so it's cached in the image
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # Stage 2: Final slim image
 FROM python:3.11-slim
 
@@ -33,16 +36,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages, Playwright browsers, and cached model from builder
+# Copy installed packages, Playwright browsers, and cached HF model from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
+COPY --from=builder /root/.cache/huggingface /home/appuser/.cache/huggingface
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
     mkdir -p /home/appuser/.cache && \
     mv /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright && \
-    chown -R appuser:appuser /home/appuser/.cache
+    chown -R appuser:appuser /home/appuser
 
 COPY . .
 RUN chown -R appuser:appuser /app

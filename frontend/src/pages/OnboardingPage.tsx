@@ -110,7 +110,7 @@ function OnboardingPage() {
       <div className="max-w-md w-full relative z-10 animate-fade-in">
         {/* Logo and heading */}
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="Flunkie" className="w-14 h-14 mx-auto mb-5" />
+          <img src="/logo.svg" alt="Zephlo" className="w-14 h-14 mx-auto mb-5" />
           <h1 className="heading-xl font-display text-label-primary mb-1">
             {step === 1 && 'Set up your organization'}
             {step === 2 && 'About you'}

@@ -45,19 +45,19 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
     }
   };
 
-  const scriptTagCode = `<script src="${origin}/widget/flunkie.js"></script>
+  const scriptTagCode = `<script src="${origin}/widget/zephlo.js"></script>
 <script>
-  Flunkie.initialize({
+  Zephlo.initialize({
     key: "YOUR_API_KEY",
     chatbotId: "${chatbot.public_id}"
   });
 </script>`;
 
-  const npmCode = `npm install flunkie
+  const npmCode = `npm install zephlo
 
-import Flunkie from "flunkie";
+import Zephlo from "zephlo";
 
-Flunkie.initialize({
+Zephlo.initialize({
   key: "YOUR_API_KEY",
   chatbotId: "${chatbot.public_id}"
 });`;
@@ -165,7 +165,7 @@ Flunkie.initialize({
           Embed Code
         </h2>
         <p className="text-[12px] text-label-tertiary mb-4">
-          Add the Flunkie widget to your website.
+          Add the Zephlo widget to your website.
         </p>
 
         <div className="flex gap-1 mb-4 p-1 bg-surface-secondary rounded-xl w-fit">
