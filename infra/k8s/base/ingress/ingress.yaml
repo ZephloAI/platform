@@ -29,10 +29,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - app.flunkie.ai
+        - app.zephlo.ai
       secretName: cloudflare-origin-cert
   rules:
-    - host: app.flunkie.ai
+    - host: app.zephlo.ai
       http:
         paths:
           - path: /api/
@@ -63,3 +63,28 @@ spec:
                 name: frontend
                 port:
                   number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: landing-ingress
+  namespace: agent-saas
+  labels:
+    app.kubernetes.io/part-of: agent-saas
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - zephlo.ai
+      secretName: cloudflare-origin-cert
+  rules:
+    - host: zephlo.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: landing
+                port:
+                  number: 3000

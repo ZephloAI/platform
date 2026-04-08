@@ -14,10 +14,10 @@ grafana:
     enabled: true
     ingressClassName: nginx
     hosts:
-      - grafana.flunkie.ai
+      - grafana.zephlo.ai
     tls:
       - hosts:
-          - grafana.flunkie.ai
+          - grafana.zephlo.ai
         secretName: grafana-tls
 
   # Resource limits

@@ -31,7 +31,7 @@ spec:
               app: frontend
       containers:
         - name: frontend
-          image: docker.io/flunkie/frontend:latest
+          image: docker.io/zephlo/frontend:latest
           ports:
             - containerPort: 80
               protocol: TCP

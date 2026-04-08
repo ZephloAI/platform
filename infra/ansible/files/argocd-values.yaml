@@ -14,10 +14,10 @@ server:
       nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     hosts:
-      - argocd.flunkie.ai
+      - argocd.zephlo.ai
     tls:
       - hosts:
-          - argocd.flunkie.ai
+          - argocd.zephlo.ai
         secretName: argocd-server-tls
 
   # Run in insecure mode behind ingress (TLS terminated at ingress)

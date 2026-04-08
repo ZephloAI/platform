@@ -31,7 +31,7 @@ spec:
               app: api
       containers:
         - name: api
-          image: docker.io/flunkie/api:latest
+          image: docker.io/zephlo/api:latest
           ports:
             - containerPort: 8000
               protocol: TCP

@@ -9,16 +9,18 @@ resources:
 # Image tags are updated by CI/CD pipeline
 images:
   - name: docker.io/flunkie/frontend
-    newTag: 1cf06a27573632631bcbaab6fe7467ea11eb3f1a
+    newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
   - name: docker.io/flunkie/api
-    newTag: 1cf06a27573632631bcbaab6fe7467ea11eb3f1a
+    newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
   - name: docker.io/flunkie/agent
-    newTag: 1cf06a27573632631bcbaab6fe7467ea11eb3f1a
+    newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
   - name: docker.io/flunkie/crawler
-    newTag: 1cf06a27573632631bcbaab6fe7467ea11eb3f1a
+    newTag: 22e1dcb95c65b6b8b949b035859f58fd166ddbda
 
 # Production replica counts
 replicas:
+  - name: landing
+    count: 2
   - name: frontend
     count: 2
   - name: api
@@ -95,6 +97,28 @@ patches:
                   limits:
                     cpu: 1000m
                     memory: 2Gi
+
+  # Landing: 256Mi memory, 250m CPU
+  - target:
+      kind: Deployment
+      name: landing
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: landing
+      spec:
+        template:
+          spec:
+            containers:
+              - name: landing
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 250m
+                    memory: 256Mi
 
   # Frontend: 256Mi memory, 250m CPU
   - target:
