@@ -11,7 +11,7 @@ interface ChatbotMetrics {
   resolved_requests: number;
 }
 
-type EmbedTab = 'script' | 'npm' | 'legacy';
+type EmbedTab = 'fab' | 'chat' | 'npm' | 'legacy';
 
 interface OverviewSectionProps {
   chatbot: Chatbot;
@@ -20,7 +20,7 @@ interface OverviewSectionProps {
 function OverviewSection({ chatbot }: OverviewSectionProps) {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
-  const [embedTab, setEmbedTab] = useState<EmbedTab>('script');
+  const [embedTab, setEmbedTab] = useState<EmbedTab>('fab');
   const activeOrg = useOrgStore((state) => state.activeOrganization);
   const [metrics, setMetrics] = useState<ChatbotMetrics | null>(null);
 
@@ -45,13 +45,23 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
     }
   };
 
-  const scriptTagCode = `<script src="${origin}/widget/zephlo.js"></script>
+  const initScript = `<script src="${origin}/widget/zephlo.js"></script>
 <script>
   Zephlo.initialize({
     key: "YOUR_API_KEY",
     chatbotId: "${chatbot.public_id}"
   });
 </script>`;
+
+  const fabCode = `${initScript}
+
+<!-- Floating chat button (bottom-right corner) -->
+<zephlo-fab></zephlo-fab>`;
+
+  const chatCode = `${initScript}
+
+<!-- Inline chat view — place it in any section of your page -->
+<zephlo-chat width="400" height="600"></zephlo-chat>`;
 
   const npmCode = `npm install zephlo
 
@@ -60,7 +70,11 @@ import Zephlo from "zephlo";
 Zephlo.initialize({
   key: "YOUR_API_KEY",
   chatbotId: "${chatbot.public_id}"
-});`;
+});
+
+// Then render one (or both) in your JSX:
+// <zephlo-fab />
+// <zephlo-chat width="400" height="600" />`;
 
   const legacyCode = `<script
   src="${origin}/widget/chatbot-widget.js"
@@ -68,7 +82,8 @@ Zephlo.initialize({
 ></script>`;
 
   const embedCodeMap: Record<EmbedTab, string> = {
-    script: scriptTagCode,
+    fab: fabCode,
+    chat: chatCode,
     npm: npmCode,
     legacy: legacyCode,
   };
@@ -170,7 +185,8 @@ Zephlo.initialize({
 
         <div className="flex gap-1 mb-4 p-1 bg-surface-secondary rounded-xl w-fit">
           {([
-            { key: 'script' as EmbedTab, label: 'Script Tag' },
+            { key: 'fab' as EmbedTab, label: 'Floating Button' },
+            { key: 'chat' as EmbedTab, label: 'Inline Chat' },
             { key: 'npm' as EmbedTab, label: 'npm' },
             { key: 'legacy' as EmbedTab, label: 'Legacy' },
           ]).map((tab) => (

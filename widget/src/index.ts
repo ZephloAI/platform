@@ -18,6 +18,7 @@ import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
 import * as storage from "./storage";
+import { zephloCore, type CoreEvent, type Message as CoreMessage } from "./zephlo-core";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE, ICON_PERSON } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
@@ -74,39 +75,53 @@ function getScriptConfig(): { chatbotId: string; apiUrl: string } {
 
 export class ChatbotWidget extends HTMLElement {
   private shadow: ShadowRoot;
-  private state!: WidgetState;
-  private messages: Message[] = [];
-  private isOpen = false;
-  private isLoading = false;
-  private sessionId: string | null = null;
+  protected state!: WidgetState;
+  protected isOpen = false;
 
   // DOM references
-  private panel!: HTMLDivElement;
-  private toggleBtn!: HTMLButtonElement;
-  private messagesEl!: HTMLDivElement;
-  private textarea!: HTMLTextAreaElement;
-  private sendBtn!: HTMLButtonElement;
-  private newChatBtn!: HTMLButtonElement;
+  protected panel!: HTMLDivElement;
+  protected toggleBtn!: HTMLButtonElement;
+  protected messagesEl!: HTMLDivElement;
+  protected textarea!: HTMLTextAreaElement;
+  protected sendBtn!: HTMLButtonElement;
+  protected newChatBtn!: HTMLButtonElement;
   private hostStyleEl: HTMLStyleElement | null = null;
-  private chatSocket: ChatSocket | null = null;
-  private greetingsEl: HTMLDivElement | null = null;
+  protected greetingsEl: HTMLDivElement | null = null;
   private greetingsDismissed = false;
   private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
-  private micBtn: HTMLButtonElement | null = null;
+  protected micBtn: HTMLButtonElement | null = null;
   private isRecording = false;
   private recognition: any = null;  // SpeechRecognition instance
   private audioMap: Map<number, string> = new Map();
   private currentAudio: HTMLAudioElement | null = null;
-  private sessionRetried = false;  // prevent infinite retry loops
-  private mcpUnsubscribe: (() => void) | null = null;
-  private mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
-  private isMinimized = false;
-  private personMode = false;
+  protected isMinimized = false;
   private voiceMode = false;
   private voiceMicBtn: HTMLButtonElement | null = null;
   private voiceOverlay: HTMLDivElement | null = null;
   private voiceStatusEl: HTMLDivElement | null = null;
 
+  // Unsubscribe from core events
+  protected coreUnsubscribe: (() => void) | null = null;
+  // Flag: is this an inline view? (set by ZephloChat subclass)
+  protected isInline = false;
+
+  // ---- Shared state proxies (read/write through zephloCore) ----
+  protected get messages(): Message[] { return zephloCore.messages as Message[]; }
+  protected set messages(v: Message[]) { zephloCore.messages = v as any; }
+  protected get isLoading(): boolean { return zephloCore.isLoading; }
+  protected set isLoading(v: boolean) { zephloCore.isLoading = v; }
+  protected get personMode(): boolean { return zephloCore.personMode; }
+  protected set personMode(v: boolean) { zephloCore.personMode = v; }
+  protected get sessionId(): string | null { return zephloCore.sessionId; }
+  protected set sessionId(v: string | null) { zephloCore.sessionId = v; }
+  protected get chatSocket() { return zephloCore.chatSocket; }
+  protected set chatSocket(v: any) { zephloCore.chatSocket = v; }
+
+  // Retry guard (only used by this view's send methods — core has its own)
+  private sessionRetried = false;
+  // MCP result listeners (SDK-level, registered via core)
+  private mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
+  private mcpUnsubscribe: (() => void) | null = null;
 
   constructor() {
     super();
@@ -114,14 +129,29 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   async connectedCallback() {
-    const scriptConfig = getScriptConfig();
-    const chatbotId = this.sdkChatbotId || scriptConfig.chatbotId;
-    const apiUrl = scriptConfig.apiUrl;
+    // Backwards-compat: if a `<script data-chatbot-id>` tag is present, use
+    // that config. Otherwise wait for `Zephlo.initialize()` to be called.
+    //
+    // This is important because custom element upgrade happens during
+    // `customElements.define()` inside zephlo.js — which runs BEFORE the
+    // inline `<script>` that calls `Zephlo.initialize()`. Without this wait,
+    // the view would capture the default (production) apiUrl into its state.
+    if (!zephloCore.chatbotId) {
+      const scriptConfig = getScriptConfig();
+      const chatbotId = this.sdkChatbotId || scriptConfig.chatbotId;
+      if (chatbotId) {
+        zephloCore.chatbotId = chatbotId;
+        zephloCore.apiUrl = scriptConfig.apiUrl;
+      } else {
+        // No script-tag init — wait for Zephlo.initialize() to run.
+        await zephloCore.waitForConfiguration();
+      }
+    }
 
     // Start with defaults
     this.state = {
-      chatbotId,
-      apiUrl,
+      chatbotId: zephloCore.chatbotId,
+      apiUrl: zephloCore.apiUrl,
       title: "Chat Assistant",
       icon: "",
       welcome: "Hi! How can I help you today?",
@@ -142,8 +172,8 @@ export class ChatbotWidget extends HTMLElement {
       isActive: true,
     };
 
-    // Fetch config from API to get user-customized settings
-    const config = await fetchConfig(apiUrl, chatbotId);
+    // Fetch widget config via core (cached for all views)
+    const config = await zephloCore.loadConfig();
     if (config) {
       this.state.title = config.name || this.state.title;
       this.state.icon = config.widget_icon || "";
@@ -164,8 +194,7 @@ export class ChatbotWidget extends HTMLElement {
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
       this.state.voiceEnabled = config.voice_enabled || false;
-      this.state.isActive = config.is_active !== false;
-
+      this.state.isActive = (config as any).is_active !== false;
     }
 
     // Hide widget entirely if inactive
@@ -174,39 +203,12 @@ export class ChatbotWidget extends HTMLElement {
       return;
     }
 
-    // Create or reuse session, then create WebSocket client
-    let sessionId = storage.getItem(`cb_session_${chatbotId}`);
-    if (!sessionId) {
-      try {
-        sessionId = await createSession(apiUrl, chatbotId);
-        storage.setItem(`cb_session_${chatbotId}`, sessionId);
-      } catch {
-        // Session creation failed — will retry on first message
-      }
-    }
-    this.sessionId = sessionId;
-    this.chatSocket = sessionId
-      ? new ChatSocket(apiUrl, chatbotId, sessionId)
-      : null;
+    // Ensure session+socket exist on the shared core (fire-and-forget)
+    zephloCore.ensureSession();
 
-    if (this.chatSocket) {
-      this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
-      this.setupMcpListener();
-      // Eagerly connect so admin messages can be received immediately
-      this.chatSocket.connect().catch(() => {
-        // Will retry on first message send
-      });
-    }
-
-    // Load existing messages from storage (if any)
-    const savedMessages = storage.getItem(`cb_messages_${chatbotId}`);
-    if (savedMessages) {
-      try {
-        this.messages = JSON.parse(savedMessages);
-      } catch {
-        this.messages = [];
-      }
-    }
+    // Subscribe to core events so this view stays in sync with state changes
+    // from other views sharing the same core.
+    this.coreUnsubscribe = zephloCore.subscribe((ev) => this.onCoreEvent(ev));
 
     this.render();
     this.bindEvents();
@@ -217,73 +219,112 @@ export class ChatbotWidget extends HTMLElement {
     formScanner.scan();
     formScanner.observe();
 
-    if (this.state.position.includes('sidebar')) {
+    if (!this.isInline && this.state.position.includes('sidebar')) {
       this.injectHostTransition();
     }
-
-    // Auto-hide timer is now started on hover in bindEvents
   }
 
-  private render() {
-    const { title, icon, welcome, position, logoUrl } = this.state;
-
-    // Position override
-    const isLeftSide = position === "left" || position === "left-sidebar";
-    const posStyles = isLeftSide
-      ? `
-        :host { left: 20px; right: auto; }
-        .cb-panel { left: 0; right: auto; }
-        .cb-toggle { left: 0; right: auto; }
-        .cb-greeting-bubbles { left: 0; right: auto; align-items: flex-start; }
-      `
-      : "";
-
-    // Load Google Font if custom font is set
-    if (this.state.fontFamily) {
-      const fontLink = document.createElement('link');
-      fontLink.rel = 'stylesheet';
-      fontLink.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(this.state.fontFamily)}:wght@400;500;600&display=swap`;
-      this.shadow.appendChild(fontLink);
+  /** React to core state changes coming from other views or the server. */
+  protected onCoreEvent(ev: CoreEvent) {
+    switch (ev.type) {
+      case "messageAdded":
+        // Voice mode handles assistant replies specially (TTS playback + mic restart)
+        if (this.voiceMode && ev.message.role === "assistant") {
+          this.handleVoiceAssistantReply(ev.message);
+        } else {
+          this.appendMessage(ev.message);
+        }
+        break;
+      case "messagesReset":
+        this.renderEmptyState();
+        break;
+      case "loading":
+        this.updateLoadingUi(ev.loading);
+        break;
+      case "statusChanged":
+        this.updateStatusDot(ev.status);
+        break;
+      case "personModeChanged":
+        this.updateHeaderForMode();
+        this.updateInputPlaceholder();
+        break;
+      case "waiting":
+        this.showWaitingStatus();
+        break;
+      case "navigate":
+        if (this.isOpen) this.minimize();
+        break;
+      case "mcpResults":
+        // Dispatch CustomEvent that crosses Shadow DOM for external listeners
+        this.dispatchEvent(new CustomEvent("mcp-result", {
+          bubbles: true,
+          composed: true,
+          detail: { results: ev.results },
+        }));
+        break;
+      case "error":
+        this.showError(ev.message);
+        break;
     }
+  }
 
-    // Apply all config values as CSS variable overrides
-    const fontStack = this.state.fontFamily
-      ? `"${this.state.fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`
-      : '';
-    const customStyles = `
-      :host {
-        --cb-accent: ${this.state.headerColor};
-        --cb-accent-hover: ${this.state.headerColor};
-        --cb-user-bubble: ${this.state.userBubbleColor};
-        --cb-assistant-bubble: ${this.state.assistantBubbleColor};
-        --cb-text: ${this.state.textColor};
-        --cb-panel-width: ${this.state.width}px;
-        --cb-panel-height: ${this.state.height}px;
-        --cb-font-size: ${this.state.fontSize}px;
-        ${fontStack ? `--cb-font: ${fontStack};` : ''}
+  private updateLoadingUi(loading: boolean) {
+    if (loading) {
+      // Show typing indicator if not already shown
+      if (!this.messagesEl?.querySelector('.cb-typing')) {
+        this.showTyping();
       }
-    `;
+      if (this.sendBtn) this.sendBtn.disabled = true;
+    } else {
+      // Remove any typing indicators
+      this.shadow.querySelectorAll('.cb-typing').forEach((el) => el.remove());
+      if (this.sendBtn && this.textarea) {
+        this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+      }
+    }
+  }
 
-    // Avatar content: logo image > default chat SVG
+  private showWaitingStatus() {
+    if (!this.messagesEl) return;
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "cb-message-status";
+    statusDiv.textContent = "Message sent";
+    this.messagesEl.appendChild(statusDiv);
+    this.scrollToBottom();
+  }
+
+  private renderEmptyState() {
+    if (!this.messagesEl) return;
+    const { title, welcome, logoUrl } = this.state;
+    const welcomeIcon = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
+      : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
+    this.messagesEl.innerHTML = `
+      <div class="cb-welcome">
+        <div class="cb-welcome-icon">${welcomeIcon}</div>
+        <h3>${this.escapeHtml(title)}</h3>
+        <p>${this.escapeHtml(welcome)}</p>
+      </div>
+    `;
+    // Show input prompts again
+    const inputPrompts = this.shadow.querySelector('.cb-input-prompts') as HTMLElement | null;
+    if (inputPrompts) inputPrompts.style.display = '';
+  }
+
+  /** Build the HTML for a single chat panel */
+  private renderPanelHtml(extraClasses: string): string {
+    const { title, welcome, logoUrl } = this.state;
+
     const avatarContent = logoUrl
       ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-avatar-img">`
       : ICON_CHAT;
 
-    // Welcome icon
     const welcomeIcon = logoUrl
       ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
       : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
 
-    // Toggle button content
-    const toggleContent = logoUrl
-      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-toggle-logo">`
-      : `<span class="cb-icon-chat">${ICON_CHAT}</span>`;
-
-    this.shadow.innerHTML = `
-      <style>${WIDGET_STYLES}${posStyles}${customStyles}</style>
-
-      <div class="cb-panel${position.includes('sidebar') ? ` sidebar sidebar-${position === 'left-sidebar' ? 'left' : 'right'}` : ''}" role="dialog" aria-label="Chat widget">
-        <!-- Header -->
+    return `
+      <div class="cb-panel ${extraClasses}" role="dialog" aria-label="Chat widget">
         <div class="cb-header">
           <div class="cb-header-avatar">${avatarContent}</div>
           <div class="cb-header-info">
@@ -300,8 +341,6 @@ export class ChatbotWidget extends HTMLElement {
             ${ICON_CLOSE}
           </button>
         </div>
-
-        <!-- Messages -->
         <div class="cb-messages">
           <div class="cb-welcome">
             <div class="cb-welcome-icon">${welcomeIcon}</div>
@@ -309,45 +348,97 @@ export class ChatbotWidget extends HTMLElement {
             <p>${this.escapeHtml(welcome)}</p>
           </div>
         </div>
-
-        <!-- Quick prompts (always visible) -->
         <div class="cb-input-prompts">
           ${this.renderQuickPrompts()}
         </div>
-
-        <!-- Input -->
         <div class="cb-input-area">
           <div class="cb-input-row">
-            <textarea
-              rows="1"
-              placeholder="Type a message..."
-              aria-label="Chat message"
-            ></textarea>
-            <button class="cb-send-btn" aria-label="Send message" disabled>
-              ${ICON_SEND}
-            </button>
+            <textarea rows="1" placeholder="Type a message..." aria-label="Chat message"></textarea>
+            <button class="cb-send-btn" aria-label="Send message" disabled>${ICON_SEND}</button>
           </div>
           ${this.state.voiceEnabled && this.hasSpeechRecognition() ? `<button class="cb-mic-btn" aria-label="Voice mode">${ICON_MIC}</button>` : ''}
         </div>
-
-        <!-- Footer -->
         <div class="cb-footer">
           Powered by <a href="#" target="_blank">Zephlo</a>
         </div>
       </div>
+    `;
+  }
 
-      <!-- Greeting bubbles -->
+  /** Build the CSS variable overrides from the loaded widget config. */
+  protected buildCustomStyles(): string {
+    const fontStack = this.state.fontFamily
+      ? `"${this.state.fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`
+      : '';
+    return `
+      :host {
+        --cb-accent: ${this.state.headerColor};
+        --cb-accent-hover: ${this.state.headerColor};
+        --cb-user-bubble: ${this.state.userBubbleColor};
+        --cb-assistant-bubble: ${this.state.assistantBubbleColor};
+        --cb-text: ${this.state.textColor};
+        --cb-panel-width: ${this.state.width}px;
+        --cb-panel-height: ${this.state.height}px;
+        --cb-font-size: ${this.state.fontSize}px;
+        ${fontStack ? `--cb-font: ${fontStack};` : ''}
+      }
+    `;
+  }
+
+  /** Load a Google font if a custom family is configured. */
+  protected loadCustomFont(): void {
+    if (!this.state.fontFamily) return;
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(this.state.fontFamily)}:wght@400;500;600&display=swap`;
+    this.shadow.appendChild(fontLink);
+  }
+
+  protected render() {
+    const { position, logoUrl } = this.state;
+
+    this.loadCustomFont();
+
+    // Position override (left-side placement)
+    const isLeftSide = position === "left" || position === "left-sidebar";
+    const posStyles = isLeftSide
+      ? `
+        :host { left: 20px; right: auto; }
+        .cb-panel { left: 0; right: auto; }
+        .cb-toggle { left: 0; right: auto; }
+        .cb-greeting-bubbles { left: 0; right: auto; align-items: flex-start; }
+      `
+      : "";
+
+    // Toggle button content
+    const toggleContent = logoUrl
+      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-toggle-logo">`
+      : `<span class="cb-icon-chat">${ICON_CHAT}</span>`;
+
+    const fabToggle = `
+      <button class="cb-toggle${logoUrl ? ' has-logo' : ''}${position.includes('sidebar') ? ' sidebar-toggle' : ''}" aria-label="Open chat">
+        ${toggleContent}
+        <span class="cb-icon-close">${position === 'left-sidebar' ? ICON_SIDEBAR_LEFT_HIDE : position === 'right-sidebar' ? ICON_SIDEBAR_RIGHT_HIDE : ICON_CLOSE}</span>
+      </button>
+    `;
+
+    const greetingBubbles = `
       <div class="cb-greeting-bubbles" style="display:none">
         ${this.state.greetingPrompts.map((gp, i) =>
           `<div class="cb-greeting-bubble" data-greeting-index="${i}">${this.escapeHtml(gp.title)}</div>`
         ).join('')}
       </div>
+    `;
 
-      <!-- Toggle button -->
-      <button class="cb-toggle${logoUrl ? ' has-logo' : ''}${position.includes('sidebar') ? ' sidebar-toggle' : ''}" aria-label="Open chat">
-        ${toggleContent}
-        <span class="cb-icon-close">${position === 'left-sidebar' ? ICON_SIDEBAR_LEFT_HIDE : position === 'right-sidebar' ? ICON_SIDEBAR_RIGHT_HIDE : ICON_CLOSE}</span>
-      </button>
+    const sidebarClass = position.includes('sidebar')
+      ? ` sidebar sidebar-${position === 'left-sidebar' ? 'left' : 'right'}`
+      : '';
+
+    this.shadow.innerHTML = `
+      <style>${WIDGET_STYLES}${posStyles}${this.buildCustomStyles()}</style>
+      ${this.renderPanelHtml(sidebarClass.trim())}
+      ${greetingBubbles}
+      ${fabToggle}
     `;
 
     // Cache DOM refs
@@ -360,8 +451,10 @@ export class ChatbotWidget extends HTMLElement {
     this.greetingsEl = this.shadow.querySelector(".cb-greeting-bubbles");
     this.micBtn = this.shadow.querySelector(".cb-mic-btn");
 
-    const closeBtn = this.shadow.querySelector('.cb-close-btn');
-    if (closeBtn) closeBtn.addEventListener('click', () => this.toggle());
+    // Bind close buttons -- in "both" mode, only the FAB panel has a close button (inline hides it via CSS)
+    this.shadow.querySelectorAll('.cb-close-btn').forEach(btn =>
+      btn.addEventListener('click', () => this.toggle())
+    );
 
     // Show greeting bubbles on initial load
     if (this.state.greetingPrompts.length > 0 && this.greetingsEl) {
@@ -383,82 +476,76 @@ export class ChatbotWidget extends HTMLElement {
     }
   }
 
+  /** Helper: bind textarea + send button events on a panel */
+  private bindPanelInput(textarea: HTMLTextAreaElement, sendBtn: HTMLButtonElement, micBtn: HTMLButtonElement | null) {
+    sendBtn.addEventListener("click", () => this.sendFrom(textarea, sendBtn, micBtn));
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        this.sendFrom(textarea, sendBtn, micBtn);
+      }
+    });
+    textarea.addEventListener("input", () => {
+      sendBtn.disabled = textarea.value.trim().length === 0 || this.isLoading;
+      this.autoResizeTextarea(textarea);
+      if (micBtn) {
+        micBtn.classList.toggle('cb-mic-hidden', textarea.value.trim().length > 0);
+      }
+    });
+    if (micBtn) {
+      micBtn.addEventListener("click", () => this.enterVoiceMode());
+    }
+  }
+
   private bindEvents() {
-    this.toggleBtn.addEventListener("click", () => this.toggle());
+    // Toggle button (fab and both modes only)
+    if (this.toggleBtn) {
+      this.toggleBtn.addEventListener("click", () => this.toggle());
 
-    // Show greeting bubbles on toggle hover
-    if (this.state.greetingPrompts.length > 0) {
-      const showGreetings = () => {
-        if (!this.isOpen && !this.greetingsDismissed && this.greetingsEl) {
-          this.greetingsEl.style.display = '';
-          // Force reflow so the animation replays
-          void this.greetingsEl.offsetHeight;
-          this.greetingsEl.classList.remove('hidden');
+      // Show greeting bubbles on toggle hover
+      if (this.state.greetingPrompts.length > 0) {
+        const showGreetings = () => {
+          if (!this.isOpen && !this.greetingsDismissed && this.greetingsEl) {
+            this.greetingsEl.style.display = '';
+            void this.greetingsEl.offsetHeight;
+            this.greetingsEl.classList.remove('hidden');
+          }
+        };
+
+        const hideGreetings = () => {
+          if (this.greetingsEl && !this.greetingsDismissed) {
+            this.greetingsEl.classList.add('hidden');
+            setTimeout(() => {
+              if (this.greetingsEl?.classList.contains('hidden')) {
+                this.greetingsEl.style.display = 'none';
+              }
+            }, 400);
+          }
+        };
+
+        this.toggleBtn.addEventListener("mouseenter", showGreetings);
+        this.toggleBtn.addEventListener("mouseleave", (e) => {
+          const related = e.relatedTarget as HTMLElement | null;
+          if (this.greetingsEl?.contains(related)) return;
+          hideGreetings();
+        });
+
+        if (this.greetingsEl) {
+          this.greetingsEl.addEventListener("mouseenter", showGreetings);
+          this.greetingsEl.addEventListener("mouseleave", hideGreetings);
         }
-      };
-
-      const hideGreetings = () => {
-        if (this.greetingsEl && !this.greetingsDismissed) {
-          this.greetingsEl.classList.add('hidden');
-          setTimeout(() => {
-            // Only set display:none if still hidden (not re-hovered)
-            if (this.greetingsEl?.classList.contains('hidden')) {
-              this.greetingsEl.style.display = 'none';
-            }
-          }, 400);
-        }
-      };
-
-      this.toggleBtn.addEventListener("mouseenter", showGreetings);
-      this.toggleBtn.addEventListener("mouseleave", (e) => {
-        // Don't hide if mouse moved to the greeting bubbles
-        const related = e.relatedTarget as HTMLElement | null;
-        if (this.greetingsEl?.contains(related)) return;
-        hideGreetings();
-      });
-
-      // Keep bubbles visible when hovering over them
-      if (this.greetingsEl) {
-        this.greetingsEl.addEventListener("mouseenter", showGreetings);
-        this.greetingsEl.addEventListener("mouseleave", hideGreetings);
       }
     }
-    this.sendBtn.addEventListener("click", () => this.send());
+
+    this.bindPanelInput(this.textarea, this.sendBtn, this.micBtn);
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
 
     // Tap input area to restore from minimized state
-    const inputArea = this.shadow.querySelector('.cb-input-area');
-    if (inputArea) {
+    this.shadow.querySelectorAll('.cb-input-area').forEach(inputArea => {
       inputArea.addEventListener('click', () => {
         if (this.isMinimized) this.restore();
       });
-    }
-
-    this.textarea.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        this.send();
-      }
     });
-
-    this.textarea.addEventListener("input", () => {
-      this.sendBtn.disabled =
-        this.textarea.value.trim().length === 0 || this.isLoading;
-      this.autoResize();
-
-      // Hide/show mic button based on textarea content
-      if (this.micBtn) {
-        if (this.textarea.value.trim().length > 0) {
-          this.micBtn.classList.add('cb-mic-hidden');
-        } else {
-          this.micBtn.classList.remove('cb-mic-hidden');
-        }
-      }
-    });
-
-    if (this.micBtn) {
-      this.micBtn.addEventListener("click", () => this.enterVoiceMode());
-    }
 
     // Button clicks (event delegation on shadow root)
     this.shadow.addEventListener("click", (e) => {
@@ -479,48 +566,9 @@ export class ChatbotWidget extends HTMLElement {
         const index = Number(greetingBtn.dataset.greetingIndex);
         const gp = this.state.greetingPrompts[index];
         if (!gp) return;
-
-        // Dismiss all greeting bubbles
         this.dismissGreetings();
-
-        // Open chat if not already open
-        if (!this.isOpen) {
-          this.toggle();
-        }
-
-        // Send the prompt as a user message
-        // Remove welcome screen if present
-        const welcome = this.messagesEl.querySelector(".cb-welcome");
-        if (welcome) welcome.remove();
-
-        // Hide input quick prompts
-        const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
-        if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
-
-        this.messages.push({ role: "user", content: gp.prompt });
-        this.appendMessage({ role: "user", content: gp.prompt });
-        this.saveMessages();
-
-        this.isLoading = true;
-        const typingEl = this.showTyping();
-        this.sendBtn.disabled = true;
-
-        this.chatSocket!.sendMessage(gp.prompt)
-          .then((data) => {
-            typingEl.remove();
-            const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
-            this.messages.push(msg);
-            this.appendMessage(msg);
-            this.saveMessages();
-          })
-          .catch((err) => {
-            typingEl.remove();
-            this.showError(err instanceof Error ? err.message : "Something went wrong.");
-          })
-          .finally(() => {
-            this.isLoading = false;
-            this.sendBtn.disabled = this.textarea.value.trim().length === 0;
-          });
+        if (!this.isOpen) this.toggle();
+        zephloCore.sendMessage(gp.prompt);
         return;
       }
 
@@ -540,18 +588,7 @@ export class ChatbotWidget extends HTMLElement {
 
         // Handle switch to person mode
         if (fp.prompt === "__switch_to_person__") {
-          this.chatSocket?.sendRaw({ message_type: "switch_to_person" });
-          const switchMsg: Message = {
-            role: "assistant",
-            content: "You're now connected with our team. We'll reply shortly.",
-            isAdminMessage: true,
-          };
-          this.messages.push(switchMsg);
-          this.appendMessage(switchMsg);
-          this.saveMessages();
-          this.personMode = true;
-          this.updateHeaderForMode();
-          this.updateInputPlaceholder();
+          zephloCore.switchToPerson();
           return;
         }
 
@@ -559,30 +596,7 @@ export class ChatbotWidget extends HTMLElement {
           window.open(fp.link, "_blank", "noopener");
         }
         if (fp.prompt) {
-          this.messages.push({ role: "user", content: fp.prompt });
-          this.appendMessage({ role: "user", content: fp.prompt });
-          this.saveMessages();
-
-          this.isLoading = true;
-          const typingEl = this.showTyping();
-          this.sendBtn.disabled = true;
-
-          this.chatSocket!.sendMessage(fp.prompt)
-            .then((data) => {
-              typingEl.remove();
-              const responseMsg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
-              this.messages.push(responseMsg);
-              this.appendMessage(responseMsg);
-              this.saveMessages();
-            })
-            .catch((err) => {
-              typingEl.remove();
-              this.showError(err instanceof Error ? err.message : "Something went wrong.");
-            })
-            .finally(() => {
-              this.isLoading = false;
-              this.sendBtn.disabled = this.textarea.value.trim().length === 0;
-            });
+          zephloCore.sendMessage(fp.prompt);
         }
         return;
       }
@@ -594,52 +608,20 @@ export class ChatbotWidget extends HTMLElement {
       const qp = this.state.quickPrompts[index];
       if (!qp) return;
 
-      // Remove the prompt row (buttons disappear)
       const promptRow = btn.closest(".cb-prompt-row");
       if (promptRow) promptRow.remove();
-
-      // Hide quick prompts above input
-      const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
-      if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
 
       if (qp.link) {
         window.open(qp.link, "_blank", "noopener");
       }
       if (qp.prompt) {
-        // Remove welcome screen if present
-        const welcome = this.messagesEl.querySelector(".cb-welcome");
-        if (welcome) welcome.remove();
-
-        // Send the prompt as a user message
-        this.messages.push({ role: "user", content: qp.prompt });
-        this.appendMessage({ role: "user", content: qp.prompt });
-        this.saveMessages();
-
-        this.isLoading = true;
-        const typingEl = this.showTyping();
-        this.sendBtn.disabled = true;
-
-        this.chatSocket!.sendMessage(qp.prompt)
-          .then((data) => {
-            typingEl.remove();
-            const msg: Message = { role: "assistant", content: data.response, sources: data.sources, followUpPrompts: data.follow_up_prompts };
-            this.messages.push(msg);
-            this.appendMessage(msg);
-            this.saveMessages();
-          })
-          .catch((err) => {
-            typingEl.remove();
-            this.showError(err instanceof Error ? err.message : "Something went wrong.");
-          })
-          .finally(() => {
-            this.isLoading = false;
-            this.sendBtn.disabled = this.textarea.value.trim().length === 0;
-          });
+        zephloCore.sendMessage(qp.prompt);
       }
     });
   }
 
-  private toggle() {
+  protected toggle() {
+    if (this.isInline) return; // inline views have no toggle
     this.isOpen = !this.isOpen;
 
     // Dismiss greeting bubbles when opening chat
@@ -658,12 +640,15 @@ export class ChatbotWidget extends HTMLElement {
       }
     }
 
+    // In "both" mode, only toggle the FAB panel -- inline stays open
     this.panel.classList.toggle("open", this.isOpen);
-    this.toggleBtn.classList.toggle("open", this.isOpen);
-    this.toggleBtn.setAttribute(
-      "aria-label",
-      this.isOpen ? "Close chat" : "Open chat",
-    );
+    if (this.toggleBtn) {
+      this.toggleBtn.classList.toggle("open", this.isOpen);
+      this.toggleBtn.setAttribute(
+        "aria-label",
+        this.isOpen ? "Close chat" : "Open chat",
+      );
+    }
 
     // Push page content for sidebar mode (skip on mobile — always overlay)
     const isSidebar = this.state.position.includes('sidebar');
@@ -718,14 +703,16 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   private updateStatusDot(status: ConnectionStatus) {
-    const dot = this.shadow.querySelector('.cb-status-dot') as HTMLElement | null;
-    if (!dot) return;
-    dot.className = `cb-status-dot ${status}`;
+    this.shadow.querySelectorAll('.cb-status-dot').forEach(dot => {
+      dot.className = `cb-status-dot ${status}`;
+    });
   }
 
   disconnectedCallback() {
-    this.chatSocket?.close();
-    this.chatSocket = null;
+    // Unsubscribe from core events — but do NOT close the core's WebSocket
+    // since another view may still be connected.
+    this.coreUnsubscribe?.();
+    this.coreUnsubscribe = null;
     if (this.greetingsTimer) {
       clearTimeout(this.greetingsTimer);
       this.greetingsTimer = null;
@@ -1035,233 +1022,52 @@ export class ChatbotWidget extends HTMLElement {
 
   private async sendVoiceModeMessage(text: string) {
     if (!this.voiceMode) return;
-
-    // Create session if needed
-    if (!this.chatSocket) {
-      try {
-        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
-        this.sessionId = sessionId;
-        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
-        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
-        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
-        this.setupMcpListener();
-      } catch {
-        this.setVoiceStatus('Connection failed');
-        if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
-        return;
-      }
-    }
-
-    // Push user message (stored but not rendered)
-    this.messages.push({ role: "user", content: text });
-    this.saveMessages();
-
+    // Send via core with voice flag; TTS playback happens in onCoreEvent when
+    // the messageAdded event fires with audio data.
     try {
-      const data = await this.chatSocket!.sendMessage(text, true);
-      this.sessionRetried = false;
-
-      if (!this.voiceMode) return; // exited during request
-
-      const msg: Message = {
-        role: "assistant",
-        content: data.response,
-        sources: data.sources,
-        followUpPrompts: data.follow_up_prompts,
-        audio: data.audio,
-      };
-      this.messages.push(msg);
-      this.saveMessages();
-
-      if (data.audio && this.voiceMode) {
-        // Play TTS, then auto-restart mic
-        this.setVoiceStatus('Speaking...');
-        if (this.voiceMicBtn) {
-          this.voiceMicBtn.classList.remove('disabled');
-          this.voiceMicBtn.classList.remove('recording');
-        }
-
-        if (this.currentAudio) {
-          this.currentAudio.pause();
-          this.currentAudio = null;
-        }
-
-        const msgIndex = this.messages.length - 1;
-        this.audioMap.set(msgIndex, data.audio);
-
-        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
-        this.currentAudio = audio;
-
-        audio.onended = () => {
-          this.currentAudio = null;
-          if (this.voiceMode) {
-            this.startVoiceRecognition();
-          }
-        };
-
-        audio.play().catch(() => {
-          // Autoplay blocked — restart mic
-          if (this.voiceMode) {
-            this.startVoiceRecognition();
-          }
-        });
-      } else if (this.voiceMode) {
-        // No audio — restart mic
-        this.startVoiceRecognition();
-      }
-    } catch (err) {
-      if (!this.sessionRetried) {
-        this.sessionRetried = true;
-        const recovered = await this.resetSession();
-        if (recovered && this.voiceMode) {
-          try {
-            const data = await this.chatSocket!.sendMessage(text, true);
-            this.sessionRetried = false;
-            if (!this.voiceMode) return;
-            const msg: Message = {
-              role: "assistant",
-              content: data.response,
-              sources: data.sources,
-              followUpPrompts: data.follow_up_prompts,
-              audio: data.audio,
-            };
-            this.messages.push(msg);
-            this.saveMessages();
-            if (data.audio && this.voiceMode) {
-              this.setVoiceStatus('Speaking...');
-              if (this.voiceMicBtn) {
-                this.voiceMicBtn.classList.remove('disabled');
-                this.voiceMicBtn.classList.remove('recording');
-              }
-              const msgIndex = this.messages.length - 1;
-              this.audioMap.set(msgIndex, data.audio);
-              const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
-              this.currentAudio = audio;
-              audio.onended = () => {
-                this.currentAudio = null;
-                if (this.voiceMode) this.startVoiceRecognition();
-              };
-              audio.play().catch(() => {
-                if (this.voiceMode) this.startVoiceRecognition();
-              });
-            } else if (this.voiceMode) {
-              this.startVoiceRecognition();
-            }
-            return;
-          } catch {
-            // fall through
-          }
-        }
-      }
+      await zephloCore.sendMessage(text, { voice: true });
+    } catch {
       this.setVoiceStatus('Error — tap mic to retry');
       if (this.voiceMicBtn) this.voiceMicBtn.classList.remove('disabled');
     }
   }
 
-  private async sendVoiceMessage(text: string) {
-    if (!text || this.isLoading) return;
-
-    // Create session if needed
-    if (!this.chatSocket) {
-      try {
-        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
-        this.sessionId = sessionId;
-        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
-        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
-        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
-        this.setupMcpListener();
-      } catch {
-        this.showError("Unable to connect. Please try again.");
-        return;
+  /** Play TTS audio for an assistant reply while in voice mode, then restart mic. */
+  private handleVoiceAssistantReply(msg: Message) {
+    if (msg.audio) {
+      this.setVoiceStatus('Speaking...');
+      if (this.voiceMicBtn) {
+        this.voiceMicBtn.classList.remove('disabled');
+        this.voiceMicBtn.classList.remove('recording');
       }
-    }
-
-    this.messages.push({ role: "user", content: text });
-    this.appendMessage({ role: "user", content: text });
-    this.saveMessages();
-
-    this.textarea.value = "";
-    this.sendBtn.disabled = true;
-    this.autoResize();
-
-    this.isLoading = true;
-    const typingEl = this.showTyping();
-
-    try {
-      const data = await this.chatSocket!.sendMessage(text, true);
-      this.sessionRetried = false;
-      typingEl.remove();
-
-      const msg: Message = {
-        role: "assistant",
-        content: data.response,
-        sources: data.sources,
-        followUpPrompts: data.follow_up_prompts,
-        audio: data.audio,
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+      const msgIndex = this.messages.length - 1;
+      this.audioMap.set(msgIndex, msg.audio);
+      const audio = new Audio(`data:audio/mp3;base64,${msg.audio}`);
+      this.currentAudio = audio;
+      audio.onended = () => {
+        this.currentAudio = null;
+        if (this.voiceMode) this.startVoiceRecognition();
       };
-      this.messages.push(msg);
-      this.appendMessage(msg);
-      this.saveMessages();
-
-      // Auto-play audio
-      if (data.audio) {
-        this.playAudio(data.audio, this.messages.length - 1);
-      }
-    } catch (err) {
-      // If this looks like a stale session, retry once with a fresh session
-      if (!this.sessionRetried) {
-        this.sessionRetried = true;
-        const recovered = await this.resetSession();
-        if (recovered) {
-          try {
-            const data = await this.chatSocket!.sendMessage(text, true);
-            this.sessionRetried = false;
-            typingEl.remove();
-            const msg: Message = {
-              role: "assistant",
-              content: data.response,
-              sources: data.sources,
-              followUpPrompts: data.follow_up_prompts,
-              audio: data.audio,
-            };
-            this.messages.push(msg);
-            this.appendMessage(msg);
-            this.saveMessages();
-            if (data.audio) {
-              this.playAudio(data.audio, this.messages.length - 1);
-            }
-            return;
-          } catch {
-            // Retry also failed — fall through to show error
-          }
-        }
-      }
-      typingEl.remove();
-      this.showError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      this.isLoading = false;
-      this.sendBtn.disabled = this.textarea.value.trim().length === 0;
+      audio.play().catch(() => {
+        if (this.voiceMode) this.startVoiceRecognition();
+      });
+    } else if (this.voiceMode) {
+      // No audio — restart mic immediately
+      this.startVoiceRecognition();
     }
   }
 
-  /** Invalidate current session and create a fresh one. */
-  private async resetSession(): Promise<boolean> {
-    if (this.chatSocket) {
-      this.chatSocket.close();
-      this.chatSocket = null;
-    }
-    storage.removeItem(`cb_session_${this.state.chatbotId}`);
-    try {
-      const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
-      this.sessionId = sessionId;
-      storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
-      this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
-      this.chatSocket.onStatusChange = (status: ConnectionStatus) => this.updateStatusDot(status);
-      this.setupMcpListener();
-      this.chatSocket.connect().catch(() => {});
-      return true;
-    } catch {
-      return false;
-    }
+  private async sendVoiceMessage(text: string) {
+    if (!text) return;
+    this.textarea.value = "";
+    this.sendBtn.disabled = true;
+    this.autoResize();
+    // Core handles session creation, WebSocket, retries, and event dispatch.
+    await zephloCore.sendMessage(text);
   }
 
   private playAudio(base64Audio: string, messageIndex: number) {
@@ -1291,98 +1097,32 @@ export class ChatbotWidget extends HTMLElement {
     });
   }
 
-  private async send() {
-    const text = this.textarea.value.trim();
-    if (!text || this.isLoading) return;
-
-    // Create session if we don't have one yet
-    if (!this.chatSocket) {
-      try {
-        const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
-        this.sessionId = sessionId;
-        storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
-        this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
-        this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
-        this.setupMcpListener();
-      } catch {
-        this.showError("Unable to connect. Please try again.");
-        return;
-      }
-    }
-
-    this.messages.push({ role: "user", content: text });
-    this.appendMessage({ role: "user", content: text });
-    this.saveMessages();
-
-    this.textarea.value = "";
-    this.sendBtn.disabled = true;
-    this.autoResize();
-
-    this.isLoading = true;
-    const typingEl = this.showTyping();
-
-    try {
-      const data = await this.chatSocket!.sendMessage(text);
-      this.sessionRetried = false;
-
-      typingEl.remove();
-
-      const msg: Message = {
-        role: "assistant",
-        content: data.response,
-        sources: data.sources,
-        followUpPrompts: data.follow_up_prompts,
-      };
-      this.messages.push(msg);
-      this.appendMessage(msg);
-      this.saveMessages();
-    } catch (err) {
-      // If this looks like a stale session (connection closed/error), retry once with a fresh session
-      if (!this.sessionRetried) {
-        this.sessionRetried = true;
-        const recovered = await this.resetSession();
-        if (recovered) {
-          try {
-            const data = await this.chatSocket!.sendMessage(text);
-            this.sessionRetried = false;
-            typingEl.remove();
-            const msg: Message = {
-              role: "assistant",
-              content: data.response,
-              sources: data.sources,
-              followUpPrompts: data.follow_up_prompts,
-            };
-            this.messages.push(msg);
-            this.appendMessage(msg);
-            this.saveMessages();
-            return;
-          } catch {
-            // Retry also failed — fall through to show error
-          }
-        }
-      }
-      typingEl.remove();
-      this.showError(
-        err instanceof Error ? err.message : "Something went wrong.",
-      );
-    } finally {
-      this.isLoading = false;
-      this.sendBtn.disabled = this.textarea.value.trim().length === 0;
-    }
+  /** Returns this view's message container (single-panel per view). */
+  private getMessageContainers(): HTMLDivElement[] {
+    return this.messagesEl ? [this.messagesEl] : [];
   }
 
-  private appendMessage(msg: Message) {
-    const welcome = this.messagesEl.querySelector(".cb-welcome");
-    if (welcome) welcome.remove();
+  /** Send from a specific textarea (used by bindPanelInput) */
+  private async sendFrom(textarea: HTMLTextAreaElement, sendBtn: HTMLButtonElement, _micBtn: HTMLButtonElement | null) {
+    const text = textarea.value.trim();
+    if (!text) return;
+    textarea.value = "";
+    sendBtn.disabled = true;
+    this.autoResizeTextarea(textarea);
+    // Delegate to core — it handles session, sends, and emits events that
+    // every connected view (FAB + chat) receives to update their DOM.
+    await zephloCore.sendMessage(text);
+  }
 
-    // Hide input quick prompts once messages start
-    const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
-    if (inputPrompts) (inputPrompts as HTMLElement).style.display = "none";
+  private async send() {
+    return this.sendFrom(this.textarea, this.sendBtn, this.micBtn);
+  }
 
+  /** Build a message DOM element */
+  private buildMessageEl(msg: Message): HTMLDivElement {
     const div = document.createElement("div");
     div.className = `cb-message ${msg.role}${msg.isAdminMessage ? ' admin' : ''}`;
 
-    // Add team label for admin messages
     if (msg.isAdminMessage) {
       const labelDiv = document.createElement("div");
       labelDiv.className = "cb-admin-label";
@@ -1394,7 +1134,6 @@ export class ChatbotWidget extends HTMLElement {
     contentDiv.innerHTML = this.formatContent(msg.content);
     div.appendChild(contentDiv);
 
-    // Add speaker button for messages with audio
     if (msg.role === "assistant" && msg.audio) {
       const msgIndex = this.messages.length - 1;
       this.audioMap.set(msgIndex, msg.audio);
@@ -1421,22 +1160,43 @@ export class ChatbotWidget extends HTMLElement {
       div.appendChild(sourcesDiv);
     }
 
-    this.messagesEl.appendChild(div);
+    return div;
+  }
 
-    // Render follow-up prompts as a separate right-aligned row below the message
-    if (msg.followUpPrompts && msg.followUpPrompts.length > 0) {
-      const followUpsDiv = document.createElement("div");
-      followUpsDiv.className = "cb-prompt-row";
-      const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-      const chatIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
-      followUpsDiv.innerHTML = msg.followUpPrompts
-        .map((fp, i) => {
-          const icon = fp.link ? linkIcon : chatIcon;
-          const style = fp.link ? 'cb-prompt-btn--outline' : '';
-          return `<button class="cb-prompt-btn ${style} cb-follow-up" data-fu-index="${i}" data-msg-index="${this.messages.length - 1}">${icon}${this.escapeHtml(fp.title)}</button>`;
-        })
-        .join("");
-      this.messagesEl.appendChild(followUpsDiv);
+  /** Build follow-up prompts DOM element */
+  private buildFollowUpsEl(msg: Message): HTMLDivElement | null {
+    if (!msg.followUpPrompts || msg.followUpPrompts.length === 0) return null;
+
+    const followUpsDiv = document.createElement("div");
+    followUpsDiv.className = "cb-prompt-row";
+    const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    const chatIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+    followUpsDiv.innerHTML = msg.followUpPrompts
+      .map((fp, i) => {
+        const icon = fp.link ? linkIcon : chatIcon;
+        const style = fp.link ? 'cb-prompt-btn--outline' : '';
+        return `<button class="cb-prompt-btn ${style} cb-follow-up" data-fu-index="${i}" data-msg-index="${this.messages.length - 1}">${icon}${this.escapeHtml(fp.title)}</button>`;
+      })
+      .join("");
+    return followUpsDiv;
+  }
+
+  private appendMessage(msg: Message) {
+    // Remove welcome screens and hide quick prompts in ALL panels
+    for (const container of this.getMessageContainers()) {
+      const welcome = container.querySelector(".cb-welcome");
+      if (welcome) welcome.remove();
+    }
+    this.shadow.querySelectorAll('.cb-input-prompts').forEach(el =>
+      (el as HTMLElement).style.display = 'none'
+    );
+
+    // Append message to all message containers
+    const containers = this.getMessageContainers();
+    for (const container of containers) {
+      container.appendChild(this.buildMessageEl(msg));
+      const followUps = this.buildFollowUpsEl(msg);
+      if (followUps) container.appendChild(followUps);
     }
 
     this.scrollToBottom();
@@ -1446,16 +1206,30 @@ export class ChatbotWidget extends HTMLElement {
     const div = document.createElement("div");
     div.className = "cb-typing";
     div.innerHTML = "<span></span><span></span><span></span>";
-    this.messagesEl.appendChild(div);
+    // Add typing indicator to all panels
+    const containers = this.getMessageContainers();
+    for (const container of containers) {
+      container.appendChild(container === this.messagesEl ? div : div.cloneNode(true));
+    }
     this.scrollToBottom();
+
+    // Return a proxy div whose remove() clears typing from ALL panels
+    const originalRemove = div.remove.bind(div);
+    div.remove = () => {
+      originalRemove();
+      // Also remove from inline panel in "both" mode
+      this.shadow.querySelectorAll('.cb-typing').forEach(el => el.remove());
+    };
     return div;
   }
 
   private showError(message: string) {
-    const div = document.createElement("div");
-    div.className = "cb-error";
-    div.textContent = message;
-    this.messagesEl.appendChild(div);
+    for (const container of this.getMessageContainers()) {
+      const div = document.createElement("div");
+      div.className = "cb-error";
+      div.textContent = message;
+      container.appendChild(div);
+    }
     this.scrollToBottom();
   }
 
@@ -1469,9 +1243,11 @@ export class ChatbotWidget extends HTMLElement {
   private restoreMessages() {
     if (this.messages.length === 0) return;
 
-    // Remove welcome screen and render saved messages
-    const welcome = this.messagesEl.querySelector(".cb-welcome");
-    if (welcome) welcome.remove();
+    // Remove welcome screens from ALL panels and render saved messages
+    for (const container of this.getMessageContainers()) {
+      const welcome = container.querySelector(".cb-welcome");
+      if (welcome) welcome.remove();
+    }
 
     for (const msg of this.messages) {
       this.appendMessage(msg);
@@ -1479,51 +1255,11 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   private async startNewChat() {
-    // Close existing WS
-    this.chatSocket?.close();
-    this.chatSocket = null;
-
-    // Clear session, messages, and person mode
     if (this.isMinimized) this.restore();
-    this.sessionId = null;
-    this.messages = [];
-    this.personMode = false;
-    this.updateHeaderForMode();
-    this.updateInputPlaceholder();
-    storage.removeItem(`cb_session_${this.state.chatbotId}`);
-    storage.removeItem(`cb_messages_${this.state.chatbotId}`);
-
-    // Create a new session
-    try {
-      const sessionId = await createSession(this.state.apiUrl, this.state.chatbotId);
-      this.sessionId = sessionId;
-      storage.setItem(`cb_session_${this.state.chatbotId}`, sessionId);
-      this.chatSocket = new ChatSocket(this.state.apiUrl, this.state.chatbotId, sessionId);
-      this.chatSocket.onStatusChange = (status) => this.updateStatusDot(status);
-      this.setupMcpListener();
-      this.chatSocket.connect().catch(() => {});
-    } catch {
-      // Will retry on next message
-    }
-
-    // Reset messages area with welcome screen
-    const { title, welcome, logoUrl } = this.state;
-    const welcomeIcon = logoUrl
-      ? `<img src="${this.escapeHtml(logoUrl)}" alt="" class="cb-welcome-logo">`
-      : `<span class="cb-welcome-chat-icon">${ICON_CHAT}</span>`;
-    this.messagesEl.innerHTML = `
-      <div class="cb-welcome">
-        <div class="cb-welcome-icon">${welcomeIcon}</div>
-        <h3>${this.escapeHtml(title)}</h3>
-        <p>${this.escapeHtml(welcome)}</p>
-      </div>
-    `;
-
-    // Show input prompts again for new chat
-    const inputPrompts = this.shadow.querySelector(".cb-input-prompts");
-    if (inputPrompts) (inputPrompts as HTMLElement).style.display = "";
-
-    this.textarea.focus();
+    // Core clears messages/session and emits "messagesReset", which triggers
+    // renderEmptyState() in onCoreEvent.
+    await zephloCore.startNewChat();
+    this.textarea?.focus();
   }
 
   private renderQuickPrompts(): string {
@@ -1541,39 +1277,41 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   private updateHeaderForMode() {
-    const titleEl = this.shadow.querySelector('.cb-header-title');
-    if (titleEl) {
-      titleEl.textContent = this.personMode ? "Chatting with our team" : this.state.title;
-    }
-    const avatarEl = this.shadow.querySelector('.cb-header-avatar');
-    if (avatarEl) {
+    this.shadow.querySelectorAll('.cb-header-title').forEach(el => {
+      el.textContent = this.personMode ? "Chatting with our team" : this.state.title;
+    });
+    this.shadow.querySelectorAll('.cb-header-avatar').forEach(el => {
       if (this.personMode) {
-        avatarEl.innerHTML = ICON_PERSON;
+        el.innerHTML = ICON_PERSON;
       } else {
         const { logoUrl } = this.state;
-        avatarEl.innerHTML = logoUrl
+        el.innerHTML = logoUrl
           ? `<img src="${this.escapeHtml(logoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
           : ICON_CHAT;
       }
-    }
+    });
   }
 
   private updateInputPlaceholder() {
-    if (this.textarea) {
-      this.textarea.placeholder = this.personMode ? "Message our team..." : "Type a message...";
-    }
+    const placeholder = this.personMode ? "Message our team..." : "Type a message...";
+    if (this.textarea) this.textarea.placeholder = placeholder;
   }
 
   private scrollToBottom() {
     requestAnimationFrame(() => {
-      this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+      for (const container of this.getMessageContainers()) {
+        container.scrollTop = container.scrollHeight;
+      }
     });
   }
 
+  private autoResizeTextarea(textarea: HTMLTextAreaElement) {
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(textarea.scrollHeight, 80) + "px";
+  }
+
   private autoResize() {
-    this.textarea.style.height = "auto";
-    this.textarea.style.height =
-      Math.min(this.textarea.scrollHeight, 80) + "px";
+    this.autoResizeTextarea(this.textarea);
   }
 
   private formatContent(text: string): string {
@@ -1591,63 +1329,6 @@ export class ChatbotWidget extends HTMLElement {
   }
 
   /**
-   * Wire up listeners and Zephlo tools on the current chatSocket.
-   * Call this after creating a new ChatSocket instance.
-   */
-  private setupMcpListener() {
-    if (this.mcpUnsubscribe) {
-      this.mcpUnsubscribe();
-      this.mcpUnsubscribe = null;
-    }
-    if (!this.chatSocket) return;
-
-    // Wire Zephlo tool handler and schemas on every new socket
-    toolRegistry.discoverExternal();
-    this.chatSocket.setZephloToolHandler(async (req) => toolRegistry.execute(req.tool, req.arguments));
-    this.chatSocket.setZephloTools(() => toolRegistry.getSchemas());
-
-    // Wire live chat handlers
-    this.chatSocket.onAdminMessage((content) => {
-      const msg: Message = { role: "assistant", content, isAdminMessage: true };
-      this.messages.push(msg);
-      this.appendMessage(msg);
-      this.saveMessages();
-    });
-
-    this.chatSocket.onModeChanged((mode) => {
-      this.personMode = mode === "person";
-      this.updateHeaderForMode();
-      this.updateInputPlaceholder();
-    });
-
-    this.chatSocket.onWaiting(() => {
-      // Show a subtle "Message sent" status below the last user message
-      const statusDiv = document.createElement("div");
-      statusDiv.className = "cb-message-status";
-      statusDiv.textContent = "Message sent";
-      this.messagesEl.appendChild(statusDiv);
-      this.scrollToBottom();
-    });
-
-    this.chatSocket.onNavigate(() => {
-      if (this.isOpen) this.minimize();
-    });
-
-    this.mcpUnsubscribe = this.chatSocket.onMcpResult((results) => {
-      // Dispatch CustomEvent that crosses Shadow DOM
-      this.dispatchEvent(new CustomEvent("mcp-result", {
-        bubbles: true,
-        composed: true,
-        detail: { results },
-      }));
-      // Notify global listeners
-      for (const cb of this.mcpGlobalListeners) {
-        try { cb(results); } catch { /* listener error */ }
-      }
-    });
-  }
-
-  /**
    * Register a WebMCP tool that can be invoked by the agent.
    */
   registerTool(tool: ToolDefinition): void {
@@ -1659,10 +1340,7 @@ export class ChatbotWidget extends HTMLElement {
    * Returns an unsubscribe function.
    */
   onMcpResult(callback: (results: McpToolResult[]) => void): () => void {
-    this.mcpGlobalListeners.push(callback);
-    return () => {
-      this.mcpGlobalListeners = this.mcpGlobalListeners.filter(cb => cb !== callback);
-    };
+    return zephloCore.registerMcpListener(callback);
   }
 
   /**
@@ -1690,72 +1368,113 @@ export class ChatbotWidget extends HTMLElement {
    * Send page context to the agent via WebSocket.
    */
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void {
-    this.chatSocket?.sendContextUpdate(data, includePageDetails);
+    zephloCore.sendContextUpdate(data, includePageDetails);
   }
 }
 
-// ---- Register and auto-inject ----
+// ==============================================================
+// ZephloFab — alias for the FAB-rendering widget.
+// ==============================================================
+// ChatbotWidget IS the FAB renderer; we export it under a new name.
+export class ZephloFab extends ChatbotWidget {}
 
-if (!customElements.get("chatbot-widget")) {
-  customElements.define("chatbot-widget", ChatbotWidget);
+// ==============================================================
+// ZephloChat — inline chat view.
+// ==============================================================
+// Renders the same chat panel as the FAB but without the toggle button,
+// greeting bubbles, or fixed positioning. Fills its host container.
+// Supports `width` and `height` attributes to size the host element.
+export class ZephloChat extends ChatbotWidget {
+  static get observedAttributes(): string[] {
+    return ["width", "height"];
+  }
+
+  constructor() {
+    super();
+    this.isInline = true;
+  }
+
+  attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
+    if (name === "width" && value != null) {
+      (this as unknown as HTMLElement).style.width = /^\d+$/.test(value) ? `${value}px` : value;
+    }
+    if (name === "height" && value != null) {
+      (this as unknown as HTMLElement).style.height = /^\d+$/.test(value) ? `${value}px` : value;
+    }
+  }
+
+  /** Inline render: only the chat panel, no FAB, no greetings. */
+  protected render() {
+    this.loadCustomFont();
+
+    // Mark host element as inline so styles.ts `:host([data-zephlo-inline])` applies
+    this.setAttribute("data-zephlo-inline", "");
+
+    this.shadow.innerHTML = `
+      <style>${WIDGET_STYLES}${this.buildCustomStyles()}</style>
+      ${this.renderPanelHtml("cb-inline open")}
+    `;
+
+    // Cache DOM refs
+    this.panel = this.shadow.querySelector(".cb-panel")!;
+    this.messagesEl = this.shadow.querySelector(".cb-messages")!;
+    this.textarea = this.shadow.querySelector("textarea")!;
+    this.sendBtn = this.shadow.querySelector(".cb-send-btn")!;
+    this.newChatBtn = this.shadow.querySelector(".cb-new-chat-btn")!;
+    this.micBtn = this.shadow.querySelector(".cb-mic-btn");
+    // Inline views have no toggle or greeting bubbles
+    this.toggleBtn = null as any;
+    this.greetingsEl = null;
+    // Inline panel is always "open"
+    this.isOpen = true;
+  }
 }
 
-// Expose global API for host page integration
+// ---- Register custom elements ----
+
+if (!customElements.get("zephlo-fab")) {
+  customElements.define("zephlo-fab", ZephloFab);
+}
+if (!customElements.get("zephlo-chat")) {
+  customElements.define("zephlo-chat", ZephloChat);
+}
+
+// Backwards-compat: `<chatbot-widget>` is an alias of `<zephlo-fab>`.
+// customElements.define requires a one-to-one mapping, so we wrap in a stub class.
+class ChatbotWidgetAlias extends ZephloFab {}
+if (!customElements.get("chatbot-widget")) {
+  customElements.define("chatbot-widget", ChatbotWidgetAlias);
+}
+
+// Expose global SDK shim (backwards compatible)
 interface ZephloSDKHandle {
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   onMcpResult(callback: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
 }
 
-interface ZephloSDK {
-  initialize(config: { api_key: string; chatbotId: string | number }): ZephloSDKHandle;
-}
-
 declare global {
   interface Window {
-    Zephlo: ZephloSDK;
+    Zephlo: any;
     ChatbotWidget?: {
       onMcpResult: (callback: (results: McpToolResult[]) => void) => () => void;
     };
   }
 }
 
-// Expose Zephlo SDK globally
-window.Zephlo = {
-  initialize({ api_key, chatbotId }: { api_key: string; chatbotId: string | number }): ZephloSDKHandle {
-    (window as any).__ZEPHLO_SDK__ = true;
-
-    // Create and inject the widget element
-    if (!document.querySelector("chatbot-widget")) {
-      document.body.appendChild(document.createElement("chatbot-widget"));
-    }
-    const widgetEl = document.querySelector("chatbot-widget") as ChatbotWidget;
-
-    // Pass config to the widget
-    widgetEl.initFromSdk(api_key, chatbotId);
-
-    // Return SDK handle
-    return {
-      sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean) {
-        widgetEl.sendContextUpdate(data, includePageDetails);
-      },
-      onMcpResult(callback) {
-        return widgetEl.onMcpResult(callback);
-      },
-      registerTool(tool: ToolDefinition) {
-        widgetEl.registerTool(tool);
-      },
-    };
-  },
-};
-
-// Backwards-compatible fallback: auto-inject via data-chatbot-id script tag
+// Backwards-compatible fallback: auto-inject `<zephlo-fab>` if a data-chatbot-id
+// script tag is present and the SDK hasn't been initialized.
 if (!(window as any).__ZEPHLO_SDK__) {
-  if (!document.querySelector("chatbot-widget")) {
-    document.body.appendChild(document.createElement("chatbot-widget"));
+  const hasAnyZephloElement =
+    document.querySelector("zephlo-fab") ||
+    document.querySelector("zephlo-chat") ||
+    document.querySelector("chatbot-widget");
+
+  if (!hasAnyZephloElement && document.querySelector("script[data-chatbot-id]")) {
+    document.body.appendChild(document.createElement("zephlo-fab"));
   }
 
-  const widgetEl = document.querySelector("chatbot-widget") as ChatbotWidget | null;
+  const widgetEl = document.querySelector("zephlo-fab") as ZephloFab | null;
   if (widgetEl) {
     window.ChatbotWidget = {
       onMcpResult: (callback) => widgetEl.onMcpResult(callback),

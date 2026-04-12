@@ -44,6 +44,14 @@ function DashboardAssistant() {
       chatbotId: CHATBOT_ID,
     });
 
+    // Zephlo.initialize only configures the shared core — it doesn't create
+    // any DOM. Place a <zephlo-fab> on the page so the floating button shows.
+    let fabEl = document.querySelector('zephlo-fab');
+    if (!fabEl) {
+      fabEl = document.createElement('zephlo-fab');
+      document.body.appendChild(fabEl);
+    }
+
     instanceRef.current = instance;
     registerTools(instance);
 
@@ -53,6 +61,7 @@ function DashboardAssistant() {
 
     return () => {
       instance.destroy();
+      document.querySelector('zephlo-fab')?.remove();
       instanceRef.current = null;
       delete (window as any).DashboardAssistant;
     };
@@ -352,15 +361,15 @@ function DashboardAssistant() {
     // ---- get_embed_code ----
     agent.registerTool({
       name: 'get_embed_code',
-      description: 'Get the embed code snippet for adding the Zephlo widget to a website.',
+      description: 'Get the embed code snippet for adding the Zephlo widget to a website. Supports a floating action button (fab), an inline chat view (chat), npm install, or the legacy script-tag format.',
       inputSchema: {
         type: 'object',
         properties: {
           chatbot_id: { type: 'string', description: 'The agent UUID' },
           format: {
             type: 'string',
-            enum: ['script', 'npm', 'legacy'],
-            description: 'Embed format: "script" (default), "npm", or "legacy"',
+            enum: ['fab', 'chat', 'npm', 'legacy'],
+            description: 'Embed format: "fab" (floating button, default), "chat" (inline chat view), "npm" (npm package), or "legacy" (backwards-compatible script tag)',
           },
           ...navigateProp,
         },
@@ -369,17 +378,20 @@ function DashboardAssistant() {
       execute: async (params) => {
         const chatbot = await chatbotApi.getChatbot(params.chatbot_id as string);
         const publicId = chatbot.public_id;
-        const format = (params.format as string) || 'script';
+        const format = (params.format as string) || 'fab';
         const origin = window.location.origin;
 
+        const initScript = `<script src="${origin}/widget/zephlo.js"></script>\n<script>\n  Zephlo.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`;
+
         const snippets: Record<string, string> = {
-          script: `<script src="${origin}/widget/zephlo.js"></script>\n<script>\n  Zephlo.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`,
-          npm: `npm install @zephlo/zephlo\n\nimport Zephlo from "@zephlo/zephlo";\n\nZephlo.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: "${publicId}"\n});`,
+          fab: `${initScript}\n\n<!-- Floating chat button (bottom-right) -->\n<zephlo-fab></zephlo-fab>`,
+          chat: `${initScript}\n\n<!-- Inline chat view — place it anywhere in your page -->\n<zephlo-chat width="400" height="600"></zephlo-chat>`,
+          npm: `npm install zephlo\n\nimport Zephlo from "zephlo";\n\nZephlo.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: "${publicId}"\n});\n\n// Then render one (or both) in your JSX:\n// <zephlo-fab />\n// <zephlo-chat width="400" height="600" />`,
           legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
         };
 
         if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
-        return (snippets[format] || snippets.script) as string;
+        return (snippets[format] || snippets.fab) as string;
       },
     });
   }

@@ -1204,4 +1204,41 @@ export const WIDGET_STYLES = /* css */ `
       bottom: 76px;
     }
   }
+
+  /* ==============================
+     Inline chat view (<zephlo-chat>)
+     ============================== */
+
+  /* When the host element is marked inline, flow with the page instead of
+     floating in the bottom-right corner. The host controls size via its own
+     width/height attributes (which map to inline styles on the element). */
+  :host([data-zephlo-inline]) {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    left: auto;
+    top: auto;
+    z-index: auto;
+    display: block;
+  }
+
+  /* Inline panel fills the host element, always visible, no entrance animation. */
+  .cb-panel.cb-inline {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    border-radius: var(--cb-radius);
+    border: 1px solid var(--cb-border);
+    box-shadow: none;
+  }
+
+  /* Inline panels have no close button (nothing to close). */
+  .cb-panel.cb-inline .cb-close-btn {
+    display: none;
+  }
 `;

@@ -7,7 +7,10 @@ const minify = !watch;
 const builds = [
   { entryPoints: ["src/index.ts"], format: "iife", outfile: "dist/chatbot-widget.js" },
   { entryPoints: ["src/zephlo.ts"], format: "esm", outfile: "dist/zephlo.esm.js" },
-  { entryPoints: ["src/zephlo.ts"], format: "iife", globalName: "Zephlo", outfile: "dist/zephlo.js" },
+  // NB: No globalName — the module assigns `window.Zephlo = Zephlo` itself.
+  // Using globalName here would wrap the module namespace (with a `default`
+  // key) and clobber that assignment, breaking `Zephlo.initialize(...)`.
+  { entryPoints: ["src/zephlo.ts"], format: "iife", outfile: "dist/zephlo.js" },
 ];
 
 for (const build of builds) {
