@@ -1,16 +1,10 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-
-import Problem from "@/components/Problem";
-import Solution from "@/components/Solution";
-import UseCases from "@/components/UseCases";
-import HowItWorks from "@/components/HowItWorks";
-import Comparison from "@/components/Comparison";
-import Security from "@/components/Security";
-
+import VideoDemo from "@/components/VideoDemo";
+import DemoShowcase from "@/components/DemoShowcase";
 import CTA from "@/components/CTA";
-import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
+import FloatingChat from "@/components/FloatingChat";
 
 export default function Home() {
   return (
@@ -18,18 +12,12 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
-
-        <Problem />
-        <Solution />
-        <UseCases />
-        <HowItWorks />
-        <Comparison />
-        <Security />
-
+        <VideoDemo />
+        <DemoShowcase />
         <CTA />
-        <ContactForm />
       </main>
       <Footer />
+      <FloatingChat />
     </>
   );
 }

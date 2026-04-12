@@ -71,8 +71,14 @@
   --color-icon-bg: var(--icon-bg);
   --color-subtle: var(--subtle-white);
   --color-code-bg: var(--code-bg);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-newsreader);
   --font-mono: var(--font-geist-mono);
+}
+
+.font-serif {
+  font-family: var(--font-newsreader), "Newsreader", ui-serif, Georgia, serif;
+  font-feature-settings: "liga", "dlig";
 }
 
 * {

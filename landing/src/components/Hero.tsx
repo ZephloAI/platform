@@ -1,175 +1,202 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, MessageSquare, Zap, Globe, Play } from "lucide-react";
-import { useRef } from "react";
-
-const wordReveal = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.3 },
-  },
-};
-
-const wordItem = {
-  hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
-  show: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.7, ease: "easeOut" as const },
-  },
-};
+import { motion } from "framer-motion";
+import { Bot, Sparkles, MoreHorizontal, Mic, Paperclip, Play, ArrowRight } from "lucide-react";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 28, filter: "blur(6px)" },
   show: (delay: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, delay, ease: "easeOut" as const },
+    filter: "blur(0px)",
+    transition: { duration: 0.8, delay, ease: "easeOut" as const },
   }),
 };
 
-function AgentDemo() {
+function ChatWidgetMockup() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32, scale: 0.96 }}
+      initial={{ opacity: 0, y: 40, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 1, delay: 1, ease: "easeOut" as const }}
-      className="relative w-full max-w-md mx-auto lg:mx-0"
+      transition={{ duration: 1, delay: 0.4, ease: "easeOut" as const }}
+      className="relative group w-full max-w-[540px] lg:ml-auto"
     >
-      <div className="rounded-2xl border border-[var(--subtle-white-06)] bg-[var(--card)] overflow-hidden shadow-2xl" style={{ boxShadow: `0 25px 50px -12px var(--shadow-color)` }}>
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--subtle-white-04)]">
-          <div className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--subtle-white-06)]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--subtle-white-06)]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--subtle-white-06)]" />
-          </div>
-          <div className="flex-1 mx-8">
-            <div className="h-5 rounded-md bg-[var(--subtle-white-04)] flex items-center justify-center">
-              <span className="text-[10px] text-[var(--muted)]">yourapp.com</span>
+      <div className="absolute -inset-8 -z-10 rounded-[48px] bg-[var(--accent)]/[0.10] blur-3xl scale-75 group-hover:scale-100 transition-transform duration-700" />
+
+      <div
+        className="relative overflow-hidden rounded-2xl border border-[var(--subtle-white-06)] bg-[var(--card)]/80 backdrop-blur-2xl"
+        style={{ boxShadow: "0 40px 80px -24px var(--shadow-color)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-t border-[var(--subtle-white-06)] bg-[var(--card)] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--icon-bg)]">
+              <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold text-[var(--foreground)]">Zephlo Agent</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
+                Optimizing workflow
+              </div>
             </div>
           </div>
+          <MoreHorizontal className="h-5 w-5 text-[var(--muted)]" />
         </div>
 
-        <div className="p-5 space-y-4">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.4, duration: 0.5 }} className="flex justify-end">
-            <div className="rounded-2xl rounded-br-md bg-[var(--accent)]/15 border border-[var(--accent)]/20 px-4 py-2.5 max-w-[75%]">
-              <p className="text-[13px] text-[var(--foreground)]">Set up my dashboard with sales metrics</p>
+        {/* Messages */}
+        <div className="space-y-5 px-6 py-6 h-[420px] overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1, duration: 0.5 }}
+            className="flex gap-3"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)]">
+              <Bot className="h-3.5 w-3.5 text-[var(--muted)]" />
+            </div>
+            <div className="max-w-[82%] rounded-2xl rounded-tl-sm border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-3 text-[13px] leading-relaxed text-[var(--foreground)]">
+              I see you&apos;re looking to update your policy. I&apos;ve retrieved your current
+              coverage for{" "}
+              <span className="font-semibold text-[var(--accent)]">Vehicle ID: AX-492</span>.
+              Would you like to add a second driver or adjust the deductible?
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2, duration: 0.5 }} className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-md bg-[var(--subtle-white-03)] border border-[var(--subtle-white-06)] px-4 py-2.5 max-w-[80%]">
-              <p className="text-[13px] text-[var(--foreground)] opacity-80">I&apos;ll configure that now. Running tools in your browser...</p>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.6, duration: 0.5 }}
+            className="flex justify-end"
+          >
+            <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-[#1275CA] px-4 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_-8px_rgba(18,117,202,0.6)]">
+              Let&apos;s adjust the deductible to $500.
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 2.6, duration: 0.5 }} className="rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.04] p-3">
-            <div className="flex items-center gap-2 mb-2.5">
-              <div className="h-5 w-5 rounded-md bg-[var(--icon-bg)] flex items-center justify-center">
-                <Zap className="h-3 w-3 text-[var(--accent)]" />
-              </div>
-              <span className="text-[11px] font-medium text-[var(--accent)]">Tool executing in browser</span>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.1, duration: 0.5 }}
+            className="flex gap-3"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)]">
+              <Bot className="h-3.5 w-3.5 text-[var(--muted)]" />
             </div>
-            <div className="space-y-1.5">
-              <ToolStep delay={2.9} label="navigate_to_settings" />
-              <ToolStep delay={3.2} label="configure_dashboard" />
-              <ToolStep delay={3.5} label="add_sales_widgets" done />
+            <div className="max-w-[82%] rounded-2xl rounded-tl-sm border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-3 text-[13px] leading-relaxed text-[var(--foreground)]">
+              Done. This will reduce your monthly premium by{" "}
+              <span className="font-semibold text-[var(--accent)]">$14.20</span>. Shall I finalize
+              this change for you?
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 3.9, duration: 0.5 }} className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-md bg-[var(--subtle-white-03)] border border-[var(--subtle-white-06)] px-4 py-2.5">
-              <p className="text-[13px] text-[var(--foreground)] opacity-80">Done! Your sales dashboard is ready.</p>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.6, duration: 0.4 }}
+            className="flex flex-wrap gap-2 pl-11 pt-1"
+          >
+            <QuickReply label="Yes, finalize now" />
+            <QuickReply label="See full breakdown" />
           </motion.div>
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-[var(--subtle-white-06)] bg-[var(--card)] p-4">
+          <div className="flex items-center justify-between rounded-lg border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-3">
+            <span className="text-[13px] text-[var(--muted)]">Type your response…</span>
+            <div className="flex items-center gap-3">
+              <Mic className="h-4 w-4 text-[var(--muted)]" />
+              <Paperclip className="h-4 w-4 text-[var(--muted)]" />
+            </div>
+          </div>
         </div>
       </div>
-      <div className="absolute -inset-8 -z-10 rounded-3xl bg-[var(--accent)]/[0.06] blur-3xl" />
     </motion.div>
   );
 }
 
-function ToolStep({ delay, label, done }: { delay: number; label: string; done?: boolean }) {
+function QuickReply({ label }: { label: string }) {
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay, duration: 0.3 }} className="flex items-center gap-2">
-      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: delay + 0.2, duration: 0.2 }} className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--emerald)" }} />
-      <span className="text-[11px] font-mono text-[var(--muted)]">{label}</span>
-      {done && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.3 }} className="text-[10px]" style={{ color: "var(--emerald)", opacity: 0.7 }}>completed</motion.span>}
-    </motion.div>
+    <button className="rounded-full border border-[var(--subtle-white-06)] bg-[var(--card)] px-4 py-1.5 text-[11px] text-[var(--foreground)] transition-colors duration-200 hover:border-[var(--accent)]/50 hover:text-[var(--accent)]">
+      {label}
+    </button>
   );
 }
 
 export default function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center overflow-hidden">
-      <motion.div style={{ y: bgY }} className="absolute inset-0 aurora" />
-      <div className="absolute inset-0 grid-pattern" />
-      <div className="pointer-events-none absolute -top-[200px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px]" style={{ background: "radial-gradient(ellipse at center, rgba(18,117,202,0.08) 0%, rgba(96,165,250,0.04) 40%, transparent 70%)" }} />
+    <section className="relative flex min-h-screen items-center overflow-hidden px-6 pt-40 pb-24 sm:pb-32">
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute left-[-10%] top-[-20%] h-[60%] w-[55%] rounded-full bg-[var(--accent)]/[0.10] blur-[160px]" />
+        <div className="absolute right-[-10%] top-[30%] h-[50%] w-[45%] rounded-full bg-[#60A5FA]/[0.06] blur-[160px]" />
+      </div>
+      <div className="absolute inset-0 grid-pattern opacity-50" />
 
-      <motion.div style={{ opacity }} className="relative z-10 mx-auto w-full max-w-6xl px-6 py-24 sm:py-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20">
-          <div className="flex flex-col gap-7">
-            <motion.div custom={0.1} variants={fadeUp} initial="hidden" animate="show">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-1.5 text-[12px] text-[var(--muted)] backdrop-blur-sm">
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "var(--emerald)" }} />
-                AI agents that actually do things
-              </span>
-            </motion.div>
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2 xl:gap-24">
+        <div className="flex flex-col gap-10">
+          <motion.div custom={0.1} variants={fadeUp} initial="hidden" animate="show">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-1.5 text-[12px] text-[var(--muted)] backdrop-blur-sm">
+              <span
+                className="h-1.5 w-1.5 animate-pulse rounded-full"
+                style={{ background: "var(--emerald)" }}
+              />
+              Conversational AI infrastructure
+            </span>
+          </motion.div>
 
-            <motion.h1 variants={wordReveal} initial="hidden" animate="show" className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold tracking-tight leading-[1.1]">
-              <motion.span variants={wordItem} className="inline-block">Complex&nbsp;</motion.span>
-              <motion.span variants={wordItem} className="inline-block">workflows.</motion.span>
-              <br />
-              <motion.span variants={wordItem} className="inline-block gradient-text">Simple&nbsp;</motion.span>
-              <motion.span variants={wordItem} className="inline-block gradient-text">conversations.</motion.span>
-            </motion.h1>
+          <motion.h1
+            custom={0.2}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="font-serif text-5xl font-semibold leading-[1.02] tracking-tight text-[var(--foreground)] sm:text-6xl lg:text-[5.25rem]"
+          >
+            Turn Complex{" "}
+            <br className="hidden sm:block" />
+            <span className="italic text-[var(--accent)]">Workflows</span> Into Simple
+            Conversations
+          </motion.h1>
 
-            <motion.p custom={0.8} variants={fadeUp} initial="hidden" animate="show" className="max-w-lg text-base sm:text-lg leading-relaxed text-[var(--muted)]">
-              AI agents that run tools directly in your users&apos; browsers.
-              No APIs, no OAuth, no credential storage. The browser is the integration layer.
-            </motion.p>
+          <motion.p
+            custom={0.5}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="max-w-lg text-lg leading-relaxed text-[var(--muted)] sm:text-xl"
+          >
+            Your users don&apos;t want to click through forms. Let them just say what they need
+            with an Agent platform built for real business workflows.
+          </motion.p>
 
-            <motion.div custom={1} variants={fadeUp} initial="hidden" animate="show" className="flex flex-col sm:flex-row gap-3 mt-1">
-              <a href="#get-started" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#1275CA] px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.5)]">
-                Start Free Trial
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </a>
-              <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 rounded-full border border-[var(--subtle-white-06)] px-7 py-3.5 text-sm font-semibold text-[var(--foreground)] transition-all duration-300 hover:bg-[var(--subtle-white-03)] hover:border-[var(--subtle-white-hover)]">
-                <Play className="h-3.5 w-3.5" />
-                View Demo
-              </a>
-            </motion.div>
-
-            <motion.div custom={1.2} variants={fadeUp} initial="hidden" animate="show" className="flex items-center gap-6 mt-2">
-              <TrustSignal icon={<MessageSquare className="h-3.5 w-3.5" />} text="No credit card" />
-              <TrustSignal icon={<Zap className="h-3.5 w-3.5" />} text="5 min setup" />
-              <TrustSignal icon={<Globe className="h-3.5 w-3.5" />} text="Any web app" />
-            </motion.div>
-          </div>
-
-          <div className="hidden lg:block">
-            <AgentDemo />
-          </div>
+          <motion.div
+            custom={0.7}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="flex flex-wrap gap-3 pt-2"
+          >
+            <a
+              href="#get-started"
+              className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#1275CA] px-7 py-4 text-[15px] font-semibold text-white transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_40px_-6px_rgba(18,117,202,0.55)]"
+            >
+              Start Conversing
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </a>
+            <a
+              href="#video"
+              className="group inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-7 py-4 text-[15px] font-semibold text-[var(--foreground)] transition-all duration-300 hover:bg-[var(--subtle-white-06)]"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Watch the Video
+            </a>
+          </motion.div>
         </div>
-      </motion.div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--background)] to-transparent" />
+        <div className="lg:justify-self-end">
+          <ChatWidgetMockup />
+        </div>
+      </div>
     </section>
-  );
-}
-
-function TrustSignal({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
-      {icon}
-      <span>{text}</span>
-    </div>
   );
 }
