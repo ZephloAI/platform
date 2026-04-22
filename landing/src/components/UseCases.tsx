@@ -63,8 +63,8 @@ export default function UseCases() {
                 {comingSoon ? (
                   <span className="inline-flex items-center rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/[0.06] px-3 py-1 text-[11px] font-medium text-[var(--accent)]">Coming soon</span>
                 ) : (
-                  <a href="#" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] transition-all duration-300 group-hover:gap-2.5">
-                    Learn more <ArrowRight className="h-3.5 w-3.5" />
+                  <a href="/platform" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] transition-all duration-300 group-hover:gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                    Learn more <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </a>
                 )}
               </div>

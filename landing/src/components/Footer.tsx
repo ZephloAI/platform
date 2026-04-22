@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { links } from "@/lib/links";
 
 const productLinks = [
   { label: "Platform", href: "/platform" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Security", href: "/#security" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Docs", href: links.docs },
 ];
 
 const solutionLinks = [
@@ -16,9 +19,9 @@ const solutionLinks = [
 
 const companyLinks = [
   { label: "Customers", href: "/customers" },
-  { label: "About", href: "/about" },
-  { label: "Blog", href: "/blog" },
-  { label: "Careers", href: "/careers" },
+  { label: "Sign in", href: links.signIn },
+  { label: "Start free", href: links.signUp },
+  { label: "Talk to sales", href: links.sales },
 ];
 
 const legalLinks = [
@@ -62,13 +65,13 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 pt-16 pb-8">
         <div className="grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-5 lg:gap-16">
           <div className="col-span-2 md:col-span-1">
-            <a href="/" className="inline-flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center">
+            <Link href="/" aria-label="Zephlo home" className="inline-flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center" aria-hidden="true">
                 <div className="h-2.5 w-2.5 rounded-sm bg-white/90" />
               </div>
               <span className="text-lg font-semibold tracking-tight text-[var(--foreground)]">zephlo</span>
-            </a>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">AI agents that actually do things.</p>
+            </Link>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">The Agent platform for any website.</p>
           </div>
 
           <div>

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Stethoscope, Car, Scale, IdCard, ArrowRight, type LucideIcon } from "lucide-react";
+import { links } from "@/lib/links";
 
 type Demo = {
   title: string;
@@ -16,28 +17,28 @@ const demos: Demo[] = [
     description:
       "Gather patient history and insurance details through empathetic dialogue.",
     icon: Stethoscope,
-    href: "#",
+    href: links.sales,
   },
   {
     title: "Insurance Claims",
     description:
       "Automate accident reporting with image uploads and location tagging.",
     icon: Car,
-    href: "#",
+    href: links.sales,
   },
   {
     title: "Legal Client Intake",
     description:
       "Qualify leads and schedule consultations based on case complexity.",
     icon: Scale,
-    href: "#",
+    href: links.sales,
   },
   {
     title: "HR Onboarding",
     description:
       "Guided collection of tax docs, direct deposit, and equipment preferences.",
     icon: IdCard,
-    href: "#",
+    href: links.sales,
   },
 ];
 
@@ -54,10 +55,10 @@ export default function DemoShowcase() {
             className="space-y-4"
           >
             <h2 className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-              Built for <span className="italic text-[var(--accent)]">Real</span> Workflows
+              Built for <span className="italic text-[var(--accent)]">real</span> workflows.
             </h2>
             <p className="max-w-lg text-xl text-[var(--muted)]">
-              Click any demo to try it live — no signup required.
+              From patient intake to HR onboarding, see what teams ship with Zephlo.
             </p>
           </motion.div>
         </div>
@@ -96,8 +97,8 @@ function DemoCard({ demo, index }: { demo: Demo; index: number }) {
       </div>
 
       <div className="mt-auto flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)]">
-        Try it
-        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+        Request a demo
+        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
       </div>
     </motion.a>
   );

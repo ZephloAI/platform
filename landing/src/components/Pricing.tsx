@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { links } from "@/lib/links";
 
-interface PricingTier { name: string; badge: string; price: ReactNode; description: string; features: string[]; cta: string; highlighted?: boolean }
+interface PricingTier { name: string; badge: string; price: ReactNode; description: string; features: string[]; cta: string; href: string; highlighted?: boolean }
 
 const tiers: PricingTier[] = [
   {
@@ -12,21 +13,21 @@ const tiers: PricingTier[] = [
     price: (<><span className="text-4xl sm:text-5xl font-bold text-[var(--foreground)]">$0</span><span className="text-sm text-[var(--muted)] ml-1">/month</span></>),
     description: "Perfect for trying things out",
     features: ["1 agent", "100 conversations/mo", "Community support", "Basic analytics"],
-    cta: "Get Started",
+    cta: "Start free", href: links.signUp,
   },
   {
     name: "Pro", badge: "Most Popular",
     price: (<><span className="text-4xl sm:text-5xl font-bold text-[var(--foreground)]">$49</span><span className="text-sm text-[var(--muted)] ml-1">/month</span></>),
     description: "For teams ready to scale",
     features: ["Unlimited agents", "Unlimited conversations", "Priority support", "Advanced analytics", "Custom branding", "API access"],
-    cta: "Get Started", highlighted: true,
+    cta: "Start Pro trial", href: links.signUp, highlighted: true,
   },
   {
     name: "Enterprise", badge: "Custom",
     price: (<span className="text-4xl sm:text-5xl font-bold text-[var(--foreground)]">Let&rsquo;s talk</span>),
     description: "For large-scale deployments",
     features: ["Everything in Pro", "SSO & SAML", "Dedicated support", "SLA guarantee", "Custom integrations", "On-premise option"],
-    cta: "Contact Sales",
+    cta: "Contact sales", href: links.sales,
   },
 ];
 
@@ -97,9 +98,9 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <button className={`mt-2 w-full rounded-full py-3 text-sm font-semibold transition-all duration-300 ${tier.highlighted ? "bg-[#1275CA] text-white hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.4)]" : "border border-[var(--subtle-white-06)] text-[var(--foreground)] hover:bg-[var(--subtle-white-03)] hover:border-[var(--subtle-white-hover)]"}`}>
+              <a href={tier.href} className={`mt-2 inline-flex w-full items-center justify-center rounded-full py-3 text-sm font-semibold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${tier.highlighted ? "bg-[#1275CA] text-white hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.4)]" : "border border-[var(--subtle-white-06)] text-[var(--foreground)] hover:bg-[var(--subtle-white-03)] hover:border-[var(--subtle-white-hover)]"}`}>
                 {tier.cta}
-              </button>
+              </a>
             </motion.div>
           ))}
         </div>

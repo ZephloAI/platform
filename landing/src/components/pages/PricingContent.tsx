@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
+import { links } from "@/lib/links";
 
 const plans = [
   {
@@ -116,15 +117,15 @@ export default function PricingContent() {
                 </div>
 
                 <a
-                  href={plan.ctaStyle === "primary" ? "#" : plan.name === "Enterprise" ? "/#contact" : "#"}
-                  className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 mb-6 ${
+                  href={plan.name === "Enterprise" ? links.sales : links.signUp}
+                  className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 mb-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                     plan.ctaStyle === "primary"
                       ? "bg-[#1275CA] text-white hover:bg-[#0E5FA6] hover:shadow-[0_0_24px_-4px_rgba(18,117,202,0.5)]"
                       : "border border-[var(--subtle-white-06)] text-[var(--foreground)] hover:bg-[var(--subtle-white-03)]"
                   }`}
                 >
                   {plan.cta}
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
 
                 <ul className="flex flex-col gap-3 flex-1">
@@ -227,8 +228,8 @@ export default function PricingContent() {
             <p className="text-base text-[var(--muted)] max-w-md">
               50 free conversations. No credit card. No backend changes. Deploy an AI agent in minutes.
             </p>
-            <a href="#" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#1275CA] px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.5)]">
-              Start Free Trial <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            <a href={links.signUp} className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#1275CA] px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+              Start free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </a>
           </motion.div>
         </div>
