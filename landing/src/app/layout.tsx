@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Newsreader, Geist_Mono } from "next/font/google";
 import ThemeProvider from "@/components/ThemeProvider";
+import { siteUrl } from "@/lib/links";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -23,27 +24,75 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const title = "Zephlo — Turn your website into an Agent";
+const description =
+  "Zephlo is the Agent platform for any website. Point us at a URL — we crawl, embed, and ground a conversational Agent in your content, then drop it on your site with one script tag.";
+
 export const metadata: Metadata = {
-  title: "Zephlo — Turn Complex Workflows Into Simple Conversations",
-  description:
-    "AI agent platform that runs tools directly in your users' browsers. No APIs, no OAuth, no credential storage. The browser is the integration layer.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: title,
+    template: "%s · Zephlo",
+  },
+  description,
+  applicationName: "Zephlo",
+  keywords: [
+    "AI agent",
+    "website chatbot",
+    "RAG",
+    "retrieval augmented generation",
+    "embeddable agent",
+    "conversational AI",
+    "AI platform",
+    "site search",
+    "customer support AI",
+  ],
+  authors: [{ name: "Zephlo" }],
+  creator: "Zephlo",
+  publisher: "Zephlo",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/logo.svg",
     apple: "/logo.svg",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: "Zephlo — Turn Complex Workflows Into Simple Conversations",
-    description:
-      "AI agent platform with client-side tool execution. No APIs, no OAuth, no credential storage.",
+    title,
+    description,
     siteName: "Zephlo",
+    url: siteUrl,
     type: "website",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zephlo — Turn Complex Workflows Into Simple Conversations",
-    description:
-      "AI agent platform with client-side tool execution. No APIs, no OAuth, no credential storage.",
+    title,
+    description,
+    creator: "@zephlo",
   },
+  category: "technology",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#050508" },
+    { media: "(prefers-color-scheme: light)", color: "#FAFAFA" },
+  ],
+  colorScheme: "dark light",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -51,6 +100,34 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Zephlo",
+    url: siteUrl,
+    logo: `${siteUrl}/logo.svg`,
+    sameAs: [
+      "https://twitter.com/zephlo",
+      "https://linkedin.com/company/zephlo",
+      "https://github.com/zephlo",
+    ],
+  };
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Zephlo",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description,
+    url: siteUrl,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  };
+
   return (
     <html
       lang="en"
@@ -58,7 +135,21 @@ export default function RootLayout({
       className={`${manrope.variable} ${newsreader.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         <ThemeProvider>{children}</ThemeProvider>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        />
       </body>
     </html>
   );
