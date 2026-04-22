@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
-import type { Organization, OrganizationMember, ApiKey, ApiKeyCreated, Invitation } from '../types';
+import type {
+  Organization,
+  OrganizationMember,
+  ApiKey,
+  ApiKeyCreated,
+  Invitation,
+  InvitationPreview,
+} from '../types';
 
 // ============================================================
 // React Query Hooks for Organization Operations
@@ -99,6 +106,36 @@ export function useCancelInvitation(orgId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orgInvitations(orgId) });
     },
+  });
+}
+
+export function useResendInvitation(orgId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (invitationId: number): Promise<Invitation> => {
+      const response = await apiClient.post(
+        `/api/organizations/${orgId}/invitations/${invitationId}/resend`,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orgInvitations(orgId) });
+    },
+  });
+}
+
+export function useInvitationPreview(token: string | undefined) {
+  return useQuery({
+    queryKey: ['invitations', 'preview', token] as const,
+    queryFn: async (): Promise<InvitationPreview> => {
+      const response = await apiClient.get('/api/invitations/preview', {
+        params: { token },
+      });
+      return response.data;
+    },
+    enabled: !!token,
+    retry: false,
   });
 }
 

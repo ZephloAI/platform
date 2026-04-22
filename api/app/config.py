@@ -34,6 +34,19 @@ class Settings(BaseSettings):
     # Callback URL for the crawler to reach the API (use Docker service name in Docker)
     API_CALLBACK_URL: str = "http://localhost:8000"
 
+    # Resend (transactional email)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "Flunkie <invites@flunkie.ai>"
+    # Optional: if set, Resend's template rendering is used. Otherwise we send
+    # a plain-HTML fallback generated in resend_client.py.
+    RESEND_INVITE_TEMPLATE_ID: str = ""
+
+    # Invite lifecycle
+    INVITE_EXPIRY_DAYS: int = 7
+    # Base URL the frontend serves the accept-invite page from. The token is
+    # appended as a path segment: {base}/{token}
+    INVITE_ACCEPT_URL_BASE: str = "http://localhost/invitations/accept"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
