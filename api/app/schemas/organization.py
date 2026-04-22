@@ -48,8 +48,21 @@ class InvitationResponse(BaseModel):
     status: str
     created_at: datetime
     expires_at: datetime
+    send_count: int = 1
+    last_sent_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class InvitationPreviewResponse(BaseModel):
+    """Public preview of an invitation — shown on the accept page before sign-in."""
+    email: str
+    role: str
+    status: str
+    expires_at: datetime
+    is_expired: bool
+    organization_name: str | None = None
+    inviter_email: str | None = None
 
 
 class AcceptInvitationRequest(BaseModel):

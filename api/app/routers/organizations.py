@@ -25,6 +25,7 @@ from app.schemas.organization import (
     OrganizationMemberResponse,
     InvitationCreate,
     InvitationResponse,
+    InvitationPreviewResponse,
     AcceptInvitationRequest,
     UpdateMemberRoleRequest,
 )
@@ -276,7 +277,41 @@ async def cancel_invitation(
     return {"ok": True}
 
 
+@router.post(
+    "/{org_id}/invitations/{invitation_id}/resend",
+    response_model=InvitationResponse,
+)
+async def resend_invitation(
+    org_id: int,
+    invitation_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-send a pending invitation email. Requires admin/owner."""
+    service = OrganizationService(db)
+    return await service.resend_invitation(org_id, invitation_id, user.id)
+
+
 # -- Accept invitation (no org_id in path - uses token) --
+
+
+@accept_router.get(
+    "/api/invitations/preview",
+    response_model=InvitationPreviewResponse,
+)
+async def preview_invitation(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Public preview of an invitation.
+
+    Used by the accept-invite page to show org name / inviter before the user
+    signs in. Does not reveal anything an attacker couldn't obtain by already
+    guessing the 32-byte token.
+    """
+    service = OrganizationService(db)
+    return await service.get_invitation_preview(token)
 
 
 @accept_router.post("/api/invitations/accept")
