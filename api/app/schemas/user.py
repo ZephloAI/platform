@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     onboarding_completed: bool = False
+    is_platform_admin: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,5 +46,6 @@ class LoginResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     onboarding_completed: bool = False
+    is_platform_admin: bool = False
     token: str
     organization_id: int | None = None

@@ -27,6 +27,7 @@ from agno.tools.mcp.params import SSEClientParams, StreamableHTTPClientParams
 from app.config import settings
 from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
+from app.usage_client import extract_token_counts, record_usage
 
 logger = logging.getLogger(__name__)
 
@@ -423,6 +424,17 @@ Respond naturally and confidently as a team member."""
         response = await agent.arun(full_prompt)
         set_active_collector(None)
         mcp_results = collector.drain() or None
+
+        # Record token usage (best-effort; never blocks the response).
+        prompt_tokens, completion_tokens, total_tokens = extract_token_counts(response)
+        await record_usage(
+            chatbot_id=chatbot_id,
+            session_id=session_id or response.session_id,
+            model=settings.LLM_MODEL,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
 
         # Log tool calls
         if response.messages:

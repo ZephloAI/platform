@@ -14,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.organization import Organization
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.invitation_repository import InvitationRepository
+from app.services.audit_service import AuditLogService
+from app.services.usage_service import UsageService
 
 
 class OrganizationService:
@@ -141,6 +143,17 @@ class OrganizationService:
             status="pending",
             expires_at=expires_at,
         )
+
+        # Stream 03 will also write this record when wiring Resend — keep
+        # this entry so the admin dashboard has something to show today.
+        await AuditLogService(self.db).record(
+            action="invite.sent",
+            organization_id=org_id,
+            actor_user_id=invited_by_id,
+            target_type="invitation",
+            target_id=str(invitation.id),
+            extra={"email": email, "role": role},
+        )
         return invitation
 
     async def accept_invitation(self, token: str, user_id: int):
@@ -172,11 +185,28 @@ class OrganizationService:
                 detail="You are already a member of this organization",
             )
 
+        # Enforce max_users BEFORE adding. The invite endpoint lives on a
+        # parallel stream (todo/03-resend-invites); placing the check here
+        # means the check is active at every acceptance path today and
+        # survives that merge unchanged.
+        usage_service = UsageService(self.db)
+        await usage_service.enforce_max_users(invitation.organization_id)
+
         # Add user and mark invitation as accepted
         await self.org_repo.add_member(
             invitation.organization_id, user_id, role=invitation.role
         )
         await self.invite_repo.update(invitation.id, status="accepted")
+
+        # Record audit log so the admin dashboard surfaces the acceptance.
+        await AuditLogService(self.db).record(
+            action="invite.accepted",
+            organization_id=invitation.organization_id,
+            actor_user_id=user_id,
+            target_type="invitation",
+            target_id=str(invitation.id),
+            extra={"email": invitation.email, "role": invitation.role},
+        )
 
         # Mark invited user as onboarding completed (they already have an org)
         from app.repositories.user_repository import UserRepository

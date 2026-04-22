@@ -21,6 +21,7 @@ class User(Base):
     phone = Column(String, nullable=True)
     country = Column(String, nullable=True)
     onboarding_completed = Column(Boolean, nullable=False, default=False, server_default="false")
+    is_platform_admin = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime, default=func.now())
 
     # A user can own many chatbots
