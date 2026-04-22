@@ -7,6 +7,7 @@ import {
   useInvitations,
   useInviteUser,
   useCancelInvitation,
+  useResendInvitation,
   useRemoveMember,
   useUpdateMemberRole,
   useCreateOrgApiKey,
@@ -571,6 +572,8 @@ function InvitationsTab({
 
   const inviteUser = useInviteUser(orgId);
   const cancelInvitation = useCancelInvitation(orgId);
+  const resendInvitation = useResendInvitation(orgId);
+  const [resentId, setResentId] = useState<number | null>(null);
 
   const handleInvite = () => {
     if (!email.trim()) return;
@@ -583,6 +586,15 @@ function InvitationsTab({
         },
       }
     );
+  };
+
+  const handleResend = (invitationId: number) => {
+    resendInvitation.mutate(invitationId, {
+      onSuccess: () => {
+        setResentId(invitationId);
+        setTimeout(() => setResentId(null), 2000);
+      },
+    });
   };
 
   if (loading) {
@@ -656,12 +668,21 @@ function InvitationsTab({
                   {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                 </span>
                 {inv.status === 'pending' && canManage && (
-                  <button
-                    onClick={() => cancelInvitation.mutate(inv.id)}
-                    className="text-[12px] text-red-500 hover:text-red-600 font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleResend(inv.id)}
+                      disabled={resendInvitation.isPending}
+                      className="text-[12px] text-accent hover:text-blue-800 font-medium transition-colors disabled:opacity-40"
+                    >
+                      {resentId === inv.id ? 'Sent!' : 'Resend'}
+                    </button>
+                    <button
+                      onClick={() => cancelInvitation.mutate(inv.id)}
+                      className="text-[12px] text-red-500 hover:text-red-600 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
               </div>
             </div>

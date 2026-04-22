@@ -223,6 +223,19 @@ export interface Invitation {
   status: string;
   created_at: string;
   expires_at: string;
+  send_count?: number;
+  last_sent_at?: string | null;
+}
+
+/** Public preview of an invitation (shown on accept page before sign-in) */
+export interface InvitationPreview {
+  email: string;
+  role: string;
+  status: string;
+  expires_at: string;
+  is_expired: boolean;
+  organization_name: string | null;
+  inviter_email: string | null;
 }
 
 /** An API key for authenticating SDK/widget requests */
