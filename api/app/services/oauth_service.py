@@ -202,10 +202,9 @@ class OAuthService:
 
     def _create_token(self, user_id: int) -> str:
         """Create a JWT token with the user's ID as the subject."""
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.JWT_EXPIRE_MINUTES
-        )
-        payload = {"sub": str(user_id), "exp": expire}
+        now = datetime.now(timezone.utc)
+        expire = now + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+        payload = {"sub": str(user_id), "iat": int(now.timestamp()), "exp": expire}
         return jose_jwt.encode(
             payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
         )

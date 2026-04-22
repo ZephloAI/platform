@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     # Callback URL for the crawler to reach the API (use Docker service name in Docker)
     API_CALLBACK_URL: str = "http://localhost:8000"
 
+    # Public URL of the frontend — used to build links in outgoing emails
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    # Resend (transactional email) settings
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "Zephlo <noreply@zephlo.com>"
+
+    # Password reset settings
+    PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 15
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
