@@ -22,6 +22,9 @@ class User(Base):
     country = Column(String, nullable=True)
     onboarding_completed = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime, default=func.now())
+    # Bumped whenever the password is changed so previously-issued JWTs
+    # can be rejected. Nullable for historical accounts.
+    password_changed_at = Column(DateTime, nullable=True)
 
     # A user can own many chatbots
     chatbots = relationship(

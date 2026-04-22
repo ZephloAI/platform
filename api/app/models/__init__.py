@@ -19,6 +19,7 @@ from app.models.invitation import Invitation
 from app.models.document import Document
 from app.models.agent_text import AgentText
 from app.models.oauth_provider import UserOAuthProvider
+from app.models.password_reset_token import PasswordResetToken
 
 __all__ = [
     "Base",
@@ -35,4 +36,5 @@ __all__ = [
     "Document",
     "AgentText",
     "UserOAuthProvider",
+    "PasswordResetToken",
 ]
