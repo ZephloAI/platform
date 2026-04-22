@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 const productLinks = [
   { label: "Platform", href: "/platform" },
+  { label: "Examples", href: "/examples" },
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Security", href: "/#security" },
   { label: "Pricing", href: "/pricing" },

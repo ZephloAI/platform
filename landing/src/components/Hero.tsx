@@ -191,6 +191,19 @@ export default function Hero() {
               Watch the Video
             </a>
           </motion.div>
+
+          <motion.a
+            custom={0.85}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            href="/examples"
+            className="group -mt-4 inline-flex items-center gap-2 self-start text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]"
+          >
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+            Explore 6 live Agent examples
+            <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </motion.a>
         </div>
 
         <div className="lg:justify-self-end">
