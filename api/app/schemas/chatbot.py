@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.crawl_job import CrawlJobResponse
 from app.schemas.document import DocumentResponse
+from app.schemas.agent_text import AgentTextResponse
 
 
 class ChatbotCreate(BaseModel):
@@ -90,6 +91,7 @@ class ChatbotResponse(BaseModel):
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
     auto_recrawl_enabled: bool = True
     recrawl_interval_hours: int = 48
     last_crawled_at: datetime | None = None
@@ -101,6 +103,7 @@ class ChatbotDetailResponse(ChatbotResponse):
     """Extended chatbot response that includes crawl job history."""
     crawl_jobs: list[CrawlJobResponse] = []
     documents: list[DocumentResponse] = []
+    agent_texts: list[AgentTextResponse] = []
 
 
 class WidgetSettingsUpdate(BaseModel):
@@ -125,6 +128,7 @@ class WidgetSettingsUpdate(BaseModel):
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -149,6 +153,7 @@ class WidgetSettingsResponse(BaseModel):
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -210,3 +215,4 @@ class PublicWidgetConfig(BaseModel):
     voice_enabled: bool = False
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False

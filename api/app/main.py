@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin, documents
+from app.routers import auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin, documents, texts
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 
@@ -52,6 +52,7 @@ app.include_router(conversations.router)
 app.include_router(internal.router)
 app.include_router(ws_admin.router)
 app.include_router(documents.router)
+app.include_router(texts.router)
 
 
 @app.get("/health")

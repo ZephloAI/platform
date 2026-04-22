@@ -56,6 +56,23 @@ async def list_documents(
     return await service.list_documents(chatbot.id, user.id)
 
 
+@router.put(
+    "/agents/{agent_id}/documents/{document_id}",
+    response_model=DocumentResponse,
+)
+async def replace_document(
+    agent_id: str,
+    document_id: int,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replace an existing PDF with a new file; triggers a fresh re-index."""
+    chatbot = await _resolve_chatbot(db, agent_id)
+    service = DocumentService(db)
+    return await service.replace(chatbot.id, document_id, user.id, file)
+
+
 @router.delete("/agents/{agent_id}/documents/{document_id}")
 async def delete_document(
     agent_id: str,

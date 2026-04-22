@@ -192,6 +192,53 @@ class FollowUpTools(Toolkit):
         return f"Follow-ups set: {', '.join(names)}"
 
 
+class NavigationTools(Toolkit):
+    """
+    Toolkit that lets the agent navigate the visitor to a page on the website.
+
+    The tool emits a "navigate" WebSocket message which the widget handles by
+    persisting an auto-open flag and calling window.location.assign(url). The
+    agent should only pass URLs it saw in the retrieved context above — never
+    invent URLs.
+    """
+
+    def __init__(self, dispatcher):
+        self.dispatcher = dispatcher
+        super().__init__(
+            name="navigation_tools",
+            tools=[self.navigate_to_page],
+            show_result_tools=[],
+        )
+
+    async def navigate_to_page(self, url: str, reason: str = "") -> str:
+        """
+        Navigate the visitor to a page on this website. Only call this when
+        the visitor clearly wants to go to a specific page, or when the page
+        will answer their question more fully than a text reply. Do NOT
+        navigate on vague chit-chat or follow-up clarifications.
+
+        Args:
+            url: Full URL of the page to navigate to. Must be a URL that
+                appears in the provided context above — do not invent URLs.
+            reason: Short reason string (not user-facing, used for logging).
+
+        Returns:
+            Confirmation or error message.
+        """
+        if not url or not url.strip():
+            return "Error: url is required"
+        try:
+            await self.dispatcher.send_json({
+                "message_type": "navigate",
+                "url": url.strip(),
+            })
+            logger.info(f"navigate_to_page: url={url} reason={reason}")
+            return f"Navigating visitor to {url}"
+        except Exception as e:
+            logger.warning(f"navigate_to_page failed: {e}")
+            return "Error: could not navigate"
+
+
 def create_agent(
     chatbot_name: str = "Assistant",
     session_id: str | None = None,
@@ -199,6 +246,8 @@ def create_agent(
     mcp_tools: list | None = None,
     custom_instructions: str | None = None,
     has_rag_data: bool = True,
+    navigation_enabled: bool = False,
+    dispatcher=None,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
@@ -234,6 +283,22 @@ comparing options, or expressing excitement.
 Do NOT call it on greetings or vague questions like 'what do you do'.
 Choose one or more follow-ups from this list:\n{pool_text}
 Pass the exact titles comma-separated to the tool. The system handles the rest."""
+        )
+
+    # Navigation tool: only available when the site has been crawled AND
+    # the agent owner has explicitly enabled it in settings. Needs the
+    # dispatcher to emit the navigate WebSocket message.
+    if navigation_enabled and has_rag_data and dispatcher is not None:
+        tools.append(NavigationTools(dispatcher))
+        extra_instructions.append(
+            "You have a navigate_to_page tool. When the visitor asks to go "
+            "somewhere specific (e.g. 'take me to pricing', 'open the booking "
+            "page') or when a page in the provided context is clearly the best "
+            "answer to their question, call navigate_to_page(url) with a URL "
+            "taken directly from the context above. NEVER invent URLs. Do not "
+            "navigate for greetings, vague questions, or casual chat. After "
+            "calling the tool, also reply with a short confirmation like "
+            "'Taking you there now.'"
         )
 
     if mcp_tools:

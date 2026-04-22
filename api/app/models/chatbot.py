@@ -59,6 +59,9 @@ class Chatbot(Base):
     # Person mode (allow visitors to request live chat)
     person_mode_enabled = Column(Boolean, default=True, server_default="true")
 
+    # Navigation mode (agent can drive the user to pages from the crawled site)
+    navigation_enabled = Column(Boolean, default=False, server_default="false")
+
     # Organization (nullable initially for migration, then required)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
 
@@ -79,4 +82,7 @@ class Chatbot(Base):
     )
     documents = relationship(
         "Document", back_populates="chatbot", cascade="all, delete-orphan"
+    )
+    agent_texts = relationship(
+        "AgentText", back_populates="chatbot", cascade="all, delete-orphan"
     )

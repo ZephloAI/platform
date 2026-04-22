@@ -74,6 +74,11 @@ class ZephloCoreClass {
   // MCP / tool results
   mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
 
+  // Prompt-mode triggers hold their assistant response here until the user
+  // clicks the toast. If the toast is dismissed or auto-expires, the message
+  // is discarded and never touches chat history (client or server).
+  private pendingTriggerMessage: Message | null = null;
+
   // Retry guard
   private sessionRetried = false;
 
@@ -303,6 +308,24 @@ class ZephloCoreClass {
   /** Send page context metadata to the agent. */
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void {
     this.chatSocket?.sendContextUpdate(data, includePageDetails);
+  }
+
+  /**
+   * Commit a pending prompt-mode trigger into chat history. Called by the
+   * view when the user clicks the toast.
+   */
+  commitPendingTrigger(): void {
+    const msg = this.pendingTriggerMessage;
+    if (!msg) return;
+    this.pendingTriggerMessage = null;
+    this.messages.push(msg);
+    this.saveMessages();
+    this.emit({ type: "messageAdded", message: msg });
+  }
+
+  /** Discard a pending prompt-mode trigger (toast dismissed / expired). */
+  clearPendingTrigger(): void {
+    this.pendingTriggerMessage = null;
   }
 
   /** Register a callback for MCP tool results. */

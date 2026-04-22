@@ -85,7 +85,9 @@ export interface Chatbot {
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+  navigation_enabled?: boolean;
   documents?: Document[];
+  agent_texts?: AgentText[];
   auto_recrawl_enabled?: boolean;
   recrawl_interval_hours?: number;
   last_crawled_at?: string | null;
@@ -143,6 +145,7 @@ export interface WidgetSettings {
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+  navigation_enabled?: boolean;
 }
 
 /** An uploaded PDF document in the knowledge base */
@@ -155,6 +158,18 @@ export interface Document {
   status: 'pending' | 'processing' | 'ready' | 'error';
   chunks_indexed: number;
   uploaded_at: string;
+  processed_at: string | null;
+}
+
+/** A raw text snippet pasted into the knowledge base */
+export interface AgentText {
+  id: number;
+  chatbot_id: number;
+  title: string;
+  content: string;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  chunks_indexed: number;
+  created_at: string;
   processed_at: string | null;
 }
 

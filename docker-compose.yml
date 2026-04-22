@@ -149,6 +149,7 @@ services:
       - ASSISTANT_CHATBOT_ID=${ASSISTANT_CHATBOT_ID:-}
       - ASSISTANT_API_KEY=${ASSISTANT_API_KEY:-}
       - APP_ENV=${APP_ENV:-}
+      - WIDGET_API_URL=${WIDGET_API_URL:-}
     depends_on:
       - api
     restart: unless-stopped

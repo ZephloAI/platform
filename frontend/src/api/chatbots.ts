@@ -7,7 +7,7 @@
 
 import apiClient from './client';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, Document, OrgAnalytics, WidgetSettings } from '../types';
+import type { AgentText, Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, Document, OrgAnalytics, WidgetSettings } from '../types';
 
 // --- Helpers ---
 
@@ -101,6 +101,68 @@ export async function deleteDocument(
   documentId: number,
 ): Promise<void> {
   await apiClient.delete(`/api/agents/${chatbotId}/documents/${documentId}`);
+}
+
+export async function replaceDocument(
+  chatbotId: string,
+  documentId: number,
+  file: File,
+): Promise<Document> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.put(
+    `/api/agents/${chatbotId}/documents/${documentId}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return response.data;
+}
+
+// --- Raw Text Snippets ---
+
+export async function createText(
+  chatbotId: string,
+  title: string,
+  content: string,
+): Promise<AgentText> {
+  const response = await apiClient.post(`/api/agents/${chatbotId}/texts`, {
+    title,
+    content,
+  });
+  return response.data;
+}
+
+export async function updateText(
+  chatbotId: string,
+  textId: number,
+  title: string,
+  content: string,
+): Promise<AgentText> {
+  const response = await apiClient.put(
+    `/api/agents/${chatbotId}/texts/${textId}`,
+    { title, content },
+  );
+  return response.data;
+}
+
+export async function deleteText(
+  chatbotId: string,
+  textId: number,
+): Promise<void> {
+  await apiClient.delete(`/api/agents/${chatbotId}/texts/${textId}`);
+}
+
+// --- Preview API key ---
+
+export interface PreviewKey {
+  id: number;
+  key: string;
+  name: string;
+}
+
+export async function getPreviewKey(chatbotId: string): Promise<PreviewKey> {
+  const response = await apiClient.get(`/api/agents/${chatbotId}/preview-key`);
+  return response.data;
 }
 
 // --- Widget Settings ---

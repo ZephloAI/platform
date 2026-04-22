@@ -835,6 +835,88 @@ export const WIDGET_STYLES = /* css */ `
     pointer-events: none;
   }
 
+  /* ---- Trigger Toast (prompt-mode popover) ---- */
+  .cb-trigger-toast {
+    position: absolute;
+    bottom: 68px;
+    right: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 360px;
+    max-width: calc(100vw - 48px);
+    max-height: 70vh;
+    padding: 16px 18px 16px 20px;
+    background: var(--cb-bg);
+    color: var(--cb-text);
+    border: 1px solid var(--cb-border);
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+    font-family: var(--cb-font);
+    font-size: 13px;
+    line-height: 1.45;
+    cursor: pointer;
+    pointer-events: auto;
+    animation: cb-trigger-toast-in 0.35s cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .cb-trigger-toast.left { right: auto; left: 0; }
+
+  .cb-trigger-toast:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16), 0 3px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .cb-trigger-toast-body {
+    flex: 1;
+    min-width: 0;
+    max-height: calc(70vh - 40px);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.5;
+  }
+
+  .cb-trigger-toast-close {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--cb-text-secondary, #6e6e73);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+  }
+
+  .cb-trigger-toast-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .cb-trigger-toast.hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
+  @keyframes cb-trigger-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   /* ---- Mic Button (right of input row) ---- */
   .cb-mic-btn {
     width: 42px;

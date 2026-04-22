@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Zephlo, { navigateProp } from '@zephlo/zephlo';
 import type { ZephloInstance } from '@zephlo/zephlo';
 import * as chatbotApi from '../api/chatbots';
+import { getAppConfig, getWidgetApiUrl } from '../lib/appConfig';
 
 // ---------------------------------------------------------------------------
 // DashboardAssistant
@@ -17,31 +18,23 @@ import * as chatbotApi from '../api/chatbots';
 // Set ASSISTANT_CHATBOT_ID and ASSISTANT_API_KEY as env vars on the container.
 // ---------------------------------------------------------------------------
 
-interface AppConfig {
-  ASSISTANT_CHATBOT_ID?: string;
-  ASSISTANT_API_KEY?: string;
-}
-
-function getConfig(): AppConfig {
-  return (window as any).__APP_CONFIG__ || {};
-}
-
-
 function DashboardAssistant() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const instanceRef = useRef<ZephloInstance | null>(null);
 
   useEffect(() => {
-    const config = getConfig();
+    const config = getAppConfig();
     const CHATBOT_ID = config.ASSISTANT_CHATBOT_ID;
     const API_KEY = config.ASSISTANT_API_KEY;
 
     if (!CHATBOT_ID || !API_KEY) return;
 
+    const apiUrl = getWidgetApiUrl();
     const instance = Zephlo.initialize({
       key: API_KEY,
       chatbotId: CHATBOT_ID,
+      ...(apiUrl ? { apiUrl } : {}),
     });
 
     // Zephlo.initialize only configures the shared core — it doesn't create

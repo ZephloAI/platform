@@ -227,3 +227,82 @@ async def run_document_job(
             "status": "error",
             "error": str(e),
         })
+
+
+async def run_text_job(
+    chatbot_id: int,
+    chatbot_name: str,
+    text_id: int,
+    title: str,
+    content: str,
+    callback_url: str,
+):
+    """
+    Process a pasted raw text snippet and index its content as a background task.
+
+    Steps:
+      1. Notify API that processing has started
+      2. Ensure the Qdrant collection exists (don't delete anything)
+      3. Chunk the text, embed, and index with source_type="text"
+      4. Notify API when complete (or on failure)
+
+    The text is tagged in Qdrant with url=f"agent-text://{text_id}" so the
+    delete endpoint can target only this snippet's points later.
+    """
+    try:
+        await send_callback(callback_url, {"status": "processing"})
+
+        print(f"Processing text {text_id} for chatbot {chatbot_id}: {title!r}")
+
+        if not content.strip():
+            await send_callback(callback_url, {
+                "status": "error",
+                "error": "Text content is empty",
+            })
+            return
+
+        ensure_collection(chatbot_name, chatbot_id)
+
+        chunks = chunk_text(
+            content,
+            chunk_size=settings.CHUNK_SIZE,
+            overlap=settings.CHUNK_OVERLAP,
+        )
+
+        if not chunks:
+            await send_callback(callback_url, {
+                "status": "error",
+                "error": "Text could not be chunked",
+            })
+            return
+
+        embeddings = generate_embeddings(chunks)
+
+        source_url = f"agent-text://{text_id}"
+        chunk_objects = []
+        for chunk_text_item, embedding in zip(chunks, embeddings):
+            chunk_objects.append({
+                "text": chunk_text_item,
+                "embedding": embedding,
+                "url": source_url,
+                "title": title,
+                "source_type": "text",
+            })
+
+        index_chunks(chatbot_name, chatbot_id, chunk_objects)
+
+        print(
+            f"Text {text_id} processed for chatbot {chatbot_id}: "
+            f"{len(chunk_objects)} chunks indexed"
+        )
+        await send_callback(callback_url, {
+            "status": "ready",
+            "chunks_indexed": len(chunk_objects),
+        })
+
+    except Exception as e:
+        print(f"Text processing failed for text {text_id}: {e}")
+        await send_callback(callback_url, {
+            "status": "error",
+            "error": str(e),
+        })

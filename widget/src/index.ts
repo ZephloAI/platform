@@ -89,6 +89,9 @@ export class ChatbotWidget extends HTMLElement {
   protected greetingsEl: HTMLDivElement | null = null;
   private greetingsDismissed = false;
   private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
+  private triggerToastEl: HTMLDivElement | null = null;
+  private triggerToastTimer: ReturnType<typeof setTimeout> | null = null;
+  private static TRIGGER_TOAST_DURATION_MS = 15000;
   protected micBtn: HTMLButtonElement | null = null;
   private isRecording = false;
   private recognition: any = null;  // SpeechRecognition instance
@@ -222,6 +225,19 @@ export class ChatbotWidget extends HTMLElement {
     if (!this.isInline && this.state.position.includes('sidebar')) {
       this.injectHostTransition();
     }
+
+    // Auto-open after agent-driven navigation. The previous page set this
+    // flag right before calling window.location.assign(url). FAB views open
+    // themselves; inline views are always visible so the flag is just cleared.
+    try {
+      const autoOpenKey = `cb_auto_open_${this.state.chatbotId}`;
+      if (storage.getItem(autoOpenKey)) {
+        storage.removeItem(autoOpenKey);
+        if (!this.isInline && !this.isOpen) {
+          this.toggle();
+        }
+      }
+    } catch { /* ignore */ }
   }
 
   /** React to core state changes coming from other views or the server. */
@@ -252,7 +268,22 @@ export class ChatbotWidget extends HTMLElement {
         this.showWaitingStatus();
         break;
       case "navigate":
-        if (this.isOpen) this.minimize();
+        // If the agent sent a URL, the page is about to reload — the new
+        // page's widget handles auto-opening via the cb_auto_open flag.
+        // If no URL (legacy behavior), keep minimizing so the user can see
+        // whatever on-page action a host-registered tool performed.
+        if (!ev.url && this.isOpen) this.minimize();
+        break;
+      case "triggerOpen":
+        // Manual trigger in "open" mode — expand the FAB panel if collapsed.
+        // Inline views are already visible so this is a no-op for them.
+        if (!this.isInline && !this.isOpen) this.toggle();
+        break;
+      case "triggerToast":
+        // Manual trigger in "prompt" mode — show a clickable bubble next to
+        // the FAB. Inline views already render the message in-thread so they
+        // skip the toast entirely.
+        if (!this.isInline && !this.isOpen) this.showTriggerToast(ev.content);
         break;
       case "mcpResults":
         // Dispatch CustomEvent that crosses Shadow DOM for external listeners
@@ -624,9 +655,13 @@ export class ChatbotWidget extends HTMLElement {
     if (this.isInline) return; // inline views have no toggle
     this.isOpen = !this.isOpen;
 
-    // Dismiss greeting bubbles when opening chat
+    // Dismiss greeting bubbles + any trigger toast when opening chat.
+    // If the user opened the chat via the FAB (not the toast), treat that
+    // as ignoring the nudge and discard the pending message.
     if (this.isOpen) {
       this.dismissGreetings();
+      zephloCore.clearPendingTrigger();
+      this.hideTriggerToast();
     }
 
     // Stop voice/audio and restore minimized state when closing
@@ -702,6 +737,95 @@ export class ChatbotWidget extends HTMLElement {
     }
   }
 
+  /**
+   * Show a prompt-mode trigger message as a clickable bubble above the FAB.
+   * Click the bubble → open the chat. Close button → dismiss. Auto-dismisses
+   * after TRIGGER_TOAST_DURATION_MS unless the user is hovering it.
+   */
+  private showTriggerToast(content: string) {
+    // Reset any existing toast so a second trigger replaces the first.
+    this.hideTriggerToast(true);
+
+    const toast = document.createElement("div");
+    toast.className = "cb-trigger-toast";
+    // Mirror the greeting-bubbles left/right logic for left-positioned FABs.
+    const position = this.state.position;
+    if (position.includes("left")) toast.classList.add("left");
+
+    const body = document.createElement("div");
+    body.className = "cb-trigger-toast-body";
+    body.textContent = content;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "cb-trigger-toast-close";
+    closeBtn.setAttribute("aria-label", "Dismiss");
+    closeBtn.textContent = "\u00D7"; // ×
+
+    toast.appendChild(body);
+    toast.appendChild(closeBtn);
+
+    // Click the bubble (but not the close button) → commit the pending
+    // message to history and open the chat. Committing FIRST ensures the
+    // panel is already showing the new turn when it expands.
+    toast.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest(".cb-trigger-toast-close")) return;
+      zephloCore.commitPendingTrigger();
+      this.hideTriggerToast();
+      if (!this.isOpen) this.toggle();
+    });
+
+    // Close button → dismiss and discard the pending message
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      zephloCore.clearPendingTrigger();
+      this.hideTriggerToast();
+    });
+
+    // Pause auto-dismiss while hovered
+    toast.addEventListener("mouseenter", () => {
+      if (this.triggerToastTimer) {
+        clearTimeout(this.triggerToastTimer);
+        this.triggerToastTimer = null;
+      }
+    });
+    toast.addEventListener("mouseleave", () => {
+      this.scheduleTriggerToastDismiss();
+    });
+
+    this.shadow.appendChild(toast);
+    this.triggerToastEl = toast;
+    this.scheduleTriggerToastDismiss();
+  }
+
+  private scheduleTriggerToastDismiss() {
+    if (this.triggerToastTimer) clearTimeout(this.triggerToastTimer);
+    this.triggerToastTimer = setTimeout(
+      () => {
+        // Auto-dismiss = user ignored the nudge → discard the pending message
+        zephloCore.clearPendingTrigger();
+        this.hideTriggerToast();
+      },
+      ChatbotWidget.TRIGGER_TOAST_DURATION_MS,
+    );
+  }
+
+  private hideTriggerToast(immediate = false) {
+    if (this.triggerToastTimer) {
+      clearTimeout(this.triggerToastTimer);
+      this.triggerToastTimer = null;
+    }
+    const el = this.triggerToastEl;
+    if (!el) return;
+    this.triggerToastEl = null;
+    if (immediate) {
+      el.remove();
+      return;
+    }
+    el.classList.add("hidden");
+    setTimeout(() => el.remove(), 300);
+  }
+
   private updateStatusDot(status: ConnectionStatus) {
     this.shadow.querySelectorAll('.cb-status-dot').forEach(dot => {
       dot.className = `cb-status-dot ${status}`;
@@ -717,6 +841,7 @@ export class ChatbotWidget extends HTMLElement {
       clearTimeout(this.greetingsTimer);
       this.greetingsTimer = null;
     }
+    this.hideTriggerToast(true);
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;

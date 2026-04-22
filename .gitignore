@@ -52,3 +52,6 @@ widget-testbench/
 # Demo dependencies and builds
 demo/
 demo
+
+.email/
+.email

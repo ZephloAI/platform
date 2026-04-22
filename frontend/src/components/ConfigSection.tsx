@@ -57,9 +57,9 @@ function ConfigSection({ chatbot, activeTab }: ConfigSectionProps) {
       <div className="flex-1 min-w-0">
         <WidgetConfigurator chatbot={chatbot} activeTab={activeTab} onPreviewChange={setPreviewState} />
       </div>
-      <div className="hidden lg:block w-[340px] shrink-0">
+      <div className="hidden lg:block w-[400px] shrink-0">
         <div className="sticky top-[5.5rem]">
-          <WidgetPreview chatbotName={chatbot.name} state={previewState} />
+          <WidgetPreview chatbotId={chatbot.public_id} state={previewState} />
         </div>
       </div>
     </div>

@@ -10,7 +10,8 @@ fi
 cat > /usr/share/nginx/html/config.js <<EOF
 window.__APP_CONFIG__ = {
   ASSISTANT_CHATBOT_ID: "${ASSISTANT_CHATBOT_ID:-}",
-  ASSISTANT_API_KEY: "${ASSISTANT_API_KEY:-}"
+  ASSISTANT_API_KEY: "${ASSISTANT_API_KEY:-}",
+  WIDGET_API_URL: "${WIDGET_API_URL:-}"
 };
 
 ${FLAPI_LINE}
