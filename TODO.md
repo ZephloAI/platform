@@ -19,12 +19,12 @@ The following items are blocking a full public launch. Each is tracked below wit
 ### 1. Incomplete Landing Website
 We need a landing site in the spirit of https://copilotkit.ai/ but simpler and more focused on our positioning.
 
-- [ ] Audit what exists under `landing/` today
-- [ ] Rewrite the hero, value proposition, and feature sections to match our Agent-platform positioning
-- [ ] Add primary CTAs (sign up / talk to sales) wired to the dashboard
-- [ ] Polish visual design to the Apple-inspired standard (typography, spacing, motion)
-- [ ] Make it fully responsive and accessible
-- [ ] Add basic SEO/meta tags and social preview cards
+- [x] Audit what exists under `landing/` today
+- [x] Rewrite the hero, value proposition, and feature sections to match our Agent-platform positioning
+- [x] Add primary CTAs (sign up / talk to sales) wired to the dashboard
+- [x] Polish visual design to the Apple-inspired standard (typography, spacing, motion)
+- [x] Make it fully responsive and accessible
+- [x] Add basic SEO/meta tags and social preview cards
 
 ### 2. Out-of-Date Docs
 Current docs under `docs/` no longer reflect the platform as built. They need to be rewritten before launch.

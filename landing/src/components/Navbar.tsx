@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Sun, Moon, ChevronDown, Zap, Globe, Shield, Settings, Headphones, Rocket, ShoppingCart, GraduationCap } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { links } from "@/lib/links";
 
 const productLinks = [
-  { label: "Platform Overview", href: "/platform", icon: Zap, description: "How Zephlo works end-to-end" },
-  { label: "Channels", href: "/#channels", icon: Globe, description: "Web, WhatsApp, Telegram, mobile" },
-  { label: "Security", href: "/#security", icon: Shield, description: "Client-side execution, zero credentials" },
-  { label: "Integrations", href: "/#integrations", icon: Settings, description: "Works with any web app" },
+  { label: "Platform overview", href: "/platform", icon: Zap, description: "How Zephlo works end-to-end" },
+  { label: "Features", href: "/#features", icon: Globe, description: "Crawl, embed, chat, act" },
+  { label: "How it works", href: "/#how-it-works", icon: Settings, description: "From URL to live Agent" },
+  { label: "Security", href: "/platform#security", icon: Shield, description: "Built for production" },
 ];
 
 const useCaseLinks = [
@@ -114,15 +116,15 @@ export default function Navbar() {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5 group">
-          <div className="relative h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        <Link href="/" aria-label="Zephlo home" className="flex items-center gap-2.5 group">
+          <div className="relative h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center transition-transform duration-300 group-hover:scale-105" aria-hidden="true">
             <div className="h-2.5 w-2.5 rounded-sm bg-white/90" />
             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] opacity-0 group-hover:opacity-40 blur-lg transition-opacity duration-300" />
           </div>
           <span className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
             zephlo
           </span>
-        </a>
+        </Link>
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-7">
@@ -152,14 +154,14 @@ export default function Navbar() {
             </AnimatePresence>
           </button>
 
-          <a href="#contact" className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">
-            Contact Sales
+          <a href={links.signIn} className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">
+            Sign in
           </a>
           <a
-            href="#get-started"
-            className="inline-flex items-center rounded-full px-5 py-2 text-[13px] font-medium text-white bg-[#1275CA] transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_24px_-4px_rgba(18,117,202,0.5)]"
+            href={links.signUp}
+            className="inline-flex items-center rounded-full px-5 py-2 text-[13px] font-medium text-white bg-[#1275CA] transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_24px_-4px_rgba(18,117,202,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
-            Get Started
+            Start free
           </a>
         </div>
 
@@ -205,14 +207,24 @@ export default function Navbar() {
               <motion.a href="/customers" onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.35, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Customers</motion.a>
               <motion.a href="/pricing" onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Pricing</motion.a>
               <motion.a
-                href="#get-started"
+                href={links.signIn}
+                onClick={() => setMobileOpen(false)}
+                initial={{ x: -12, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.42, duration: 0.25 }}
+                className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]"
+              >
+                Sign in
+              </motion.a>
+              <motion.a
+                href={links.signUp}
                 onClick={() => setMobileOpen(false)}
                 initial={{ x: -12, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.45, duration: 0.25 }}
                 className="mt-2 flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium text-white bg-[#1275CA]"
               >
-                Get Started
+                Start free
               </motion.a>
             </div>
           </motion.div>
