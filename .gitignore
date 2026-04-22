@@ -40,9 +40,6 @@ Thumbs.db
 *.db
 *.sqlite3
 
-docs/*
-docs
-
 .agents/
 .agents/*
 

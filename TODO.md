@@ -29,12 +29,12 @@ We need a landing site in the spirit of https://copilotkit.ai/ but simpler and m
 ### 2. Out-of-Date Docs
 Current docs under `docs/` no longer reflect the platform as built. They need to be rewritten before launch.
 
-- [ ] Inventory current docs and mark what is stale vs. still valid
-- [ ] Rewrite the "Getting Started" flow for end users (create Agent → crawl site → embed widget)
-- [ ] Rewrite the developer docs for the widget script tag and `<zephlo-chat>` inline element
-- [ ] Document the API surface for programmatic Agent management
-- [ ] Add a troubleshooting / FAQ page
-- [ ] Publish docs at a stable URL linked from the landing site and dashboard
+- [x] Inventory current docs and mark what is stale vs. still valid
+- [x] Rewrite the "Getting Started" flow for end users (create Agent → crawl site → embed widget)
+- [x] Rewrite the developer docs for the widget script tag and `<zephlo-chat>` inline element
+- [x] Document the API surface for programmatic Agent management
+- [x] Add a troubleshooting / FAQ page
+- [x] Publish docs at a stable URL linked from the landing site and dashboard
 
 ### 3. Connect Resend for Invites
 The invite email template already exists in Resend; we just need the backend wired up.
