@@ -130,6 +130,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-7">
           <NavDropdown label="Product" items={productLinks} />
           <NavDropdown label="Solutions" items={useCaseLinks} />
+          <a href="/examples" className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">Examples</a>
           <a href="/customers" className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">Customers</a>
           <a href="/pricing" className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">Pricing</a>
         </div>
@@ -204,6 +205,7 @@ export default function Navbar() {
                 <motion.a key={link.label} href={link.href} onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: (productLinks.length + i) * 0.04, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">{link.label}</motion.a>
               ))}
               <div className="divider my-2 border-t border-[var(--subtle-white-04)]" />
+              <motion.a href="/examples" onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.33, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Examples</motion.a>
               <motion.a href="/customers" onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.35, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Customers</motion.a>
               <motion.a href="/pricing" onClick={() => setMobileOpen(false)} initial={{ x: -12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4, duration: 0.25 }} className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Pricing</motion.a>
               <motion.a

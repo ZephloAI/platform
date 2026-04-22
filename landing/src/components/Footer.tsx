@@ -4,8 +4,10 @@ import { links } from "@/lib/links";
 
 const productLinks = [
   { label: "Platform", href: "/platform" },
-  { label: "How it works", href: "/#how-it-works" },
+  { label: "Examples", href: "/examples" },
+  { label: "How It Works", href: "/#how-it-works" },
   { label: "Features", href: "/#features" },
+  { label: "Security", href: "/#security" },
   { label: "Pricing", href: "/pricing" },
   { label: "Docs", href: links.docs },
 ];

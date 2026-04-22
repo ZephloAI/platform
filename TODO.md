@@ -59,10 +59,10 @@ There is currently no self-serve password recovery.
 ### 5. Examples Page on the Landing Site
 We want an examples page similar to https://www.copilotkit.ai/examples, showcasing concrete use cases for the Agent platform.
 
-- [ ] Decide on 4–8 example scenarios (docs Agent, support Agent, e-commerce assistant, etc.)
-- [ ] For each example: short description, embedded live demo or screenshot, and "use this template" CTA
-- [ ] Reuse the widget / `<zephlo-chat>` element to make examples actually interactive where possible
-- [ ] Link the examples page from the landing nav and hero
+- [x] Decide on 4–8 example scenarios (docs Agent, support Agent, e-commerce assistant, etc.)
+- [x] For each example: short description, embedded live demo or screenshot, and "use this template" CTA
+- [x] Reuse the widget / `<zephlo-chat>` element to make examples actually interactive where possible
+- [x] Link the examples page from the landing nav and hero
 
 ### 6. Admin Dashboard + Usage Enforcement
 We have no admin surface for operating the platform, and no enforcement of per-organization limits.
