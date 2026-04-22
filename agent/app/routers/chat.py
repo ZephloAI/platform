@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from app.agent import chat_with_agent
 from app.config import settings
+from app.usage_client import precheck_usage
 
 router = APIRouter()
 
@@ -100,6 +101,19 @@ async def chat(request: ChatRequest):
     The response always includes the session_id so the client can
     continue the conversation.
     """
+    # Pre-flight usage check. Blocks with a structured error if the
+    # organization is over its token budget or suspended.
+    precheck = await precheck_usage(request.chatbot_id)
+    if precheck.is_blocked:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "code": precheck.code or "limit_max_tokens_exceeded",
+                "message": precheck.message or "Usage limit reached.",
+                "limit": precheck.limit,
+            },
+        )
+
     try:
         result = await chat_with_agent(
             request.chatbot_id,

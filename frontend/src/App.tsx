@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ChatbotLayout from './components/ChatbotLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import DashboardAssistant from './components/DashboardAssistant';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -14,6 +15,7 @@ import ChatPreviewPage from './pages/ChatPreviewPage';
 import OrganizationSettingsPage from './pages/OrganizationSettingsPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import OnboardingPage from './pages/OnboardingPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   return (
@@ -56,6 +58,16 @@ function App() {
           <ProtectedRoute>
             <OrganizationSettingsPage />
           </ProtectedRoute>
+        }
+      />
+
+      {/* Platform admin dashboard - role gated */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
         }
       />
 

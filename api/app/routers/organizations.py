@@ -19,6 +19,7 @@ from app.models.user import User
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.schemas.api_key import ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse
 from app.schemas.chatbot import ChatbotMetrics, ChatbotMetricsMap, ChatbotMiniAnalytics, OrgAnalytics
+from app.schemas.admin import UsageSnapshotResponse
 from app.schemas.organization import (
     OrganizationCreate,
     OrganizationResponse,
@@ -30,6 +31,7 @@ from app.schemas.organization import (
     UpdateMemberRoleRequest,
 )
 from app.services.organization_service import OrganizationService
+from app.services.usage_service import UsageService
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
@@ -196,6 +198,31 @@ async def get_org_chatbot_analytics(
 
 
 # -- Members --
+
+
+@router.get("/{org_id}/usage", response_model=UsageSnapshotResponse)
+async def get_org_usage(
+    org_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return current usage vs. limits for the customer dashboard."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+    snapshot = await UsageService(db).get_snapshot(org_id)
+    return UsageSnapshotResponse(
+        organization_id=snapshot.organization_id,
+        plan=snapshot.plan,
+        is_suspended=snapshot.is_suspended,
+        users_count=snapshot.users_count,
+        agents_count=snapshot.agents_count,
+        tokens_used_in_period=snapshot.tokens_used_in_period,
+        max_users=snapshot.max_users,
+        max_agents=snapshot.max_agents,
+        max_tokens_per_period=snapshot.max_tokens_per_period,
+        token_period=snapshot.token_period,
+        token_period_start=snapshot.token_period_start,
+    )
 
 
 @router.get("/{org_id}/members", response_model=list[OrganizationMemberResponse])

@@ -15,15 +15,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.invitation import Invitation
 from app.models.organization import Organization
-from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.invitation_repository import InvitationRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.user_repository import UserRepository
+from app.services.audit_service import AuditLogService
 from app.services.resend_client import (
     ResendClient,
     ResendError,
     fallback_invite_html,
 )
+from app.services.usage_service import UsageService
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class OrganizationService:
         self.db = db
         self.org_repo = OrganizationRepository(db)
         self.invite_repo = InvitationRepository(db)
-        self.audit_repo = AuditLogRepository(db)
+        self.audit = AuditLogService(db)
         self.resend = ResendClient()
 
     # -- Organization CRUD --
@@ -171,12 +172,13 @@ class OrganizationService:
             inviter_email=inviter_email,
         )
 
-        await self.audit_repo.log(
-            event_type="invite.sent",
+        await self.audit.record(
+            action="invite.sent",
             organization_id=org_id,
             actor_user_id=invited_by_id,
-            payload={
-                "invitation_id": invitation.id,
+            target_type="invitation",
+            target_id=str(invitation.id),
+            extra={
                 "email": invitation.email,
                 "role": invitation.role,
                 "resend_message_id": email_id,
@@ -221,12 +223,13 @@ class OrganizationService:
             inviter_email=inviter_email,
         )
 
-        await self.audit_repo.log(
-            event_type="invite.resent",
+        await self.audit.record(
+            action="invite.resent",
             organization_id=org_id,
             actor_user_id=requesting_user_id,
-            payload={
-                "invitation_id": invitation.id,
+            target_type="invitation",
+            target_id=str(invitation.id),
+            extra={
                 "email": invitation.email,
                 "resend_message_id": email_id,
                 "send_count": invitation.send_count,
@@ -304,6 +307,13 @@ class OrganizationService:
                 detail="You are already a member of this organization",
             )
 
+        # Enforce max_users BEFORE adding. The invite endpoint lives on a
+        # parallel stream (todo/03-resend-invites); placing the check here
+        # means the check is active at every acceptance path today and
+        # survives that merge unchanged.
+        usage_service = UsageService(self.db)
+        await usage_service.enforce_max_users(invitation.organization_id)
+
         # Add user and mark invitation as accepted
         await self.org_repo.add_member(
             invitation.organization_id, user_id, role=invitation.role
@@ -322,15 +332,13 @@ class OrganizationService:
             user.onboarding_completed = True
             await self.db.commit()
 
-        await self.audit_repo.log(
-            event_type="invite.accepted",
+        await self.audit.record(
+            action="invite.accepted",
             organization_id=invitation.organization_id,
             actor_user_id=user_id,
-            payload={
-                "invitation_id": invitation.id,
-                "email": invitation.email,
-                "role": invitation.role,
-            },
+            target_type="invitation",
+            target_id=str(invitation.id),
+            extra={"email": invitation.email, "role": invitation.role},
         )
         return invitation
 
@@ -348,11 +356,13 @@ class OrganizationService:
                 detail="Invitation not found",
             )
         result = await self.invite_repo.delete(invitation_id)
-        await self.audit_repo.log(
-            event_type="invite.cancelled",
+        await self.audit.record(
+            action="invite.cancelled",
             organization_id=org_id,
             actor_user_id=user_id,
-            payload={"invitation_id": invitation_id, "email": invitation.email},
+            target_type="invitation",
+            target_id=str(invitation_id),
+            extra={"email": invitation.email},
         )
         return result
 

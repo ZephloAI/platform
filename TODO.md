@@ -68,16 +68,16 @@ We want an examples page similar to https://www.copilotkit.ai/examples, showcasi
 We have no admin surface for operating the platform, and no enforcement of per-organization limits.
 
 **Admin dashboard (new surface, likely in `frontend/` under an admin-only route):**
-- [ ] List organizations with key stats (users, Agents, token usage, plan)
-- [ ] Per-organization detail page: manage limits, view audit log, suspend/reactivate
-- [ ] Platform-wide metrics (active orgs, total Agents, token usage over time)
-- [ ] Role gating: only platform admins can access
+- [x] List organizations with key stats (users, Agents, token usage, plan)
+- [x] Per-organization detail page: manage limits, view audit log, suspend/reactivate
+- [x] Platform-wide metrics (active orgs, total Agents, token usage over time)
+- [x] Role gating: only platform admins can access
 
 **Limit enforcement (in the `api` and `agent` services):**
-- [ ] Data model for per-organization limits: `max_users`, `max_agents`, `max_tokens_per_period`
-- [ ] Enforce `max_users` on invite acceptance (item 3 dependency)
-- [ ] Enforce `max_agents` on Agent creation
-- [ ] Track token usage per Agent call in the `agent` service; aggregate per organization
-- [ ] Enforce `max_tokens_per_period` — block or degrade once exceeded, with a clear error
-- [ ] Surface current usage vs. limits in the customer dashboard, not just the admin view
-- [ ] Reset/rollover logic for the token usage period (monthly by default)
+- [x] Data model for per-organization limits: `max_users`, `max_agents`, `max_tokens_per_period`
+- [x] Enforce `max_users` on invite acceptance (item 3 dependency)
+- [x] Enforce `max_agents` on Agent creation
+- [x] Track token usage per Agent call in the `agent` service; aggregate per organization
+- [x] Enforce `max_tokens_per_period` — block or degrade once exceeded, with a clear error
+- [x] Surface current usage vs. limits in the customer dashboard, not just the admin view
+- [x] Reset/rollover logic for the token usage period (monthly by default)

@@ -65,6 +65,7 @@ class OAuthService:
             "first_name": user.first_name,
             "last_name": user.last_name,
             "onboarding_completed": user.onboarding_completed,
+            "is_platform_admin": user.is_platform_admin,
             "token": token,
             "organization_id": org_id,
         }

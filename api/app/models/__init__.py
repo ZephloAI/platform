@@ -19,6 +19,7 @@ from app.models.invitation import Invitation
 from app.models.document import Document
 from app.models.agent_text import AgentText
 from app.models.oauth_provider import UserOAuthProvider
+from app.models.agent_token_usage import AgentTokenUsage
 from app.models.audit_log import AuditLog
 from app.models.password_reset_token import PasswordResetToken
 
@@ -37,6 +38,7 @@ __all__ = [
     "Document",
     "AgentText",
     "UserOAuthProvider",
+    "AgentTokenUsage",
     "AuditLog",
     "PasswordResetToken",
 ]

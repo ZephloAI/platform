@@ -7,6 +7,7 @@ import type {
   ApiKeyCreated,
   Invitation,
   InvitationPreview,
+  UsageSnapshot,
 } from '../types';
 
 // ============================================================
@@ -18,7 +19,19 @@ const QUERY_KEYS = {
   orgMembers: (orgId: number) => ['organizations', orgId, 'members'] as const,
   orgApiKeys: (orgId: number) => ['organizations', orgId, 'api-keys'] as const,
   orgInvitations: (orgId: number) => ['organizations', orgId, 'invitations'] as const,
+  orgUsage: (orgId: number) => ['organizations', orgId, 'usage'] as const,
 };
+
+export function useOrgUsage(orgId: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.orgUsage(orgId),
+    queryFn: async (): Promise<UsageSnapshot> => {
+      const response = await apiClient.get(`/api/organizations/${orgId}/usage`);
+      return response.data;
+    },
+    enabled: !!orgId,
+  });
+}
 
 // --- Queries ---
 

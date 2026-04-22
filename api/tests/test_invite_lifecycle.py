@@ -108,22 +108,29 @@ class FakeOrgRepo:
         return member
 
 
-class FakeAuditRepo:
+class FakeAuditService:
+    """Stand-in for AuditLogService used in OrganizationService."""
+
     def __init__(self):
         self.entries: list[dict] = []
 
-    async def log(
+    async def record(
         self,
-        event_type: str,
+        *,
+        action: str,
         organization_id: int | None = None,
         actor_user_id: int | None = None,
-        payload: dict | None = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        extra: dict | None = None,
     ):
         entry = {
-            "event_type": event_type,
+            "action": action,
             "organization_id": organization_id,
             "actor_user_id": actor_user_id,
-            "payload": payload or {},
+            "target_type": target_type,
+            "target_id": target_id,
+            "extra": extra or {},
         }
         self.entries.append(entry)
         return entry
@@ -153,7 +160,7 @@ def service(monkeypatch):
 
     invite_repo = FakeInviteRepo()
     org_repo = FakeOrgRepo(org, admin_user_id=admin.id)
-    audit_repo = FakeAuditRepo()
+    audit = FakeAuditService()
     users = {admin.id: admin, invitee.id: invitee}
 
     # Fake db stub: accept_invitation eventually calls `self.db.commit()` after
@@ -165,7 +172,23 @@ def service(monkeypatch):
     svc = org_service_module.OrganizationService(db=FakeDB())  # type: ignore[arg-type]
     svc.invite_repo = invite_repo  # type: ignore[assignment]
     svc.org_repo = org_repo  # type: ignore[assignment]
-    svc.audit_repo = audit_repo  # type: ignore[assignment]
+    svc.audit = audit  # type: ignore[assignment]
+
+    # accept_invitation calls UsageService(db).enforce_max_users. That hits
+    # the real ORM, which has no tables in this DB-less test. Patch it to a
+    # no-op so the invite-lifecycle tests stay focused on invite state.
+    async def _allow_all_users(org_id):
+        return None
+
+    class FakeUsageService:
+        def __init__(self, db):
+            pass
+
+        enforce_max_users = staticmethod(_allow_all_users)
+
+    monkeypatch.setattr(
+        org_service_module, "UsageService", FakeUsageService
+    )
 
     # Replace the resend client with an AsyncMock that pretends to send.
     resend = SimpleNamespace(
@@ -193,7 +216,7 @@ def service(monkeypatch):
     svc.test_admin = admin  # type: ignore[attr-defined]
     svc.test_invitee = invitee  # type: ignore[attr-defined]
     svc.test_org = org  # type: ignore[attr-defined]
-    svc.test_audit = audit_repo  # type: ignore[attr-defined]
+    svc.test_audit = audit  # type: ignore[attr-defined]
     svc.test_invite_repo = invite_repo  # type: ignore[attr-defined]
     return svc
 
@@ -221,10 +244,10 @@ async def test_invite_user_creates_pending_invitation_and_sends_email(service):
 
     # One resend send call + one audit row of type invite.sent
     assert service.resend.send_email.await_count == 1
-    events = [e["event_type"] for e in service.test_audit.entries]
-    assert events == ["invite.sent"]
-    assert service.test_audit.entries[0]["payload"]["invitation_id"] == inv.id
-    assert service.test_audit.entries[0]["payload"]["resend_message_id"] == "resend_msg_123"
+    actions = [e["action"] for e in service.test_audit.entries]
+    assert actions == ["invite.sent"]
+    assert service.test_audit.entries[0]["target_id"] == str(inv.id)
+    assert service.test_audit.entries[0]["extra"]["resend_message_id"] == "resend_msg_123"
 
 
 @pytest.mark.asyncio
@@ -276,8 +299,8 @@ async def test_resend_invitation_bumps_count_and_extends_expiry(service):
 
     # Two sends total (initial + resend), two audit rows.
     assert service.resend.send_email.await_count == 2
-    events = [e["event_type"] for e in service.test_audit.entries]
-    assert events == ["invite.sent", "invite.resent"]
+    actions = [e["action"] for e in service.test_audit.entries]
+    assert actions == ["invite.sent", "invite.resent"]
 
 
 @pytest.mark.asyncio
@@ -326,8 +349,8 @@ async def test_accept_invitation_adds_member_and_fills_accepted_fields(service):
     # Onboarding got auto-completed for the invited user.
     assert service.test_invitee.onboarding_completed is True
 
-    events = [e["event_type"] for e in service.test_audit.entries]
-    assert "invite.accepted" in events
+    actions = [e["action"] for e in service.test_audit.entries]
+    assert "invite.accepted" in actions
 
 
 @pytest.mark.asyncio
@@ -387,5 +410,5 @@ async def test_invite_email_failure_does_not_rollback_invitation(service):
 
     # Still pending, still written to the audit log (with no resend id).
     assert inv.status == "pending"
-    assert service.test_audit.entries[-1]["event_type"] == "invite.sent"
-    assert service.test_audit.entries[-1]["payload"]["resend_message_id"] is None
+    assert service.test_audit.entries[-1]["action"] == "invite.sent"
+    assert service.test_audit.entries[-1]["extra"]["resend_message_id"] is None

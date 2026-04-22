@@ -1,8 +1,9 @@
-"""Extend invitations for Resend sends and add audit_logs table.
+"""Extend invitations for Resend sends and tracking.
 
 Adds columns to invitations for tracking resend attempts and acceptance
-details, and creates a new audit_logs table for organization-scoped
-append-only event records.
+details. The audit_logs table originally created here has been moved to
+migration 027_add_admin_limits, which owns the canonical schema shared
+across the invite, admin, and usage-limit streams.
 
 Revision ID: 025
 Revises: 024
@@ -11,7 +12,6 @@ Create Date: 2026-04-23
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 revision = "025"
@@ -49,37 +49,8 @@ def upgrade() -> None:
         ),
     )
 
-    # --- audit_logs: new table ---
-    op.create_table(
-        "audit_logs",
-        sa.Column("id", sa.Integer(), primary_key=True, index=True),
-        sa.Column(
-            "organization_id",
-            sa.Integer(),
-            sa.ForeignKey("organizations.id", ondelete="CASCADE"),
-            nullable=True,
-            index=True,
-        ),
-        sa.Column(
-            "actor_user_id",
-            sa.Integer(),
-            sa.ForeignKey("users.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        sa.Column("event_type", sa.String(), nullable=False, index=True),
-        sa.Column("payload", postgresql.JSONB(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(),
-            server_default=sa.func.now(),
-            index=True,
-        ),
-    )
-
 
 def downgrade() -> None:
-    op.drop_table("audit_logs")
-
     op.drop_column("invitations", "accepted_by_user_id")
     op.drop_column("invitations", "accepted_at")
     op.drop_column("invitations", "last_sent_at")
