@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     # Base URL the frontend serves the accept-invite page from. The token is
     # appended as a path segment: {base}/{token}
     INVITE_ACCEPT_URL_BASE: str = "http://localhost/invitations/accept"
+    
+    # Public URL of the frontend — used to build links in outgoing emails
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    # Resend (transactional email) settings
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "Zephlo <noreply@zephlo.com>"
+
+    # Password reset settings
+    PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 15
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

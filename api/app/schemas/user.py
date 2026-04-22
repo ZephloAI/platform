@@ -47,3 +47,19 @@ class LoginResponse(BaseModel):
     onboarding_completed: bool = False
     token: str
     organization_id: int | None = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for starting a password reset — just the email."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for completing a password reset with a one-time token."""
+    token: str
+    new_password: str
+
+
+class GenericMessageResponse(BaseModel):
+    """A neutral response body used when we don't want to leak state."""
+    message: str

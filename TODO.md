@@ -49,12 +49,12 @@ The invite email template already exists in Resend; we just need the backend wir
 ### 4. Forgot Password
 There is currently no self-serve password recovery.
 
-- [ ] Add "Forgot password?" link on the login page
-- [ ] Backend endpoint: generate a time-limited, single-use reset token
-- [ ] Send reset email via Resend (reuse the Resend integration from item 3)
-- [ ] Reset-password page in the frontend that consumes the token
-- [ ] Invalidate existing sessions on successful password reset
-- [ ] Rate limit reset requests per email / IP
+- [x] Add "Forgot password?" link on the login page
+- [x] Backend endpoint: generate a time-limited, single-use reset token
+- [x] Send reset email via Resend (reuse the Resend integration from item 3)
+- [x] Reset-password page in the frontend that consumes the token
+- [x] Invalidate existing sessions on successful password reset
+- [x] Rate limit reset requests per email / IP
 
 ### 5. Examples Page on the Landing Site
 We want an examples page similar to https://www.copilotkit.ai/examples, showcasing concrete use cases for the Agent platform.
