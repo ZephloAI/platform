@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
-import type { Organization, OrganizationMember, ApiKey, ApiKeyCreated, Invitation } from '../types';
+import type { Organization, OrganizationMember, ApiKey, ApiKeyCreated, Invitation, UsageSnapshot } from '../types';
 
 // ============================================================
 // React Query Hooks for Organization Operations
@@ -11,7 +11,19 @@ const QUERY_KEYS = {
   orgMembers: (orgId: number) => ['organizations', orgId, 'members'] as const,
   orgApiKeys: (orgId: number) => ['organizations', orgId, 'api-keys'] as const,
   orgInvitations: (orgId: number) => ['organizations', orgId, 'invitations'] as const,
+  orgUsage: (orgId: number) => ['organizations', orgId, 'usage'] as const,
 };
+
+export function useOrgUsage(orgId: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.orgUsage(orgId),
+    queryFn: async (): Promise<UsageSnapshot> => {
+      const response = await apiClient.get(`/api/organizations/${orgId}/usage`);
+      return response.data;
+    },
+    enabled: !!orgId,
+  });
+}
 
 // --- Queries ---
 

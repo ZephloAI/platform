@@ -39,6 +39,58 @@ export interface User {
   first_name: string | null;
   last_name: string | null;
   onboarding_completed: boolean;
+  is_platform_admin?: boolean;
+}
+
+/** Current usage vs. limits for an organization */
+export interface UsageSnapshot {
+  organization_id: number;
+  plan: string;
+  is_suspended: boolean;
+  users_count: number;
+  agents_count: number;
+  tokens_used_in_period: number;
+  max_users: number | null;
+  max_agents: number | null;
+  max_tokens_per_period: number | null;
+  token_period: string;
+  token_period_start: string | null;
+}
+
+/** A row in the admin "list all orgs" view */
+export interface OrgAdminSummary extends UsageSnapshot {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+}
+
+/** A single entry in an organization's audit log */
+export interface AuditLogEntry {
+  id: number;
+  organization_id: number | null;
+  actor_user_id: number | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  extra: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/** Platform-wide metrics on the admin overview */
+export interface PlatformMetrics {
+  active_orgs: number;
+  suspended_orgs: number;
+  total_orgs: number;
+  total_agents: number;
+  total_users: number;
+  tokens_last_30_days: number;
+}
+
+/** One point in the platform token-usage time series */
+export interface TokenUsagePoint {
+  date: string;
+  total_tokens: number;
 }
 
 /** Zustand auth store shape - manages user session state */
