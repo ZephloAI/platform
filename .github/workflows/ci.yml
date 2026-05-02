@@ -28,9 +28,11 @@ jobs:
           IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}"
 
           if [ "${{ matrix.service }}" = "landing" ]; then
+            # Context = repo root: Dockerfile copies both widget/ and landing/
+            # so the local widget can be built and aliased into the Next bundle.
             docker build --platform linux/amd64 \
               -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \
-              ./landing
+              -f landing/Dockerfile .
           elif [ "${{ matrix.service }}" = "frontend" ]; then
             docker build --platform linux/amd64 \
               -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \

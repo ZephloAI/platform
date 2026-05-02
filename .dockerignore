@@ -1,1 +1,9 @@
-frontend/node_modules
+# When a service is built with `-f <svc>/Dockerfile .` (repo-root context),
+# Docker only reads THIS file — service-specific .dockerignore is ignored.
+# Keep patterns aligned with each service's own .dockerignore.
+
+**/node_modules
+**/.next
+**/dist
+**/.git
+**/.env*
