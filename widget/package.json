@@ -1,6 +1,6 @@
 {
-  "name": "@zephlo/zephlo",
-  "version": "0.0.2-beta",
+  "name": "zephlo",
+  "version": "0.1.0",
   "description": "Zephlo - AI chatbot widget for your website. Drop-in script tag or npm install.",
   "author": "Zephlo",
   "license": "Elastic-2.0",
@@ -24,6 +24,8 @@
   },
   "main": "dist/zephlo.esm.js",
   "module": "dist/zephlo.esm.js",
+  "unpkg": "dist/zephlo.js",
+  "jsdelivr": "dist/zephlo.js",
   "types": "dist/types.d.ts",
   "exports": {
     ".": {

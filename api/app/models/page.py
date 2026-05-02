@@ -19,7 +19,7 @@ class Page(Base):
     url = Column(String, nullable=False)
     title = Column(String, nullable=True)
     content = Column(Text, nullable=True)
-    crawled_at = Column(DateTime, default=func.now())
+    crawled_at = Column(DateTime(timezone=True), default=func.now())
 
     # Each page belongs to one chatbot
     chatbot = relationship("Chatbot", back_populates="pages")

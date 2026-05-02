@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Plug, Bug, KeyRound } from "lucide-react";
 import { useRef } from "react";
 import type { ReactNode } from "react";
+import { ease, useParallaxEnabled } from "@/lib/motion";
 
 interface ProblemCard {
   title: string;
@@ -41,13 +42,14 @@ const cardVariants = {
     transition: {
       duration: 0.7,
       delay: i * 0.15,
-      ease: "easeOut" as const,
+      ease: ease.out,
     },
   }),
 };
 
 export default function Problem() {
   const ref = useRef<HTMLElement>(null);
+  const parallaxOn = useParallaxEnabled();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
@@ -61,7 +63,7 @@ export default function Problem() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-20"
         >
           <motion.span
@@ -104,12 +106,12 @@ export default function Problem() {
           ))}
         </div>
 
-        <motion.div style={{ y }} className="mt-20 sm:mt-28">
+        <motion.div style={parallaxOn ? { y } : undefined} className="mt-20 sm:mt-28">
           <motion.p
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.8, ease: "easeOut" as const }}
+            transition={{ duration: 0.8, ease: ease.out }}
             className="text-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight"
           >
             What if the tools ran{" "}

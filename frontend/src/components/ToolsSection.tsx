@@ -24,6 +24,8 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
 
   const [servers, setServers] = useState<MCPServer[]>(chatbot.mcp_servers || []);
   const [webMcpEnabled, setWebMcpEnabled] = useState(chatbot.webmcp_enabled || false);
+  const [navigationEnabled, setNavigationEnabled] = useState(chatbot.navigation_enabled || false);
+  const hasCrawledPages = chatbot.status === 'ready';
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -83,15 +85,12 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       widget_logo_url: chatbot.widget_logo_url,
       widget_width: chatbot.widget_width,
       widget_height: chatbot.widget_height,
-      widget_header_color: chatbot.widget_header_color,
-      widget_user_bubble_color: chatbot.widget_user_bubble_color,
-      widget_assistant_bubble_color: chatbot.widget_assistant_bubble_color,
       widget_font_family: chatbot.widget_font_family,
       widget_font_size: chatbot.widget_font_size,
-      widget_text_color: chatbot.widget_text_color,
       voice_enabled: chatbot.voice_enabled,
       mcp_servers: updated,
       webmcp_enabled: webMcpEnabled,
+      navigation_enabled: navigationEnabled,
     };
     updateMutation.mutate({ chatbotId: chatbot.public_id, settings });
   };
@@ -109,15 +108,35 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
       widget_logo_url: chatbot.widget_logo_url,
       widget_width: chatbot.widget_width,
       widget_height: chatbot.widget_height,
-      widget_header_color: chatbot.widget_header_color,
-      widget_user_bubble_color: chatbot.widget_user_bubble_color,
-      widget_assistant_bubble_color: chatbot.widget_assistant_bubble_color,
       widget_font_family: chatbot.widget_font_family,
       widget_font_size: chatbot.widget_font_size,
-      widget_text_color: chatbot.widget_text_color,
       voice_enabled: chatbot.voice_enabled,
       mcp_servers: servers,
       webmcp_enabled: enabled,
+      navigation_enabled: navigationEnabled,
+    };
+    updateMutation.mutate({ chatbotId: chatbot.public_id, settings });
+  };
+
+  const saveNavigationToggle = (enabled: boolean) => {
+    setNavigationEnabled(enabled);
+    const settings: WidgetSettings = {
+      widget_icon: chatbot.widget_icon,
+      widget_welcome: chatbot.widget_welcome,
+      widget_position: chatbot.widget_position,
+      quick_prompts: chatbot.quick_prompts,
+      follow_up_prompts: chatbot.follow_up_prompts,
+      greeting_prompts: chatbot.greeting_prompts,
+      greeting_prompt_duration: chatbot.greeting_prompt_duration,
+      widget_logo_url: chatbot.widget_logo_url,
+      widget_width: chatbot.widget_width,
+      widget_height: chatbot.widget_height,
+      widget_font_family: chatbot.widget_font_family,
+      widget_font_size: chatbot.widget_font_size,
+      voice_enabled: chatbot.voice_enabled,
+      mcp_servers: servers,
+      webmcp_enabled: webMcpEnabled,
+      navigation_enabled: enabled,
     };
     updateMutation.mutate({ chatbotId: chatbot.public_id, settings });
   };
@@ -220,6 +239,54 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
             <span
               className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
                 webMcpEnabled ? 'translate-x-[16px]' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Website Navigation */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[14px] font-display font-semibold text-label-primary">
+                  Website Navigation
+                </h3>
+                {!hasCrawledPages && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-gray-500/10 text-[10px] font-medium text-label-tertiary uppercase tracking-wide">
+                    Crawl required
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] text-label-tertiary mt-0.5">
+                {hasCrawledPages
+                  ? 'Let the agent take visitors to relevant pages on your site.'
+                  : 'Crawl your website first to enable agent-driven navigation.'}
+              </p>
+            </div>
+          </div>
+          <button
+            disabled={!hasCrawledPages}
+            onClick={() => hasCrawledPages && saveNavigationToggle(!navigationEnabled)}
+            className={`relative shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ${
+              !hasCrawledPages
+                ? 'bg-gray-200 cursor-not-allowed opacity-60'
+                : navigationEnabled
+                ? 'bg-accent'
+                : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                navigationEnabled && hasCrawledPages ? 'translate-x-[16px]' : 'translate-x-0'
               }`}
             />
           </button>

@@ -33,6 +33,43 @@ async def _resolve_chatbot(db: AsyncSession, agent_id: str):
     return chatbot
 
 
+@router.get("/{agent_id}/preview-key", response_model=ApiKeyCreatedResponse)
+async def get_or_create_preview_key(
+    agent_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return a working API key the dashboard can use for the in-app live preview.
+
+    Picks any active (non-revoked) key for the chatbot, preferring an existing
+    "Preview" key. Falls back to creating a new "Preview" key only when no
+    active key exists. Revoked keys are never reused.
+    Always returns the full plaintext key so the preview can authenticate the widget.
+    """
+    chatbot = await _resolve_chatbot(db, agent_id)
+    service = ChatbotService(db)
+    await service.get_chatbot(chatbot.id, user.id)
+
+    repo = ApiKeyRepository(db)
+    active_keys = [k for k in await repo.get_all_for_chatbot(chatbot.id) if k.is_active]
+
+    preview_key = next((k for k in active_keys if k.name == "Preview"), None)
+    if preview_key:
+        return preview_key
+    if active_keys:
+        return active_keys[0]
+
+    key = f"flk_{secrets.token_hex(16)}"
+    return await repo.create(
+        chatbot_id=chatbot.id,
+        organization_id=chatbot.organization_id,
+        key=key,
+        key_prefix=key[:8],
+        name="Preview",
+    )
+
+
 @router.get("/{agent_id}/api-keys", response_model=list[ApiKeyResponse])
 async def list_api_keys(
     agent_id: str,
@@ -78,6 +115,7 @@ async def create_api_key(
     repo = ApiKeyRepository(db)
     api_key = await repo.create(
         chatbot_id=chatbot.id,
+        organization_id=chatbot.organization_id,
         key=key,
         key_prefix=key_prefix,
         name=body.name,

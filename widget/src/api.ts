@@ -54,12 +54,8 @@ export interface WidgetConfig {
   widget_logo_url?: string | null;
   widget_width?: number | null;
   widget_height?: number | null;
-  widget_header_color?: string | null;
-  widget_user_bubble_color?: string | null;
-  widget_assistant_bubble_color?: string | null;
   widget_font_family?: string | null;
   widget_font_size?: number | null;
-  widget_text_color?: string | null;
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
 }
@@ -120,7 +116,7 @@ export class ChatSocket {
   private adminMessageHandler: ((content: string) => void) | null = null;
   private modeChangedHandler: ((mode: string) => void) | null = null;
   private waitingHandler: (() => void) | null = null;
-  private navigateHandler: (() => void) | null = null;
+  private navigateHandler: ((url?: string) => void) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -172,7 +168,7 @@ export class ChatSocket {
     this.waitingHandler = handler;
   }
 
-  onNavigate(handler: () => void): void {
+  onNavigate(handler: (url?: string) => void): void {
     this.navigateHandler = handler;
   }
 
@@ -203,6 +199,12 @@ export class ChatSocket {
       this.modeChangedHandler?.(data.mode);
       return;
     }
+    // Agent-driven navigation: server tells the widget to take the user to a page.
+    if (data.message_type === "navigate") {
+      this.navigateHandler?.(data.url);
+      return;
+    }
+
     if (data.message_type === "waiting") {
       this.waitingHandler?.();
       // Resolve the pending promise so the UI doesn't hang
@@ -358,6 +360,55 @@ export class ChatSocket {
         this.ws!.send(JSON.stringify({
             message_type: "init",
             zephlo_tools: this.getZephloToolSchemas(),
+        }));
+        this.ws!.send(payload);
+      };
+
+      this.setupWsHandlers();
+    });
+  }
+
+  /**
+   * Fire a manual trigger. The `prompt` is an instruction to the agent
+   * (not user-facing text); the agent generates an assistant response.
+   * Resolves on the same `response` envelope as sendMessage.
+   */
+  async sendTrigger(
+    triggerId: string,
+    prompt: string,
+    mode: "open" | "prompt",
+    pageContext?: Record<string, unknown>,
+  ): Promise<ChatResponse> {
+    const payload = JSON.stringify({
+      message_type: "trigger",
+      trigger_id: triggerId,
+      prompt,
+      mode,
+      page_context: pageContext || {},
+    });
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      return new Promise((resolve, reject) => {
+        this.pending = resolve;
+        this.pendingReject = reject;
+        this.ws!.send(payload);
+      });
+    }
+
+    this.setStatus('connecting');
+    const wsUrl = this.buildWsUrl();
+
+    return new Promise((resolve, reject) => {
+      this.pending = resolve;
+      this.pendingReject = reject;
+
+      this.ws = new WebSocket(wsUrl);
+
+      this.ws.onopen = () => {
+        this.setStatus('connected');
+        this.ws!.send(JSON.stringify({
+          message_type: "init",
+          zephlo_tools: this.getZephloToolSchemas(),
         }));
         this.ws!.send(payload);
       };

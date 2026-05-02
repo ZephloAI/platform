@@ -96,3 +96,17 @@ async def get_current_organization(
     org = await org_service.get_organization(org_id)
     await org_service.verify_membership(org_id, user.id)
     return org
+
+
+async def require_platform_admin(user=Depends(get_current_user)):
+    """
+    FastAPI dependency: only allow users with is_platform_admin=True.
+
+    Used to gate the admin-only routers.
+    """
+    if not getattr(user, "is_platform_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Platform admin access required",
+        )
+    return user

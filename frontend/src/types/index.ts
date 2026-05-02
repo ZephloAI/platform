@@ -39,6 +39,58 @@ export interface User {
   first_name: string | null;
   last_name: string | null;
   onboarding_completed: boolean;
+  is_platform_admin?: boolean;
+}
+
+/** Current usage vs. limits for an organization */
+export interface UsageSnapshot {
+  organization_id: number;
+  plan: string;
+  is_suspended: boolean;
+  users_count: number;
+  agents_count: number;
+  tokens_used_in_period: number;
+  max_users: number | null;
+  max_agents: number | null;
+  max_tokens_per_period: number | null;
+  token_period: string;
+  token_period_start: string | null;
+}
+
+/** A row in the admin "list all orgs" view */
+export interface OrgAdminSummary extends UsageSnapshot {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+}
+
+/** A single entry in an organization's audit log */
+export interface AuditLogEntry {
+  id: number;
+  organization_id: number | null;
+  actor_user_id: number | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  extra: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/** Platform-wide metrics on the admin overview */
+export interface PlatformMetrics {
+  active_orgs: number;
+  suspended_orgs: number;
+  total_orgs: number;
+  total_agents: number;
+  total_users: number;
+  tokens_last_30_days: number;
+}
+
+/** One point in the platform token-usage time series */
+export interface TokenUsagePoint {
+  date: string;
+  total_tokens: number;
 }
 
 /** Zustand auth store shape - manages user session state */
@@ -75,17 +127,15 @@ export interface Chatbot {
   widget_logo_url?: string | null;
   widget_width?: number | null;
   widget_height?: number | null;
-  widget_header_color?: string | null;
-  widget_user_bubble_color?: string | null;
-  widget_assistant_bubble_color?: string | null;
   widget_font_family?: string | null;
   widget_font_size?: number | null;
-  widget_text_color?: string | null;
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+  navigation_enabled?: boolean;
   documents?: Document[];
+  agent_texts?: AgentText[];
   auto_recrawl_enabled?: boolean;
   recrawl_interval_hours?: number;
   last_crawled_at?: string | null;
@@ -133,16 +183,13 @@ export interface WidgetSettings {
   widget_logo_url?: string | null;
   widget_width?: number | null;
   widget_height?: number | null;
-  widget_header_color?: string | null;
-  widget_user_bubble_color?: string | null;
-  widget_assistant_bubble_color?: string | null;
   widget_font_family?: string | null;
   widget_font_size?: number | null;
-  widget_text_color?: string | null;
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
+  navigation_enabled?: boolean;
 }
 
 /** An uploaded PDF document in the knowledge base */
@@ -155,6 +202,18 @@ export interface Document {
   status: 'pending' | 'processing' | 'ready' | 'error';
   chunks_indexed: number;
   uploaded_at: string;
+  processed_at: string | null;
+}
+
+/** A raw text snippet pasted into the knowledge base */
+export interface AgentText {
+  id: number;
+  chatbot_id: number;
+  title: string;
+  content: string;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  chunks_indexed: number;
+  created_at: string;
   processed_at: string | null;
 }
 
@@ -208,6 +267,19 @@ export interface Invitation {
   status: string;
   created_at: string;
   expires_at: string;
+  send_count?: number;
+  last_sent_at?: string | null;
+}
+
+/** Public preview of an invitation (shown on accept page before sign-in) */
+export interface InvitationPreview {
+  email: string;
+  role: string;
+  status: string;
+  expires_at: string;
+  is_expired: boolean;
+  organization_name: string | null;
+  inviter_email: string | null;
 }
 
 /** An API key for authenticating SDK/widget requests */

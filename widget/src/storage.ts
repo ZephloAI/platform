@@ -48,3 +48,69 @@ export function removeItem(key: string): void {
     memoryStore.delete(key);
   }
 }
+
+// ---- Trigger cooldown helpers ----
+
+/**
+ * Cooldown policy for manual agent triggers.
+ *  - "session": once per browser session (sessionStorage)
+ *  - "once":    once forever per device (localStorage)
+ *  - {minutes}: timestamp-based, stored in localStorage
+ *  - null:      no cooldown, always fire
+ */
+export type CooldownPolicy =
+  | "session"
+  | "once"
+  | { minutes: number }
+  | null;
+
+const TRIGGER_KEY_PREFIX = "zephlo_trigger_";
+
+function sessionGet(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return memoryStore.get(key) ?? null;
+  }
+}
+
+function sessionSet(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    memoryStore.set(key, value);
+  }
+}
+
+/** Returns true if a trigger with this id may fire right now. */
+export function shouldFire(id: string, policy: CooldownPolicy): boolean {
+  if (policy === null) return true;
+  const key = TRIGGER_KEY_PREFIX + id;
+
+  if (policy === "session") {
+    return sessionGet(key) === null;
+  }
+  if (policy === "once") {
+    return getItem(key) === null;
+  }
+  // { minutes: N }
+  const raw = getItem(key);
+  if (!raw) return true;
+  const last = Number(raw);
+  if (!Number.isFinite(last)) return true;
+  const elapsedMs = Date.now() - last;
+  return elapsedMs >= policy.minutes * 60 * 1000;
+}
+
+/** Record that a trigger with this id just fired. */
+export function recordFire(id: string, policy: CooldownPolicy): void {
+  if (policy === null) return;
+  const key = TRIGGER_KEY_PREFIX + id;
+
+  if (policy === "session") {
+    sessionSet(key, "1");
+    return;
+  }
+  // "once" and {minutes} both use localStorage with a timestamp
+  setItem(key, String(Date.now()));
+}

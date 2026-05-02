@@ -7,13 +7,15 @@ import {
   useInvitations,
   useInviteUser,
   useCancelInvitation,
+  useResendInvitation,
   useRemoveMember,
   useUpdateMemberRole,
   useCreateOrgApiKey,
   useRevokeOrgApiKey,
+  useOrgUsage,
 } from '../hooks/useOrganization';
 import { useOrgStore } from '../stores/orgStore';
-import type { ApiKeyCreated } from '../types';
+import type { ApiKeyCreated, UsageSnapshot } from '../types';
 
 // ============================================================
 // Organization Settings Page
@@ -21,7 +23,7 @@ import type { ApiKeyCreated } from '../types';
 // Sidebar sections: Users (Members, Invitations), API Keys
 // ============================================================
 
-type Section = 'members' | 'invitations' | 'api-keys';
+type Section = 'members' | 'invitations' | 'api-keys' | 'usage';
 
 const ROLE_BADGES: Record<string, string> = {
   creator: 'bg-purple-100 text-purple-700',
@@ -78,6 +80,7 @@ function OrganizationSettingsPage() {
     members: 'Members',
     invitations: 'Invitations',
     'api-keys': 'API Keys',
+    usage: 'Usage & Billing',
   };
 
   return (
@@ -168,6 +171,25 @@ function OrganizationSettingsPage() {
               </svg>
             </span>
             <span className="flex-1 text-left">API Keys</span>
+          </button>
+
+          <div className="border-t border-black/[0.06] my-2" />
+
+          {/* Usage section */}
+          <p className="section-label px-3 py-1.5">
+            Billing
+          </p>
+          <button
+            onClick={() => setActiveSection('usage')}
+            className={navLinkClass(activeSection === 'usage')}
+          >
+            <span className={activeSection === 'usage' ? 'text-accent' : 'text-label-tertiary'}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18" />
+                <path d="M7 14l4-4 4 4 5-5" />
+              </svg>
+            </span>
+            <span className="flex-1 text-left">Usage</span>
           </button>
         </nav>
 
@@ -287,6 +309,7 @@ function OrganizationSettingsPage() {
                 canManage={canManage}
               />
             )}
+            {activeSection === 'usage' && <UsageTab orgId={orgId} />}
           </div>
         </main>
       </div>
@@ -571,6 +594,8 @@ function InvitationsTab({
 
   const inviteUser = useInviteUser(orgId);
   const cancelInvitation = useCancelInvitation(orgId);
+  const resendInvitation = useResendInvitation(orgId);
+  const [resentId, setResentId] = useState<number | null>(null);
 
   const handleInvite = () => {
     if (!email.trim()) return;
@@ -583,6 +608,15 @@ function InvitationsTab({
         },
       }
     );
+  };
+
+  const handleResend = (invitationId: number) => {
+    resendInvitation.mutate(invitationId, {
+      onSuccess: () => {
+        setResentId(invitationId);
+        setTimeout(() => setResentId(null), 2000);
+      },
+    });
   };
 
   if (loading) {
@@ -656,12 +690,21 @@ function InvitationsTab({
                   {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                 </span>
                 {inv.status === 'pending' && canManage && (
-                  <button
-                    onClick={() => cancelInvitation.mutate(inv.id)}
-                    className="text-[12px] text-red-500 hover:text-red-600 font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleResend(inv.id)}
+                      disabled={resendInvitation.isPending}
+                      className="text-[12px] text-accent hover:text-blue-800 font-medium transition-colors disabled:opacity-40"
+                    >
+                      {resentId === inv.id ? 'Sent!' : 'Resend'}
+                    </button>
+                    <button
+                      onClick={() => cancelInvitation.mutate(inv.id)}
+                      className="text-[12px] text-red-500 hover:text-red-600 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -671,6 +714,126 @@ function InvitationsTab({
     </div>
   );
 }
+
+// ============================================================
+// Usage Tab
+// ============================================================
+
+function UsageTab({ orgId }: { orgId: number }) {
+  const { data: usage, isLoading } = useOrgUsage(orgId);
+
+  if (isLoading || !usage) {
+    return <LoadingSpinner label="Loading usage..." />;
+  }
+
+  return (
+    <div className="space-y-5">
+      {usage.is_suspended && (
+        <div className="card p-4 border border-red-200 bg-red-50">
+          <p className="text-[13px] font-medium text-red-700">
+            This organization is suspended. Chat is disabled. Contact support to
+            reactivate.
+          </p>
+        </div>
+      )}
+
+      <div className="card p-5 flex items-center justify-between">
+        <div>
+          <p className="text-[12px] uppercase tracking-wide text-label-quaternary">Plan</p>
+          <p className="text-[18px] font-semibold font-display text-label-primary mt-1 capitalize">
+            {usage.plan}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[12px] text-label-quaternary">Resets</p>
+          <p className="text-[13px] font-medium text-label-secondary">
+            {nextResetLabel(usage)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <UsageMeter
+          label="Users"
+          used={usage.users_count}
+          limit={usage.max_users}
+        />
+        <UsageMeter
+          label="Agents"
+          used={usage.agents_count}
+          limit={usage.max_agents}
+        />
+        <UsageMeter
+          label={`Tokens (${usage.token_period})`}
+          used={usage.tokens_used_in_period}
+          limit={usage.max_tokens_per_period}
+          format={formatTokens}
+        />
+      </div>
+    </div>
+  );
+}
+
+function UsageMeter({
+  label,
+  used,
+  limit,
+  format = (n: number) => n.toLocaleString(),
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  format?: (n: number) => string;
+}) {
+  const pct = limit && limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+  const isOver = limit != null && used >= limit;
+  const isWarning = limit != null && pct >= 80 && !isOver;
+  const barColor = isOver
+    ? 'bg-red-500'
+    : isWarning
+    ? 'bg-amber-500'
+    : 'bg-accent';
+
+  return (
+    <div className="card p-4">
+      <p className="text-[12px] uppercase tracking-wide text-label-quaternary">
+        {label}
+      </p>
+      <p className="text-[18px] font-semibold font-display text-label-primary mt-1">
+        {format(used)}
+        <span className="text-[13px] font-normal text-label-tertiary ml-1">
+          / {limit == null ? '∞' : format(limit)}
+        </span>
+      </p>
+      {limit != null && (
+        <div className="mt-3 h-1.5 bg-surface-secondary rounded-full overflow-hidden">
+          <div
+            className={`${barColor} h-full transition-all duration-300`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      {isOver && (
+        <p className="text-[11px] text-red-600 mt-2 font-medium">Limit reached</p>
+      )}
+    </div>
+  );
+}
+
+function nextResetLabel(usage: UsageSnapshot): string {
+  if (!usage.token_period_start) return '—';
+  const start = new Date(usage.token_period_start);
+  const lengthDays = usage.token_period === 'weekly' ? 7 : usage.token_period === 'daily' ? 1 : 30;
+  const next = new Date(start.getTime() + lengthDays * 24 * 60 * 60 * 1000);
+  return next.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
 
 // ============================================================
 // Shared Components

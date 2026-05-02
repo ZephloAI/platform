@@ -13,7 +13,7 @@ from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
 from app.crawler import discover_urls
-from app.orchestrator import run_crawl_job, run_document_job
+from app.orchestrator import run_crawl_job, run_document_job, run_text_job
 
 router = APIRouter()
 
@@ -118,6 +118,31 @@ async def process_document(request: ProcessDocumentRequest, background_tasks: Ba
         callback_url=request.callback_url,
     )
     return {"status": "started", "document_id": request.document_id}
+
+
+class ProcessTextRequest(BaseModel):
+    """Request body for processing a raw text snippet."""
+    chatbot_id: int
+    chatbot_name: str
+    text_id: int
+    title: str
+    content: str
+    callback_url: str
+
+
+@router.post("/process-text")
+async def process_text(request: ProcessTextRequest, background_tasks: BackgroundTasks):
+    """Process a raw text snippet and index its content."""
+    background_tasks.add_task(
+        run_text_job,
+        chatbot_id=request.chatbot_id,
+        chatbot_name=request.chatbot_name,
+        text_id=request.text_id,
+        title=request.title,
+        content=request.content,
+        callback_url=request.callback_url,
+    )
+    return {"status": "started", "text_id": request.text_id}
 
 
 @router.get("/health")

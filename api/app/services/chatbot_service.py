@@ -12,10 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.chatbot import Chatbot
 from app.repositories.chatbot_repository import ChatbotRepository
 from app.schemas.chatbot import ChatbotUpdate, WidgetSettingsUpdate
+from app.services.usage_service import UsageService
 
 
 class ChatbotService:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.chatbot_repo = ChatbotRepository(db)
 
     async def list_chatbots(
@@ -37,7 +39,10 @@ class ChatbotService:
         instructions: str | None = None,
         organization_id: int | None = None,
     ) -> Chatbot:
-        """Create a new chatbot for the given user/org."""
+        """Create a new Agent for the given user/org. Enforces max_agents
+        when the Agent is attached to an organization."""
+        if organization_id is not None:
+            await UsageService(self.db).enforce_max_agents(organization_id)
         return await self.chatbot_repo.create(
             user_id=user_id,
             name=name,

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.crawl_job import CrawlJobResponse
 from app.schemas.document import DocumentResponse
+from app.schemas.agent_text import AgentTextResponse
 
 
 class ChatbotCreate(BaseModel):
@@ -80,16 +81,13 @@ class ChatbotResponse(BaseModel):
     widget_logo_url: str | None = None
     widget_width: int | None = None
     widget_height: int | None = None
-    widget_header_color: str | None = None
-    widget_user_bubble_color: str | None = None
-    widget_assistant_bubble_color: str | None = None
     widget_font_family: str | None = None
     widget_font_size: int | None = None
-    widget_text_color: str | None = None
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
     auto_recrawl_enabled: bool = True
     recrawl_interval_hours: int = 48
     last_crawled_at: datetime | None = None
@@ -101,6 +99,7 @@ class ChatbotDetailResponse(ChatbotResponse):
     """Extended chatbot response that includes crawl job history."""
     crawl_jobs: list[CrawlJobResponse] = []
     documents: list[DocumentResponse] = []
+    agent_texts: list[AgentTextResponse] = []
 
 
 class WidgetSettingsUpdate(BaseModel):
@@ -115,16 +114,13 @@ class WidgetSettingsUpdate(BaseModel):
     widget_logo_url: str | None = None
     widget_width: int | None = None
     widget_height: int | None = None
-    widget_header_color: str | None = None
-    widget_user_bubble_color: str | None = None
-    widget_assistant_bubble_color: str | None = None
     widget_font_family: str | None = None
     widget_font_size: int | None = None
-    widget_text_color: str | None = None
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
 
 
 class WidgetSettingsResponse(BaseModel):
@@ -139,16 +135,13 @@ class WidgetSettingsResponse(BaseModel):
     widget_logo_url: str | None = None
     widget_width: int | None = None
     widget_height: int | None = None
-    widget_header_color: str | None = None
-    widget_user_bubble_color: str | None = None
-    widget_assistant_bubble_color: str | None = None
     widget_font_family: str | None = None
     widget_font_size: int | None = None
-    widget_text_color: str | None = None
     voice_enabled: bool = False
     mcp_servers: list[MCPServer] | None = None
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -201,12 +194,9 @@ class PublicWidgetConfig(BaseModel):
     widget_logo_url: str | None = None
     widget_width: int | None = None
     widget_height: int | None = None
-    widget_header_color: str | None = None
-    widget_user_bubble_color: str | None = None
-    widget_assistant_bubble_color: str | None = None
     widget_font_family: str | None = None
     widget_font_size: int | None = None
-    widget_text_color: str | None = None
     voice_enabled: bool = False
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
+    navigation_enabled: bool = False

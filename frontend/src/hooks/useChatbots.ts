@@ -163,6 +163,29 @@ export function useUploadDocument() {
 }
 
 /**
+ * Replace an existing PDF document with a new file.
+ * Invalidates the chatbot detail on success.
+ */
+export function useReplaceDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      chatbotId,
+      documentId,
+      file,
+    }: {
+      chatbotId: string;
+      documentId: number;
+      file: File;
+    }) => chatbotApi.replaceDocument(chatbotId, documentId, file),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
  * Delete a document from a chatbot's knowledge base.
  * Invalidates the chatbot detail on success.
  */
@@ -172,6 +195,70 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: ({ chatbotId, documentId }: { chatbotId: string; documentId: number }) =>
       chatbotApi.deleteDocument(chatbotId, documentId),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Add a raw text snippet to a chatbot's knowledge base.
+ * Invalidates the chatbot detail on success.
+ */
+export function useCreateText() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      chatbotId,
+      title,
+      content,
+    }: {
+      chatbotId: string;
+      title: string;
+      content: string;
+    }) => chatbotApi.createText(chatbotId, title, content),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Edit an existing text snippet's title and content.
+ * Invalidates the chatbot detail on success.
+ */
+export function useUpdateText() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      chatbotId,
+      textId,
+      title,
+      content,
+    }: {
+      chatbotId: string;
+      textId: number;
+      title: string;
+      content: string;
+    }) => chatbotApi.updateText(chatbotId, textId, title, content),
+    onSuccess: (_data, { chatbotId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
+    },
+  });
+}
+
+/**
+ * Delete a raw text snippet from a chatbot's knowledge base.
+ * Invalidates the chatbot detail on success.
+ */
+export function useDeleteText() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chatbotId, textId }: { chatbotId: string; textId: number }) =>
+      chatbotApi.deleteText(chatbotId, textId),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },
@@ -212,6 +299,19 @@ export function useUpdateWidgetSettings() {
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });
     },
+  });
+}
+
+/**
+ * Fetch (or auto-create) the dashboard "Preview" API key for a chatbot.
+ * Used by the in-app live widget preview.
+ */
+export function useChatbotPreviewKey(chatbotId: string) {
+  return useQuery({
+    queryKey: ['chatbotPreviewKey', chatbotId] as const,
+    queryFn: () => chatbotApi.getPreviewKey(chatbotId),
+    enabled: !!chatbotId,
+    staleTime: Infinity,
   });
 }
 

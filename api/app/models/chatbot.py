@@ -25,7 +25,7 @@ class Chatbot(Base):
     website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
     is_active = Column(Boolean, default=True, server_default="true")
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Widget customization
     widget_icon = Column(String, nullable=True)       # Emoji or image URL
@@ -59,13 +59,16 @@ class Chatbot(Base):
     # Person mode (allow visitors to request live chat)
     person_mode_enabled = Column(Boolean, default=True, server_default="true")
 
+    # Navigation mode (agent can drive the user to pages from the crawled site)
+    navigation_enabled = Column(Boolean, default=False, server_default="false")
+
     # Organization (nullable initially for migration, then required)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
 
     # Auto re-crawl settings
     auto_recrawl_enabled = Column(Boolean, default=True, server_default="true")
     recrawl_interval_hours = Column(Integer, default=48)
-    last_crawled_at = Column(DateTime, nullable=True)
+    last_crawled_at = Column(DateTime(timezone=True), nullable=True)
     crawled_urls = Column(JSON, nullable=True)  # stored selected URLs for re-crawl
 
     # Relationships
@@ -79,4 +82,7 @@ class Chatbot(Base):
     )
     documents = relationship(
         "Document", back_populates="chatbot", cascade="all, delete-orphan"
+    )
+    agent_texts = relationship(
+        "AgentText", back_populates="chatbot", cascade="all, delete-orphan"
     )

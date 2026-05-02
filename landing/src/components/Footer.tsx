@@ -1,24 +1,19 @@
 import type { ReactNode } from "react";
-
-const productLinks = [
-  { label: "Platform", href: "/platform" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Security", href: "/#security" },
-  { label: "Pricing", href: "/pricing" },
-];
+import Link from "next/link";
+import { links } from "@/lib/links";
 
 const solutionLinks = [
-  { label: "SaaS Onboarding", href: "/onboarding" },
-  { label: "Workflow Automation", href: "/#use-cases" },
-  { label: "Customer Support", href: "/#use-cases" },
-  { label: "In-App Training", href: "/#use-cases" },
+  { label: "Lead Generation", href: "/lead-generation" },
+  { label: "Customer Success", href: "/customer-success" },
+  { label: "Onboarding", href: "/onboarding" },
+  { label: "Security", href: "/security" },
 ];
 
 const companyLinks = [
-  { label: "Customers", href: "/customers" },
-  { label: "About", href: "/about" },
-  { label: "Blog", href: "/blog" },
-  { label: "Careers", href: "/careers" },
+  { label: "Sign in", href: links.signIn },
+  { label: "Start free", href: links.signUp },
+  { label: "Talk to sales", href: links.sales },
+  { label: "Docs", href: links.docs },
 ];
 
 const legalLinks = [
@@ -60,31 +55,22 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--subtle-white-04)]" style={{ background: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-6 pt-16 pb-8">
-        <div className="grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-5 lg:gap-16">
+        <div className="grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-4 lg:gap-16">
           <div className="col-span-2 md:col-span-1">
-            <a href="/" className="inline-flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center">
+            <Link href="/" aria-label="Zephlo home" className="inline-flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#1275CA] to-[#60A5FA] flex items-center justify-center" aria-hidden="true">
                 <div className="h-2.5 w-2.5 rounded-sm bg-white/90" />
               </div>
               <span className="text-lg font-semibold tracking-tight text-[var(--foreground)]">zephlo</span>
-            </a>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">AI agents that actually do things.</p>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Product</h3>
-            <ul className="flex flex-col gap-2.5">
-              {productLinks.map((link) => (
-                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
-              ))}
-            </ul>
+            </Link>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">The Agent platform for any website.</p>
           </div>
 
           <div>
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Solutions</h3>
             <ul className="flex flex-col gap-2.5">
               {solutionLinks.map((link) => (
-                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="inline-block py-1 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>
@@ -93,7 +79,7 @@ export default function Footer() {
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Company</h3>
             <ul className="flex flex-col gap-2.5">
               {companyLinks.map((link) => (
-                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="inline-block py-1 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>
@@ -102,7 +88,7 @@ export default function Footer() {
             <h3 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-[var(--foreground)]">Legal</h3>
             <ul className="flex flex-col gap-2.5">
               {legalLinks.map((link) => (
-                <li key={link.href + link.label}><a href={link.href} className="text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
+                <li key={link.href + link.label}><a href={link.href} className="inline-block py-1 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">{link.label}</a></li>
               ))}
             </ul>
           </div>
@@ -116,7 +102,7 @@ export default function Footer() {
             {socialLinks.map((link) => {
               const Icon = link.icon;
               return (
-                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" aria-label={link.label} className="text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">
+                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" aria-label={link.label} className="flex h-11 w-11 items-center justify-center text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">
                   <Icon />
                 </a>
               );

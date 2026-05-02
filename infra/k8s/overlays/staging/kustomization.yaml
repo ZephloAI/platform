@@ -8,15 +8,15 @@ resources:
 
 # Image tags are updated by CI/CD pipeline
 images:
-  - name: docker.io/zephlo/landing
+  - name: docker.io/flunkie/landing
     newTag: latest
-  - name: docker.io/zephlo/frontend
+  - name: docker.io/flunkie/frontend
     newTag: latest
-  - name: docker.io/zephlo/api
+  - name: docker.io/flunkie/api
     newTag: latest
-  - name: docker.io/zephlo/agent
+  - name: docker.io/flunkie/agent
     newTag: latest
-  - name: docker.io/zephlo/crawler
+  - name: docker.io/flunkie/crawler
     newTag: latest
 
 # Staging: single replicas to save resources

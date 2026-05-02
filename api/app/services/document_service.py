@@ -1,6 +1,6 @@
 """Document service for PDF upload and management."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import HTTPException, UploadFile, status
@@ -78,6 +78,72 @@ class DocumentService:
 
         return document
 
+    async def replace(
+        self, chatbot_id: int, document_id: int, user_id: int, file: UploadFile
+    ):
+        """Replace an existing PDF: re-upload to S3 and re-index from scratch."""
+        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
+        if not chatbot or chatbot.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Agent not found",
+            )
+
+        document = await self.document_repo.get_by_id(document_id)
+        if not document or document.chatbot_id != chatbot_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        if not file.filename or not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only PDF files are supported",
+            )
+
+        content = await file.read()
+        if len(content) > 20 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File size exceeds 20MB limit",
+            )
+        await file.seek(0)
+
+        # Drop old Qdrant points belonging to the previous file
+        _delete_document_points_from_qdrant(chatbot.name, chatbot_id, document.s3_url)
+
+        new_s3_url = await upload_document(file, chatbot_id)
+
+        updated = await self.document_repo.update(
+            document_id,
+            filename=file.filename,
+            s3_url=new_s3_url,
+            file_size=len(content),
+            status="pending",
+            chunks_indexed=0,
+            processed_at=None,
+        )
+
+        callback_url = f"{settings.API_CALLBACK_URL}/api/internal/documents/{document_id}"
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{settings.CRAWLER_SERVICE_URL}/process-document",
+                    json={
+                        "chatbot_id": chatbot_id,
+                        "chatbot_name": chatbot.name,
+                        "document_id": document_id,
+                        "pdf_url": new_s3_url,
+                        "callback_url": callback_url,
+                    },
+                    timeout=10.0,
+                )
+        except httpx.RequestError:
+            pass
+
+        return updated
+
     async def update_status(
         self, document_id: int, doc_status: str, chunks_indexed: int = 0, error: str | None = None
     ):
@@ -91,7 +157,7 @@ class DocumentService:
 
         update_fields = {"status": doc_status, "chunks_indexed": chunks_indexed}
         if doc_status in ("ready", "error"):
-            update_fields["processed_at"] = datetime.utcnow()
+            update_fields["processed_at"] = datetime.now(timezone.utc)
 
         return await self.document_repo.update(document_id, **update_fields)
 
@@ -121,30 +187,36 @@ class DocumentService:
                 detail="Document not found",
             )
 
-        # Delete from Qdrant (points matching this document's URL)
-        try:
-            from qdrant_client import QdrantClient
-            from qdrant_client.models import Filter, FieldCondition, MatchValue
-            import re
-
-            qdrant = QdrantClient(host="qdrant", port=6333)
-            sanitized = re.sub(r"[^a-zA-Z0-9\s]", "", chatbot.name)
-            sanitized = sanitized.strip().replace(" ", "_")
-            if not sanitized:
-                sanitized = "chatbot"
-            collection_name = f"{sanitized}_{chatbot_id}"
-
-            qdrant.delete(
-                collection_name=collection_name,
-                points_selector=Filter(
-                    must=[
-                        FieldCondition(key="source_type", match=MatchValue(value="document")),
-                        FieldCondition(key="url", match=MatchValue(value=document.s3_url)),
-                    ]
-                ),
-            )
-        except Exception:
-            pass  # Qdrant cleanup is best-effort
+        _delete_document_points_from_qdrant(chatbot.name, chatbot_id, document.s3_url)
 
         await self.document_repo.delete(document_id)
         return True
+
+
+def _delete_document_points_from_qdrant(
+    chatbot_name: str, chatbot_id: int, s3_url: str
+) -> None:
+    """Best-effort removal of Qdrant points belonging to one PDF document."""
+    try:
+        from qdrant_client import QdrantClient
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        import re
+
+        qdrant = QdrantClient(host="qdrant", port=6333)
+        sanitized = re.sub(r"[^a-zA-Z0-9\s]", "", chatbot_name)
+        sanitized = sanitized.strip().replace(" ", "_")
+        if not sanitized:
+            sanitized = "chatbot"
+        collection_name = f"{sanitized}_{chatbot_id}"
+
+        qdrant.delete(
+            collection_name=collection_name,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(key="source_type", match=MatchValue(value="document")),
+                    FieldCondition(key="url", match=MatchValue(value=s3_url)),
+                ]
+            ),
+        )
+    except Exception:
+        pass

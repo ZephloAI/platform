@@ -70,12 +70,8 @@ async def get_widget_config(
         widget_logo_url=chatbot.widget_logo_url,
         widget_width=chatbot.widget_width,
         widget_height=chatbot.widget_height,
-        widget_header_color=chatbot.widget_header_color,
-        widget_user_bubble_color=chatbot.widget_user_bubble_color,
-        widget_assistant_bubble_color=chatbot.widget_assistant_bubble_color,
         widget_font_family=chatbot.widget_font_family,
         widget_font_size=chatbot.widget_font_size,
-        widget_text_color=chatbot.widget_text_color,
         voice_enabled=chatbot.voice_enabled or False,
         webmcp_enabled=chatbot.webmcp_enabled or False,
     )

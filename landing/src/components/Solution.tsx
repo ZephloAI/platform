@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Zap, ShieldCheck, RefreshCw, ArrowRight } from "lucide-react";
 import { useRef } from "react";
+import { ease } from "@/lib/motion";
 
 const pillars = [
   {
@@ -34,7 +35,7 @@ const cardVariants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.7, delay: i * 0.12, ease: "easeOut" as const },
+    transition: { duration: 0.7, delay: i * 0.12, ease: ease.out },
   }),
 };
 
@@ -118,7 +119,7 @@ export default function Solution() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--accent)] mb-5">
@@ -164,7 +165,7 @@ export default function Solution() {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="mt-24"
         >
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

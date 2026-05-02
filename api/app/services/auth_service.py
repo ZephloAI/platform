@@ -74,6 +74,7 @@ class AuthService:
             "first_name": user.first_name,
             "last_name": user.last_name,
             "onboarding_completed": user.onboarding_completed,
+            "is_platform_admin": user.is_platform_admin,
             "token": token,
             "organization_id": org.id,
         }
@@ -103,6 +104,7 @@ class AuthService:
             "first_name": user.first_name,
             "last_name": user.last_name,
             "onboarding_completed": user.onboarding_completed,
+            "is_platform_admin": user.is_platform_admin,
             "token": token,
             "organization_id": org_id,
         }
@@ -111,7 +113,9 @@ class AuthService:
         """
         Decode a JWT token and return the corresponding user.
 
-        Returns None if the token is invalid or the user doesn't exist.
+        Returns None if the token is invalid, the user doesn't exist,
+        or the token was issued before the user's last password change
+        (so resets effectively log out every other device).
         """
         try:
             payload = jwt.decode(
@@ -121,21 +125,27 @@ class AuthService:
             if user_id_raw is None:
                 return None
             user_id = int(user_id_raw)
-            if user_id is None:
-                return None
+            issued_at = payload.get("iat")
         except JWTError:
             return None
 
-        return await self.user_repo.get_by_id(user_id)
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            return None
+
+        if user.password_changed_at is not None and issued_at is not None:
+            if int(issued_at) < int(user.password_changed_at.timestamp()):
+                return None
+
+        return user
 
     # -- Private helpers --
 
     def _create_token(self, user_id: int) -> str:
         """Create a JWT token with the user's ID as the subject."""
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.JWT_EXPIRE_MINUTES
-        )
-        payload = {"sub": str(user_id), "exp": expire}
+        now = datetime.now(timezone.utc)
+        expire = now + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+        payload = {"sub": str(user_id), "iat": int(now.timestamp()), "exp": expire}
         return jwt.encode(
             payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
         )

@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Shield, Lock, EyeOff, ShieldCheck, Settings } from "lucide-react";
 import { useRef } from "react";
 import type { ReactNode } from "react";
+import { ease } from "@/lib/motion";
 
 const points: { title: string; description: string; icon: ReactNode }[] = [
   { title: "Tools run in-browser", description: "Every tool executes in the user\u2019s own browser session. Nothing routes through Zephlo\u2019s servers.", icon: <Shield className="h-5 w-5" /> },
@@ -17,7 +18,7 @@ const cardVariants = {
   hidden: { opacity: 0, y: 32, scale: 0.97 },
   visible: (i: number) => ({
     opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.7, delay: i * 0.08, ease: "easeOut" as const },
+    transition: { duration: 0.7, delay: i * 0.08, ease: ease.out },
   }),
 };
 
@@ -37,7 +38,7 @@ export default function Security() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-20"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">Security</span>

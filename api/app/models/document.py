@@ -16,7 +16,7 @@ class Document(Base):
     file_size = Column(Integer, nullable=False)  # bytes
     status = Column(String, default="pending")  # pending, processing, ready, error
     chunks_indexed = Column(Integer, default=0)
-    uploaded_at = Column(DateTime, default=func.now())
-    processed_at = Column(DateTime, nullable=True)
+    uploaded_at = Column(DateTime(timezone=True), default=func.now())
+    processed_at = Column(DateTime(timezone=True), nullable=True)
 
     chatbot = relationship("Chatbot", back_populates="documents")

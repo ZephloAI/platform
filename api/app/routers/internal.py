@@ -8,14 +8,22 @@ uses them to store messages and fetch conversation history.
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.agent_token_usage import AgentTokenUsage
 from app.models.chat_session import ChatSession
+from app.models.chatbot import Chatbot
 from app.models.message import Message
 from app.schemas.chat import InternalMessageRequest, MessageResponse
 from app.routers.ws_admin import notify_admin_ws
+from app.services.usage_service import (
+    ERR_ORG_SUSPENDED,
+    ERR_MAX_TOKENS,
+    UsageService,
+)
 
 router = APIRouter(prefix="/api/internal", tags=["internal"])
 
@@ -121,4 +129,95 @@ async def mark_unread(
     session.is_unread = True
     await db.commit()
 
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------
+# Usage precheck + recording (called by the agent service)
+# ---------------------------------------------------------------------
+
+
+class UsagePrecheckRequest(BaseModel):
+    chatbot_id: int
+
+
+class UsagePrecheckResponse(BaseModel):
+    ok: bool
+    organization_id: int | None = None
+    code: str | None = None
+    message: str | None = None
+    limit: int | None = None
+
+
+class UsageRecordRequest(BaseModel):
+    chatbot_id: int
+    session_id: str | None = None
+    model: str | None = None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+async def _chatbot_org_id(db: AsyncSession, chatbot_id: int) -> int | None:
+    result = await db.execute(
+        select(Chatbot.organization_id).where(Chatbot.id == chatbot_id)
+    )
+    return result.scalar_one_or_none()
+
+
+@router.post("/usage/precheck", response_model=UsagePrecheckResponse)
+async def usage_precheck(
+    body: UsagePrecheckRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent calls this before running the LLM. Returns ok=false with a
+    structured code when the organization is over its token budget or
+    suspended so the agent can surface the error cleanly."""
+    org_id = await _chatbot_org_id(db, body.chatbot_id)
+    if org_id is None:
+        # Agent exists but isn't bound to an org — no limits to enforce.
+        return UsagePrecheckResponse(ok=True)
+
+    service = UsageService(db)
+    try:
+        await service.enforce_token_budget(org_id)
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        return UsagePrecheckResponse(
+            ok=False,
+            organization_id=org_id,
+            code=detail.get("code"),
+            message=detail.get("message"),
+            limit=detail.get("limit"),
+        )
+    return UsagePrecheckResponse(ok=True, organization_id=org_id)
+
+
+@router.post("/usage/record")
+async def usage_record(
+    body: UsageRecordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent records token usage after an LLM run. Inserts a row into
+    agent_token_usage and bumps the cheap per-org counter."""
+    org_id = await _chatbot_org_id(db, body.chatbot_id)
+    if org_id is None:
+        # No organization to attribute usage to — quietly drop.
+        return {"ok": True}
+
+    db.add(
+        AgentTokenUsage(
+            organization_id=org_id,
+            chatbot_id=body.chatbot_id,
+            session_id=body.session_id,
+            model=body.model,
+            prompt_tokens=body.prompt_tokens,
+            completion_tokens=body.completion_tokens,
+            total_tokens=body.total_tokens,
+        )
+    )
+    await db.commit()
+
+    if body.total_tokens:
+        await UsageService(db).record_tokens(org_id, body.total_tokens)
     return {"ok": True}

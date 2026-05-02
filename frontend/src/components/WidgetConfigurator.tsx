@@ -61,12 +61,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
 
   // Styling state
   const [logoUrl, setLogoUrl] = useState<string | null>(chatbot.widget_logo_url || null);
-  const [headerColor, setHeaderColor] = useState(chatbot.widget_header_color || '#0071e3');
-  const [userBubbleColor, setUserBubbleColor] = useState(chatbot.widget_user_bubble_color || '#0071e3');
-  const [assistantBubbleColor, setAssistantBubbleColor] = useState(chatbot.widget_assistant_bubble_color || '#f5f5f7');
   const [fontFamily, setFontFamily] = useState(chatbot.widget_font_family || '');
   const [fontSize, setFontSize] = useState(chatbot.widget_font_size || 14);
-  const [textColor, setTextColor] = useState(chatbot.widget_text_color || '#1d1d1f');
   const [width, setWidth] = useState(chatbot.widget_width || 380);
   const [height, setHeight] = useState(chatbot.widget_height || 520);
   const [voiceEnabled, setVoiceEnabled] = useState(chatbot.voice_enabled || false);
@@ -81,20 +77,15 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     if (chatbot.greeting_prompts) setGreetingPrompts(chatbot.greeting_prompts);
     if (chatbot.greeting_prompt_duration !== undefined) setGreetingPromptDuration(chatbot.greeting_prompt_duration || 0);
     if (chatbot.widget_logo_url !== undefined) setLogoUrl(chatbot.widget_logo_url || null);
-    if (chatbot.widget_header_color) setHeaderColor(chatbot.widget_header_color);
-    if (chatbot.widget_user_bubble_color) setUserBubbleColor(chatbot.widget_user_bubble_color);
-    if (chatbot.widget_assistant_bubble_color) setAssistantBubbleColor(chatbot.widget_assistant_bubble_color);
     if (chatbot.widget_font_family !== undefined) setFontFamily(chatbot.widget_font_family || '');
     if (chatbot.widget_font_size) setFontSize(chatbot.widget_font_size);
-    if (chatbot.widget_text_color) setTextColor(chatbot.widget_text_color);
     if (chatbot.widget_width) setWidth(chatbot.widget_width);
     if (chatbot.widget_height) setHeight(chatbot.widget_height);
     if (chatbot.voice_enabled !== undefined) setVoiceEnabled(chatbot.voice_enabled || false);
   }, [
     chatbot.widget_welcome, chatbot.widget_position,
     chatbot.quick_prompts, chatbot.follow_up_prompts, chatbot.greeting_prompts, chatbot.greeting_prompt_duration, chatbot.widget_logo_url,
-    chatbot.widget_header_color, chatbot.widget_user_bubble_color, chatbot.widget_assistant_bubble_color,
-    chatbot.widget_font_family, chatbot.widget_font_size, chatbot.widget_text_color,
+    chatbot.widget_font_family, chatbot.widget_font_size,
     chatbot.widget_width, chatbot.widget_height, chatbot.voice_enabled,
   ]);
 
@@ -108,16 +99,12 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
       greetingPrompts,
       greetingPromptDuration,
       logoUrl,
-      headerColor,
-      userBubbleColor,
-      assistantBubbleColor,
       fontFamily: fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
       fontSize,
-      textColor,
       width,
       height,
     });
-  }, [welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, headerColor, userBubbleColor, assistantBubbleColor, fontFamily, fontSize, textColor, width, height, voiceEnabled]);
+  }, [welcome, position, quickPrompts, greetingPrompts, greetingPromptDuration, logoUrl, fontFamily, fontSize, width, height, voiceEnabled]);
 
   const hasChanges =
     welcome !== (chatbot.widget_welcome || 'Hi! How can I help you today?') ||
@@ -127,12 +114,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
     JSON.stringify(greetingPrompts) !== JSON.stringify(chatbot.greeting_prompts || []) ||
     greetingPromptDuration !== (chatbot.greeting_prompt_duration || 0) ||
     logoUrl !== (chatbot.widget_logo_url || null) ||
-    headerColor !== (chatbot.widget_header_color || '#0071e3') ||
-    userBubbleColor !== (chatbot.widget_user_bubble_color || '#0071e3') ||
-    assistantBubbleColor !== (chatbot.widget_assistant_bubble_color || '#f5f5f7') ||
     fontFamily !== (chatbot.widget_font_family || '') ||
     fontSize !== (chatbot.widget_font_size || 14) ||
-    textColor !== (chatbot.widget_text_color || '#1d1d1f') ||
     width !== (chatbot.widget_width || 380) ||
     height !== (chatbot.widget_height || 520) ||
     voiceEnabled !== (chatbot.voice_enabled || false);
@@ -151,12 +134,8 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
         widget_logo_url: logoUrl,
         widget_width: width,
         widget_height: height,
-        widget_header_color: headerColor,
-        widget_user_bubble_color: userBubbleColor,
-        widget_assistant_bubble_color: assistantBubbleColor,
         widget_font_family: fontFamily || null,
         widget_font_size: fontSize,
-        widget_text_color: textColor,
         voice_enabled: voiceEnabled,
       },
     });
@@ -322,37 +301,6 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
             {uploadLogoMutation.isPending && (
               <p className="text-[12px] text-label-tertiary mt-2">Uploading...</p>
             )}
-          </div>
-
-          {/* Colors */}
-          <div className="card p-5">
-            <h3 className="text-[14px] font-display font-semibold text-label-primary mb-4">
-              Colors
-            </h3>
-            <div className="space-y-3">
-              {[
-                { label: 'Header Color', value: headerColor, onChange: setHeaderColor },
-                { label: 'User Message Color', value: userBubbleColor, onChange: setUserBubbleColor },
-                { label: 'Assistant Message Color', value: assistantBubbleColor, onChange: setAssistantBubbleColor },
-                { label: 'Text Color', value: textColor, onChange: setTextColor },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-[13px] text-label-primary">{item.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-label-tertiary font-mono">{item.value}</span>
-                    <label className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-black/[0.06] cursor-pointer shadow-sm hover:shadow-md transition-shadow">
-                      <input
-                        type="color"
-                        value={item.value}
-                        onChange={(e) => item.onChange(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <div className="w-full h-full rounded-full" style={{ background: item.value }} />
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Typography */}

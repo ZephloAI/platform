@@ -61,6 +61,11 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
       MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-common}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Zephlo <invites@zephlo.ai>}
+      RESEND_INVITE_TEMPLATE_ID: ${RESEND_INVITE_TEMPLATE_ID}
+      INVITE_EXPIRY_DAYS: ${INVITE_EXPIRY_DAYS:-7}
+      INVITE_ACCEPT_URL_BASE: ${INVITE_ACCEPT_URL_BASE:-http://localhost/invitations/accept}
     depends_on:
       postgres:
         condition: service_healthy
@@ -149,14 +154,15 @@ services:
       - ASSISTANT_CHATBOT_ID=${ASSISTANT_CHATBOT_ID:-}
       - ASSISTANT_API_KEY=${ASSISTANT_API_KEY:-}
       - APP_ENV=${APP_ENV:-}
+      - WIDGET_API_URL=${WIDGET_API_URL:-}
     depends_on:
       - api
     restart: unless-stopped
 
   landing:
     build:
-      context: ./landing
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: landing/Dockerfile
     ports:
       - "3000:3000"
     restart: unless-stopped

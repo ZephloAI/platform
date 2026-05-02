@@ -31,7 +31,7 @@ spec:
               app: crawler
       containers:
         - name: crawler
-          image: docker.io/zephlo/crawler:latest
+          image: docker.io/flunkie/crawler:latest
           ports:
             - containerPort: 8001
               protocol: TCP

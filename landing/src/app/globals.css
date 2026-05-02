@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
-/* Dark theme (default) */
+/* Dark theme (default) — neutrals tinted toward brand hue (240) for cohesion */
 :root,
 [data-theme="dark"] {
-  --background: #050508;
-  --foreground: #EEEEF0;
-  --muted: #6B6B80;
-  --border: #14141F;
-  --card: #0A0A12;
-  --card-hover: #0F0F1A;
+  --background: oklch(13% 0.012 250);
+  --foreground: oklch(96% 0.005 250);
+  --muted: oklch(58% 0.015 250);
+  --border: oklch(20% 0.015 250);
+  --card: oklch(16% 0.014 250);
+  --card-hover: oklch(19% 0.016 250);
   --accent: #1275CA;
   --accent-light: #3B9AE8;
   --gradient-start: #1275CA;
@@ -23,21 +23,60 @@
   --subtle-white-03: rgba(255, 255, 255, 0.03);
   --subtle-white-04: rgba(255, 255, 255, 0.04);
   --subtle-white-06: rgba(255, 255, 255, 0.06);
-  --code-bg: #0A0A12;
+  --code-bg: oklch(16% 0.014 250);
   --shadow-color: rgba(0, 0, 0, 0.4);
   --emerald: #34d399;
   --check-color: #34d399;
   --x-color: rgba(248, 113, 113, 0.5);
+
+  /* ── Page-accent palette ────────────────────────────────────────────
+     Each page sets `--page-accent` (and friends) on a wrapper. Components
+     that should color-shift per page reference `var(--page-accent)`
+     instead of `var(--accent)`. Default falls back to brand blue.
+
+     Color choices (OKLCH for perceptual evenness):
+       lead    — emerald  (growth, revenue)
+       success — amber    (warmth, support)
+       secure  — deep blue + steel (authoritative trust)
+  */
+
+  /* Brand blue, expressed as OKLCH so soft/border variants stay consistent */
+  --brand-accent: oklch(58% 0.16 248);
+  --brand-accent-soft: oklch(58% 0.16 248 / 0.10);
+  --brand-accent-border: oklch(58% 0.16 248 / 0.25);
+  --brand-accent-glow: oklch(58% 0.16 248 / 0.18);
+
+  --lead-accent: oklch(70% 0.16 162);
+  --lead-accent-soft: oklch(70% 0.16 162 / 0.10);
+  --lead-accent-border: oklch(70% 0.16 162 / 0.28);
+  --lead-accent-glow: oklch(70% 0.16 162 / 0.18);
+
+  --success-accent: oklch(76% 0.13 350);
+  --success-accent-soft: oklch(76% 0.13 350 / 0.10);
+  --success-accent-border: oklch(76% 0.13 350 / 0.28);
+  --success-accent-glow: oklch(76% 0.13 350 / 0.18);
+
+  --secure-accent: oklch(64% 0.13 230);
+  --secure-accent-soft: oklch(64% 0.13 230 / 0.10);
+  --secure-accent-border: oklch(64% 0.13 230 / 0.25);
+  --secure-accent-glow: oklch(64% 0.13 230 / 0.18);
+
+  /* Default page-accent group resolves to brand blue. Per-page wrappers
+     override these four variables to change the page's identity. */
+  --page-accent: var(--brand-accent);
+  --page-accent-soft: var(--brand-accent-soft);
+  --page-accent-border: var(--brand-accent-border);
+  --page-accent-glow: var(--brand-accent-glow);
 }
 
-/* Light theme */
+/* Light theme — neutrals warmed slightly with the same hue tint */
 [data-theme="light"] {
-  --background: #FAFAFA;
-  --foreground: #1A1A2E;
-  --muted: #5C5C6F;
-  --border: #E5E5EA;
-  --card: #FFFFFF;
-  --card-hover: #F5F5F7;
+  --background: oklch(98.5% 0.004 250);
+  --foreground: oklch(20% 0.02 250);
+  --muted: oklch(45% 0.02 250);
+  --border: oklch(91% 0.008 250);
+  --card: oklch(100% 0 0);
+  --card-hover: oklch(96.5% 0.006 250);
   --accent: #1275CA;
   --accent-light: #0E5FA6;
   --gradient-start: #1275CA;
@@ -52,11 +91,82 @@
   --subtle-white-03: rgba(0, 0, 0, 0.02);
   --subtle-white-04: rgba(0, 0, 0, 0.04);
   --subtle-white-06: rgba(0, 0, 0, 0.06);
-  --code-bg: #F5F5F7;
+  --code-bg: oklch(96.5% 0.006 250);
   --shadow-color: rgba(0, 0, 0, 0.08);
   --emerald: #059669;
   --check-color: #059669;
   --x-color: rgba(220, 38, 38, 0.5);
+
+  /* Light-mode page-accent palette — slightly deeper for contrast on white */
+  --brand-accent: oklch(52% 0.18 248);
+  --brand-accent-soft: oklch(52% 0.18 248 / 0.08);
+  --brand-accent-border: oklch(52% 0.18 248 / 0.22);
+  --brand-accent-glow: oklch(52% 0.18 248 / 0.14);
+
+  --lead-accent: oklch(54% 0.16 162);
+  --lead-accent-soft: oklch(54% 0.16 162 / 0.08);
+  --lead-accent-border: oklch(54% 0.16 162 / 0.24);
+  --lead-accent-glow: oklch(54% 0.16 162 / 0.14);
+
+  --success-accent: oklch(58% 0.18 350);
+  --success-accent-soft: oklch(58% 0.18 350 / 0.08);
+  --success-accent-border: oklch(58% 0.18 350 / 0.24);
+  --success-accent-glow: oklch(58% 0.18 350 / 0.14);
+
+  --secure-accent: oklch(48% 0.13 230);
+  --secure-accent-soft: oklch(48% 0.13 230 / 0.08);
+  --secure-accent-border: oklch(48% 0.13 230 / 0.22);
+  --secure-accent-glow: oklch(48% 0.13 230 / 0.14);
+
+  --page-accent: var(--brand-accent);
+  --page-accent-soft: var(--brand-accent-soft);
+  --page-accent-border: var(--brand-accent-border);
+  --page-accent-glow: var(--brand-accent-glow);
+}
+
+/* Per-page accent themes — apply with a wrapper class on the page's main.
+   Each override the page-accent group AND the gradient endpoints so existing
+   `.gradient-text` / `.gradient-border` utilities automatically inherit the
+   page hue. CTA buttons hardcode brand-blue and stay anchor-color. */
+.theme-lead {
+  --page-accent: var(--lead-accent);
+  --page-accent-soft: var(--lead-accent-soft);
+  --page-accent-border: var(--lead-accent-border);
+  --page-accent-glow: var(--lead-accent-glow);
+  --gradient-start: oklch(64% 0.16 162);
+  --gradient-end: oklch(78% 0.14 158);
+}
+
+.theme-success {
+  --page-accent: var(--success-accent);
+  --page-accent-soft: var(--success-accent-soft);
+  --page-accent-border: var(--success-accent-border);
+  --page-accent-glow: var(--success-accent-glow);
+  --gradient-start: oklch(72% 0.14 350);
+  --gradient-end: oklch(80% 0.11 320);
+}
+
+.theme-secure {
+  --page-accent: var(--secure-accent);
+  --page-accent-soft: var(--secure-accent-soft);
+  --page-accent-border: var(--secure-accent-border);
+  --page-accent-glow: var(--secure-accent-glow);
+  --gradient-start: oklch(56% 0.13 230);
+  --gradient-end: oklch(72% 0.10 220);
+}
+
+/* Light-mode adjustments — slightly deeper for AA contrast on white */
+[data-theme="light"] .theme-lead {
+  --gradient-start: oklch(50% 0.16 162);
+  --gradient-end: oklch(58% 0.16 158);
+}
+[data-theme="light"] .theme-success {
+  --gradient-start: oklch(54% 0.18 350);
+  --gradient-end: oklch(62% 0.15 325);
+}
+[data-theme="light"] .theme-secure {
+  --gradient-start: oklch(46% 0.14 230);
+  --gradient-end: oklch(54% 0.12 220);
 }
 
 @theme inline {
@@ -71,8 +181,14 @@
   --color-icon-bg: var(--icon-bg);
   --color-subtle: var(--subtle-white);
   --color-code-bg: var(--code-bg);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-newsreader);
   --font-mono: var(--font-geist-mono);
+}
+
+.font-serif {
+  font-family: var(--font-newsreader), "Newsreader", ui-serif, Georgia, serif;
+  font-feature-settings: "liga", "dlig";
 }
 
 * {
@@ -81,6 +197,61 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Motion tokens — keep in sync with lib/motion.ts */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-feedback: 180ms;
+  --dur-state: 320ms;
+  --dur-reveal: 600ms;
+  --dur-signature: 850ms;
+}
+
+/* Below-the-fold paint skipping: the browser skips layout/paint for sections
+   not near the viewport. `contain-intrinsic-size` gives it a placeholder
+   height so scroll position stays stable. Huge win on mobile scroll. */
+main > section + section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* Mobile: downgrade backdrop-blur intensity. Heavy blur is the single most
+   expensive thing mobile GPUs do during scroll. A lighter blur keeps the
+   glass character without tanking frame rate on low-end phones. */
+@media (max-width: 767px) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* Cap ambient-glow blur radius on mobile — blur(64px+) is a big paint cost */
+  .blur-2xl,
+  .blur-3xl {
+    filter: blur(32px) !important;
+  }
+}
+
+/* Respect reduced-motion — collapse everything to near-instant, preserve final state */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
@@ -147,14 +318,16 @@ body {
   75% { opacity: 0.3; }
 }
 
+/* Aurora picks up the active page-accent so each page hero glows in
+   its own hue. `color-mix` keeps opacity tuning per-stop. */
 .aurora {
   background: linear-gradient(
     120deg,
-    rgba(18, 117, 202, 0.12) 0%,
-    rgba(59, 154, 232, 0.08) 25%,
-    rgba(96, 165, 250, 0.06) 50%,
-    rgba(18, 117, 202, 0.10) 75%,
-    rgba(59, 154, 232, 0.04) 100%
+    color-mix(in oklch, var(--page-accent) 14%, transparent) 0%,
+    color-mix(in oklch, var(--page-accent) 9%, transparent) 25%,
+    color-mix(in oklch, var(--page-accent) 6%, transparent) 50%,
+    color-mix(in oklch, var(--page-accent) 11%, transparent) 75%,
+    color-mix(in oklch, var(--page-accent) 4%, transparent) 100%
   );
   background-size: 200% 200%;
   animation: aurora-shift 12s ease-in-out infinite;
@@ -163,11 +336,11 @@ body {
 [data-theme="light"] .aurora {
   background: linear-gradient(
     120deg,
-    rgba(18, 117, 202, 0.06) 0%,
-    rgba(59, 154, 232, 0.04) 25%,
-    rgba(96, 165, 250, 0.03) 50%,
-    rgba(18, 117, 202, 0.05) 75%,
-    rgba(59, 154, 232, 0.02) 100%
+    color-mix(in oklch, var(--page-accent) 8%, transparent) 0%,
+    color-mix(in oklch, var(--page-accent) 5%, transparent) 25%,
+    color-mix(in oklch, var(--page-accent) 4%, transparent) 50%,
+    color-mix(in oklch, var(--page-accent) 6%, transparent) 75%,
+    color-mix(in oklch, var(--page-accent) 3%, transparent) 100%
   );
   background-size: 200% 200%;
   animation: aurora-shift 12s ease-in-out infinite;
@@ -269,4 +442,22 @@ body {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px -4px rgba(18, 117, 202, 0.2); }
   50% { box-shadow: 0 0 40px -4px rgba(18, 117, 202, 0.4); }
+}
+
+/* Subtle idle float — used on persistent UI like FloatingChat */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.float-idle {
+  animation: float-subtle 4.2s var(--ease-out-quart) infinite;
+}
+
+/* Breathing glow — featured surfaces */
+@keyframes breathe-glow {
+  0%, 100% { box-shadow: 0 20px 60px -28px rgba(18, 117, 202, 0.45); }
+  50% { box-shadow: 0 28px 80px -24px rgba(18, 117, 202, 0.6); }
+}
+.breathe-glow {
+  animation: breathe-glow 5.5s var(--ease-out-quart) infinite;
 }

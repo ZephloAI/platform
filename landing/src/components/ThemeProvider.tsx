@@ -16,17 +16,17 @@ export function useTheme() {
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
+  // Sync theme from localStorage / system preference after hydration. Initial
+  // render uses the SSR default ("dark"); we update once on the client to
+  // avoid hydration mismatches. setState inside an effect is intentional here.
   useEffect(() => {
     const stored = localStorage.getItem("zephlo-theme") as Theme | null;
-    if (stored === "light" || stored === "dark") {
-      setTheme(stored);
-      document.documentElement.setAttribute("data-theme", stored);
-    } else {
-      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const systemTheme: Theme = systemPrefersDark ? "dark" : "light";
-      setTheme(systemTheme);
-      document.documentElement.setAttribute("data-theme", systemTheme);
-    }
+    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolved: Theme =
+      stored === "light" || stored === "dark" ? stored : systemPrefersDark ? "dark" : "light";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme(resolved);
+    document.documentElement.setAttribute("data-theme", resolved);
   }, []);
 
   const toggle = () => {

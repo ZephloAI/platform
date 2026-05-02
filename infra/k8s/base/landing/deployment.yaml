@@ -31,7 +31,7 @@ spec:
               app: landing
       containers:
         - name: landing
-          image: docker.io/zephlo/landing:latest
+          image: docker.io/flunkie/landing:latest
           ports:
             - containerPort: 3000
               protocol: TCP

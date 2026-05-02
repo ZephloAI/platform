@@ -33,7 +33,7 @@ spec:
               app: agent
       containers:
         - name: agent
-          image: docker.io/zephlo/agent:latest
+          image: docker.io/flunkie/agent:latest
           ports:
             - containerPort: 8002
               protocol: TCP

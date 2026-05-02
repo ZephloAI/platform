@@ -74,6 +74,21 @@ function Layout() {
                     Organization
                   </Link>
                 )}
+                {user?.is_platform_admin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setAccountOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-black/[0.03] hover:text-label-primary transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3-5.5-3-5.5 3 1-6.3L3 8.9 9 8z" />
+                    </svg>
+                    <span className="flex-1">Platform Admin</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-accent-light text-accent px-1.5 py-0.5 rounded">
+                      Admin
+                    </span>
+                  </Link>
+                )}
               </div>
               <div className="border-t border-black/[0.06] py-1">
                 <button

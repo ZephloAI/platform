@@ -1,17 +1,31 @@
-# Stage 1: Install dependencies
+# Build context is the project root (set in docker-compose.yml)
+# The widget is consumed via a turbopack alias in next.config.ts that points to
+# ../widget/dist/zephlo.esm.js, so we build the widget first and place its
+# output at /widget/dist/ for the alias to resolve during `next build`.
+
+# Stage 1: Build the local widget
+FROM node:20-alpine AS widget-build
+WORKDIR /widget
+COPY widget/package*.json ./
+RUN npm install
+COPY widget/ .
+RUN npm run build
+
+# Stage 2: Install landing dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
+COPY landing/package.json landing/package-lock.json* ./
 RUN npm ci
 
-# Stage 2: Build the Next.js app
+# Stage 3: Build the Next.js app
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=widget-build /widget /widget
+COPY landing/ .
 RUN npm run build
 
-# Stage 3: Production runner
+# Stage 4: Production runner
 FROM node:20-alpine AS runner
 WORKDIR /app
 
@@ -21,12 +35,15 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+# `outputFileTracingRoot` in next.config.ts points one level above the project,
+# so Next nests the project under `app/` inside the standalone output.
+# Static/public must live at the same relative path; `node app/server.js` runs the bundled server.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./app/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./app/public
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "app/server.js"]

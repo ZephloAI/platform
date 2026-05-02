@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "zephlo": ["../widget/dist/types.d.ts"]
     }
   },
   "include": [

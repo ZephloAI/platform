@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     onboarding_completed: bool = False
+    is_platform_admin: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,5 +46,22 @@ class LoginResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     onboarding_completed: bool = False
+    is_platform_admin: bool = False
     token: str
     organization_id: int | None = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for starting a password reset — just the email."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for completing a password reset with a one-time token."""
+    token: str
+    new_password: str
+
+
+class GenericMessageResponse(BaseModel):
+    """A neutral response body used when we don't want to leak state."""
+    message: str

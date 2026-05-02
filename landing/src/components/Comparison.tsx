@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { ease } from "@/lib/motion";
 
 const rows = [
   { feature: "Integration time", traditional: "Weeks/months", traditionalGood: false, zephlo: "Minutes", zephloGood: true },
@@ -30,7 +31,7 @@ export default function Comparison() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-20"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.15]">
@@ -59,7 +60,7 @@ export default function Comparison() {
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.06, ease: "easeOut" as const }}
+                transition={{ duration: 0.5, delay: i * 0.06, ease: ease.out }}
                 className="group rounded-xl border border-[var(--subtle-white)] bg-[var(--card)] px-5 py-4 transition-all duration-300 hover:border-[var(--accent)]/10 hover:bg-[var(--card-hover)]"
               >
                 <div className="hidden sm:grid grid-cols-[1.4fr_1fr_1fr] gap-4 items-center">

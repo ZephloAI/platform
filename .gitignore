@@ -29,8 +29,17 @@ docker-compose.override.yml
 # Secrets & Certificates - NEVER commit these
 infra/cloudflare/*.pem
 infra/cloudflare/*.key
+*.pem
+*.key
+docs/zephlo-certs/
 *.secrets
 .env.secrets
+
+# Claude / local tooling state
+.claude-worktrees/
+.impeccable.md
+skills-lock.json
+landing/skills-lock.json
 
 # OS
 .DS_Store
@@ -39,9 +48,6 @@ Thumbs.db
 # Database
 *.db
 *.sqlite3
-
-docs/*
-docs
 
 .agents/
 .agents/*
@@ -52,3 +58,8 @@ widget-testbench/
 # Demo dependencies and builds
 demo/
 demo
+
+.email/
+.email
+
+TODO.md

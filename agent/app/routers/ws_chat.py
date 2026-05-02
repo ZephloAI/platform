@@ -24,6 +24,7 @@ from app.agent import create_agent, clean_response, extract_resolution, connect_
 from app.rag import retrieve_context, format_context_for_llm, collection_exists_for_chatbot
 from app.tts import text_to_speech
 from app.mcp_meta import McpMetaCollector, set_active_collector, install_patch
+from app.usage_client import extract_token_counts, precheck_usage, record_usage
 from app.webmcp_tools import create_web_tools, WebSocketDispatcher
 
 logger = logging.getLogger(__name__)
@@ -148,7 +149,7 @@ async def ws_chat(ws: WebSocket):
     conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
     try:
         chatbot_row = await conn.fetchrow(
-            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled FROM chatbots WHERE public_id = $1",
+            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled, navigation_enabled FROM chatbots WHERE public_id = $1",
             chatbot_id_str,
         )
 
@@ -173,6 +174,7 @@ async def ws_chat(ws: WebSocket):
     mcp_configs = json.loads(chatbot_row["mcp_servers"] or "[]")
     custom_instructions = chatbot_row["instructions"] or None
     person_mode_enabled = chatbot_row["person_mode_enabled"] if chatbot_row["person_mode_enabled"] is not None else True
+    navigation_enabled = bool(chatbot_row["navigation_enabled"])
 
     await ws.accept()
     active_connections[session_id] = ws
@@ -217,6 +219,8 @@ async def ws_chat(ws: WebSocket):
         mcp_tools=all_tools,
         custom_instructions=custom_instructions,
         has_rag_data=has_rag_data,
+        navigation_enabled=navigation_enabled,
+        dispatcher=dispatcher,
     )
 
     try:
@@ -246,13 +250,49 @@ async def ws_chat(ws: WebSocket):
                 })
                 continue
 
-            message: str = data.get("message", "")
-            voice: bool = data.get("voice", False)
-            logger.info(f"Processing message: session={session_id}, msg_type={data.get('message_type')}, message={message[:100] if message else ''}")
+            # Manual agent trigger fired from the widget SDK. The `prompt`
+            # is an instruction to the agent — not user-facing text. We wrap
+            # it as a proactive-turn system instruction and fall through to
+            # the normal pipeline. No synthetic "user" message is stored in
+            # history because the visitor didn't actually type anything.
+            is_trigger = data.get("message_type") == "trigger"
+            # "prompt" mode triggers are tentative — the response is held in
+            # a toast on the client and only committed to history if the user
+            # clicks it. We skip DB persistence here to avoid orphan rows.
+            trigger_mode = data.get("mode", "open") if is_trigger else None
+            skip_persist = is_trigger and trigger_mode == "prompt"
+            if is_trigger:
+                trigger_prompt = data.get("prompt", "")
+                trigger_id = data.get("trigger_id", "")
+                # Merge trigger page_context into the ambient page_context so
+                # the agent's dependencies see the fresh data.
+                trigger_ctx = data.get("page_context") or {}
+                if trigger_ctx:
+                    page_context = {**(page_context or {}), **trigger_ctx}
+                message = (
+                    "You are being invoked proactively by the website — the "
+                    "visitor did NOT type anything. Do not pretend they did. "
+                    "Greet briefly (1-2 sentences) and offer help based on "
+                    f"this reason: {trigger_prompt}"
+                )
+                voice = False
+                logger.info(
+                    f"Processing trigger: session={session_id}, trigger_id={trigger_id}, mode={trigger_mode}, prompt={trigger_prompt[:100]}"
+                )
+            else:
+                message = data.get("message", "")
+                voice = data.get("voice", False)
+                logger.info(f"Processing message: session={session_id}, msg_type={data.get('message_type')}, message={message[:100] if message else ''}")
 
             # Check session mode
             session_mode = await check_session_mode(session_id, chatbot_id)
             logger.info(f"Session mode: {session_mode}")
+
+            # Proactive triggers are always handled by the AI path — a
+            # trigger fired while a human agent is taking over would be
+            # confusing, so we just silently ignore it.
+            if is_trigger and session_mode == "person":
+                continue
 
             if session_mode == "person":
                 # In person mode: store the user message and notify admin, skip AI
@@ -310,6 +350,18 @@ async def ws_chat(ws: WebSocket):
                     "Respond naturally and confidently as a team member."
                 )
 
+            # Pre-flight usage check. If the org is over its token budget or
+            # suspended, surface a structured error and skip the LLM run.
+            precheck = await precheck_usage(chatbot_id)
+            if precheck.is_blocked:
+                await dispatcher.send_json({
+                    "message_type": "error",
+                    "error": precheck.message or "Usage limit reached.",
+                    "code": precheck.code,
+                    "limit": precheck.limit,
+                })
+                continue
+
             # Step 4: Run the agent (async for MCP tool support)
             collector = McpMetaCollector()
             set_active_collector(collector)
@@ -319,6 +371,17 @@ async def ws_chat(ws: WebSocket):
             )
             set_active_collector(None)
             mcp_results = collector.drain() or None
+
+            # Record token usage (best-effort; never blocks the response).
+            prompt_tokens, completion_tokens, total_tokens = extract_token_counts(response)
+            await record_usage(
+                chatbot_id=chatbot_id,
+                session_id=session_id,
+                model=settings.LLM_MODEL,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
 
             # Extract text — content can be empty when the agent made a tool
             # call and the main response only contains the tool result.
@@ -392,9 +455,14 @@ async def ws_chat(ws: WebSocket):
                 }
             )
 
-            # Store messages via API callback
-            await store_message(session_id, "user", message)
-            await store_message(session_id, "assistant", response_text, is_resolved=is_resolved)
+            # Store messages via API callback.
+            # For triggers, skip the "user" side — the visitor didn't type anything.
+            # For prompt-mode triggers, also skip the assistant side — the
+            # client will only commit it to history if the user engages.
+            if not is_trigger:
+                await store_message(session_id, "user", message)
+            if not skip_persist:
+                await store_message(session_id, "assistant", response_text, is_resolved=is_resolved)
 
     except WebSocketDisconnect:
         logger.info(f"Client disconnected (chatbot_id={chatbot_id})")

@@ -16,12 +16,8 @@ export interface PreviewState {
   greetingPrompts: GreetingPrompt[];
   greetingPromptDuration: number;
   logoUrl: string | null;
-  headerColor: string;
-  userBubbleColor: string;
-  assistantBubbleColor: string;
   fontFamily: string;
   fontSize: number;
-  textColor: string;
   width: number;
   height: number;
 }
@@ -42,12 +38,8 @@ function ConfigSection({ chatbot, activeTab }: ConfigSectionProps) {
     greetingPrompts: chatbot.greeting_prompts || [],
     greetingPromptDuration: chatbot.greeting_prompt_duration || 0,
     logoUrl: chatbot.widget_logo_url || null,
-    headerColor: chatbot.widget_header_color || '#0071e3',
-    userBubbleColor: chatbot.widget_user_bubble_color || '#0071e3',
-    assistantBubbleColor: chatbot.widget_assistant_bubble_color || '#f5f5f7',
     fontFamily: chatbot.widget_font_family || '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
     fontSize: chatbot.widget_font_size || 14,
-    textColor: chatbot.widget_text_color || '#1d1d1f',
     width: chatbot.widget_width || 380,
     height: chatbot.widget_height || 520,
   });
@@ -57,9 +49,9 @@ function ConfigSection({ chatbot, activeTab }: ConfigSectionProps) {
       <div className="flex-1 min-w-0">
         <WidgetConfigurator chatbot={chatbot} activeTab={activeTab} onPreviewChange={setPreviewState} />
       </div>
-      <div className="hidden lg:block w-[340px] shrink-0">
+      <div className="hidden lg:block w-[400px] shrink-0">
         <div className="sticky top-[5.5rem]">
-          <WidgetPreview chatbotName={chatbot.name} state={previewState} />
+          <WidgetPreview chatbotId={chatbot.public_id} state={previewState} />
         </div>
       </div>
     </div>

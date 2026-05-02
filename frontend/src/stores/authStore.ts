@@ -30,8 +30,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    */
   login: async (email: string, password: string) => {
     const response = await apiClient.post('/api/auth/login', { email, password });
-    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
-    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin };
 
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
@@ -53,8 +53,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       first_name: firstName,
       last_name: lastName,
     });
-    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
-    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin };
 
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
@@ -71,8 +71,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    */
   oauthLogin: async (provider: string, idToken: string) => {
     const response = await apiClient.post('/api/auth/oauth', { provider, id_token: idToken });
-    const { token, id, email: userEmail, first_name, last_name, onboarding_completed } = response.data;
-    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed };
+    const { token, id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin } = response.data;
+    const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin };
 
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
