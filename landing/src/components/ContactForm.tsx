@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { type FormEvent, useState, useRef, useEffect } from "react";
 import { ArrowRight, Send, ChevronDown, Search } from "lucide-react";
 
@@ -211,7 +212,7 @@ export default function ContactForm() {
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.8, ease: "easeOut" as const }}
+            transition={{ duration: 0.8, ease: ease.out }}
             className="flex flex-col gap-6"
           >
             <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
@@ -240,7 +241,7 @@ export default function ContactForm() {
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" as const }}
+            transition={{ duration: 0.8, delay: 0.1, ease: ease.out }}
             className="rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-8 sm:p-10"
           >
             {submitted ? (

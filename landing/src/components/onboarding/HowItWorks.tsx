@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { Copy, Check } from "lucide-react";
 import { useState, useRef } from "react";
 
@@ -11,7 +12,7 @@ const steps = [
   { number: "04", title: "Watch it happen", description: "Zephlo executes actions directly in the connected browser session. Users see their product configure itself in real time. Complex onboarding becomes a 2-minute conversation." },
 ];
 
-const codeSnippet = `<script src="https://cdn.zephlo.ai/widget.js" data-key="your-key"></script>`;
+const codeSnippet = `<script src="https://unpkg.com/zephlo" data-key="your-key"></script>`;
 
 function CodeBlock() {
   const [copied, setCopied] = useState(false);
@@ -57,7 +58,7 @@ export default function OnboardingHowItWorks() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-24"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">How It Works</span>
@@ -79,7 +80,7 @@ export default function OnboardingHowItWorks() {
                 initial={{ opacity: 0, x: -24 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.7, delay: i * 0.1, ease: "easeOut" as const }}
+                transition={{ duration: 0.7, delay: i * 0.1, ease: ease.out }}
                 className="relative flex gap-6 sm:gap-12"
               >
                 <div className="flex-shrink-0 relative z-10">

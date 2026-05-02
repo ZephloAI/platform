@@ -9,7 +9,7 @@ AI chatbot widget for your website. Add a fully-featured chat assistant with a s
 The fastest way to get started. Add this to your HTML:
 
 ```html
-<script src="https://your-zephlo-instance.com/widget/zephlo.js"></script>
+<script src="https://unpkg.com/zephlo"></script>
 <script>
   Zephlo.initialize({
     key: "YOUR_API_KEY",
@@ -29,7 +29,7 @@ import Zephlo from "zephlo";
 
 const widget = Zephlo.initialize({
   key: "YOUR_API_KEY",
-  chatbotId: 1
+  chatbotId: "unid-id"
 });
 ```
 

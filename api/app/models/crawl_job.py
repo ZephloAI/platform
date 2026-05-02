@@ -18,8 +18,8 @@ class CrawlJob(Base):
     chatbot_id = Column(Integer, ForeignKey("chatbots.id"), nullable=False)
     status = Column(String, default="pending")  # pending, in_progress, completed, failed
     pages_crawled = Column(Integer, default=0)
-    started_at = Column(DateTime, default=func.now())
-    completed_at = Column(DateTime, nullable=True)
+    started_at = Column(DateTime(timezone=True), default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Each crawl job belongs to one chatbot
     chatbot = relationship("Chatbot", back_populates="crawl_jobs")

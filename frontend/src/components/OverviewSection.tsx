@@ -11,7 +11,7 @@ interface ChatbotMetrics {
   resolved_requests: number;
 }
 
-type EmbedTab = 'fab' | 'chat' | 'npm' | 'legacy';
+type EmbedTab = 'fab' | 'chat' | 'npm';
 
 interface OverviewSectionProps {
   chatbot: Chatbot;
@@ -20,7 +20,7 @@ interface OverviewSectionProps {
 function OverviewSection({ chatbot }: OverviewSectionProps) {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
-  const [embedTab, setEmbedTab] = useState<EmbedTab>('fab');
+  const [embedTab, setEmbedTab] = useState<EmbedTab>('chat');
   const activeOrg = useOrgStore((state) => state.activeOrganization);
   const [metrics, setMetrics] = useState<ChatbotMetrics | null>(null);
 
@@ -30,8 +30,6 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
       .then((res) => setMetrics(res.data))
       .catch(() => {});
   }, [chatbot.public_id]);
-
-  const origin = window.location.origin;
 
   const handleToggleActive = async () => {
     try {
@@ -45,7 +43,7 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
     }
   };
 
-  const initScript = `<script src="${origin}/widget/zephlo.js"></script>
+  const initScript = `<script src="https://unpkg.com/zephlo"></script>
 <script>
   Zephlo.initialize({
     key: "YOUR_API_KEY",
@@ -60,8 +58,7 @@ function OverviewSection({ chatbot }: OverviewSectionProps) {
 
   const chatCode = `${initScript}
 
-<!-- Inline chat view — place it in any section of your page -->
-<zephlo-chat width="400" height="600"></zephlo-chat>`;
+<zephlo-fab></zephlo-fab>`;
 
   const npmCode = `npm install zephlo
 
@@ -76,16 +73,11 @@ Zephlo.initialize({
 // <zephlo-fab />
 // <zephlo-chat width="400" height="600" />`;
 
-  const legacyCode = `<script
-  src="${origin}/widget/chatbot-widget.js"
-  data-chatbot-id="${chatbot.public_id}"
-></script>`;
 
   const embedCodeMap: Record<EmbedTab, string> = {
     fab: fabCode,
     chat: chatCode,
     npm: npmCode,
-    legacy: legacyCode,
   };
 
   const handleCopyEmbed = () => {
@@ -185,10 +177,8 @@ Zephlo.initialize({
 
         <div className="flex gap-1 mb-4 p-1 bg-surface-secondary rounded-xl w-fit">
           {([
-            { key: 'fab' as EmbedTab, label: 'Floating Button' },
-            { key: 'chat' as EmbedTab, label: 'Inline Chat' },
+            { key: 'chat' as EmbedTab, label: 'JS Script' },
             { key: 'npm' as EmbedTab, label: 'npm' },
-            { key: 'legacy' as EmbedTab, label: 'Legacy' },
           ]).map((tab) => (
             <button
               key={tab.key}

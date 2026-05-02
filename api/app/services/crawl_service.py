@@ -6,7 +6,7 @@ updating crawl status (called by the crawler's callback), and retrieving
 crawl job details.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import HTTPException, status
@@ -149,14 +149,16 @@ class CrawlService:
 
         # Set completed_at timestamp for terminal states
         if job_status in ("completed", "failed"):
-            update_fields["completed_at"] = datetime.utcnow()
+            update_fields["completed_at"] = datetime.now(timezone.utc)
 
         updated_job = await self.crawl_job_repo.update(crawl_job_id, **update_fields)
 
         # Update the parent chatbot's status
         if job_status == "completed":
             await self.chatbot_repo.update(
-                crawl_job.chatbot_id, status="ready", last_crawled_at=datetime.utcnow()
+                crawl_job.chatbot_id,
+                status="ready",
+                last_crawled_at=datetime.now(timezone.utc),
             )
         elif job_status == "failed":
             await self.chatbot_repo.update(crawl_job.chatbot_id, status="error")

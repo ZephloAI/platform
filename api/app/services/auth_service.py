@@ -134,10 +134,7 @@ class AuthService:
             return None
 
         if user.password_changed_at is not None and issued_at is not None:
-            changed_epoch = int(
-                user.password_changed_at.replace(tzinfo=timezone.utc).timestamp()
-            )
-            if int(issued_at) < changed_epoch:
+            if int(issued_at) < int(user.password_changed_at.timestamp()):
                 return None
 
         return user

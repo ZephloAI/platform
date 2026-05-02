@@ -26,7 +26,7 @@ for tool forms.
 chat. Good for product sites where chat should be optional.
 
 ```html
-<script src="https://app.zephlo.ai/widget/zephlo.js"></script>
+<script src="https://unpkg.com/zephlo"></script>
 <script>
   Zephlo.initialize({
     key: "flk_your_api_key",
@@ -44,7 +44,7 @@ methods won't be wired.
 floating button. The chat is always open and fills its container.
 
 ```html
-<script src="https://app.zephlo.ai/widget/zephlo.js"></script>
+<script src="https://unpkg.com/zephlo"></script>
 
 <zephlo-chat width="420" height="620"></zephlo-chat>
 

@@ -89,6 +89,61 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Motion tokens — keep in sync with lib/motion.ts */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-feedback: 180ms;
+  --dur-state: 320ms;
+  --dur-reveal: 600ms;
+  --dur-signature: 850ms;
+}
+
+/* Below-the-fold paint skipping: the browser skips layout/paint for sections
+   not near the viewport. `contain-intrinsic-size` gives it a placeholder
+   height so scroll position stays stable. Huge win on mobile scroll. */
+main > section + section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* Mobile: downgrade backdrop-blur intensity. Heavy blur is the single most
+   expensive thing mobile GPUs do during scroll. A lighter blur keeps the
+   glass character without tanking frame rate on low-end phones. */
+@media (max-width: 767px) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* Cap ambient-glow blur radius on mobile — blur(64px+) is a big paint cost */
+  .blur-2xl,
+  .blur-3xl {
+    filter: blur(32px) !important;
+  }
+}
+
+/* Respect reduced-motion — collapse everything to near-instant, preserve final state */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -275,4 +330,22 @@ body {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px -4px rgba(18, 117, 202, 0.2); }
   50% { box-shadow: 0 0 40px -4px rgba(18, 117, 202, 0.4); }
+}
+
+/* Subtle idle float — used on persistent UI like FloatingChat */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.float-idle {
+  animation: float-subtle 4.2s var(--ease-out-quart) infinite;
+}
+
+/* Breathing glow — featured surfaces */
+@keyframes breathe-glow {
+  0%, 100% { box-shadow: 0 20px 60px -28px rgba(18, 117, 202, 0.45); }
+  50% { box-shadow: 0 28px 80px -24px rgba(18, 117, 202, 0.6); }
+}
+.breathe-glow {
+  animation: breathe-glow 5.5s var(--ease-out-quart) infinite;
 }

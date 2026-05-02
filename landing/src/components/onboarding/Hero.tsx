@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { ArrowRight, Clock, Sparkles, Globe } from "lucide-react";
 import { useRef } from "react";
 
@@ -17,7 +18,7 @@ const wordItem = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: { duration: 0.7, ease: "easeOut" as const },
+    transition: { duration: 0.7, ease: ease.out },
   },
 };
 
@@ -26,7 +27,7 @@ const fadeUp = {
   show: (delay: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, delay, ease: "easeOut" as const },
+    transition: { duration: 0.7, delay, ease: ease.out },
   }),
 };
 
@@ -35,7 +36,7 @@ function OnboardingDemo() {
     <motion.div
       initial={{ opacity: 0, y: 32, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 1, delay: 1, ease: "easeOut" as const }}
+      transition={{ duration: 1, delay: 1, ease: ease.out }}
       className="relative w-full max-w-md mx-auto lg:mx-0"
     >
       <div className="rounded-2xl border border-[var(--subtle-white-06)] bg-[var(--card)] overflow-hidden shadow-2xl" style={{ boxShadow: `0 25px 50px -12px var(--shadow-color)` }}>

@@ -1,27 +1,27 @@
 """
-Resend client — a minimal async wrapper around the Resend HTTP API.
+Resend client — a thin async wrapper around the official `resend` Python SDK.
 
-Only one endpoint is used: POST https://api.resend.com/emails. Callers pass
-either a rendered html body or, when a template id is configured, a set of
-template variables that Resend will render on its side.
+The SDK is synchronous, so every call is dispatched through `asyncio.to_thread`
+to avoid blocking the FastAPI event loop. Only one operation is exposed:
+sending a transactional email, optionally rendered from a Resend-hosted
+template.
 
-The client is intentionally small so juniors can read it top-to-bottom.
+Kept short so juniors can read it top-to-bottom.
 """
 
+import asyncio
 import logging
 from typing import Any
 
-import httpx
+import resend
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-RESEND_EMAILS_URL = "https://api.resend.com/emails"
-
 
 class ResendError(Exception):
-    """Raised when Resend returns a non-2xx response or the API key is missing."""
+    """Raised when the SDK call fails or the API key is missing."""
 
 
 class ResendClient:
@@ -31,11 +31,9 @@ class ResendClient:
         self,
         api_key: str | None = None,
         from_email: str | None = None,
-        timeout: float = 10.0,
     ):
         self.api_key = api_key if api_key is not None else settings.RESEND_API_KEY
         self.from_email = from_email if from_email is not None else settings.RESEND_FROM_EMAIL
-        self.timeout = timeout
 
     @property
     def is_configured(self) -> bool:
@@ -50,56 +48,61 @@ class ResendClient:
         text: str | None = None,
         template_id: str | None = None,
         template_data: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """
         Send an email.
 
-        If `template_id` is set we pass it to Resend along with `template_data`
-        and Resend renders the body. Otherwise we send the raw `html` (and
-        optional `text`) body.
+        If `template_id` is set, Resend renders the body server-side using the
+        hosted template. Otherwise we send the raw `html` (and optional `text`)
+        body. `template_data` and `html`/`text` are mutually exclusive — Resend
+        rejects payloads that mix them.
 
-        Returns the Resend JSON response (includes the message id).
+        Returns the SDK response (dict-like, includes "id").
         """
         if not self.is_configured:
             raise ResendError(
                 "RESEND_API_KEY is not set. Configure it before sending email."
             )
 
-        payload: dict[str, Any] = {
+        params: dict[str, Any] = {
             "from": self.from_email,
             "to": [to],
             "subject": subject,
         }
 
         if template_id:
-            payload["template_id"] = template_id
+            params["template"] = {"id": template_id}
             if template_data:
-                payload["template_data"] = template_data
+                params["template"]["variables"] = template_data
         else:
             if not html and not text:
                 raise ResendError("Either html/text body or template_id is required.")
             if html:
-                payload["html"] = html
+                params["html"] = html
             if text:
-                payload["text"] = text
+                params["text"] = text
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        options: dict[str, Any] | None = None
+        if idempotency_key:
+            options = {"idempotency_key": idempotency_key}
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(RESEND_EMAILS_URL, json=payload, headers=headers)
+        # The SDK reads its API key from the module-level attribute. Set it on
+        # every call so per-instance keys (used in tests) take effect.
+        resend.api_key = self.api_key
 
-        if response.status_code >= 400:
-            logger.error(
-                f"Resend send failed: status={response.status_code} body={response.text}"
-            )
-            raise ResendError(
-                f"Resend responded with {response.status_code}: {response.text}"
-            )
+        try:
+            if options is not None:
+                response = await asyncio.to_thread(
+                    resend.Emails.send, params, options
+                )
+            else:
+                response = await asyncio.to_thread(resend.Emails.send, params)
+        except Exception as exc:
+            logger.error(f"Resend send failed: {exc}")
+            raise ResendError(str(exc)) from exc
 
-        return response.json()
+        return response
 
 
 def fallback_invite_html(
@@ -144,37 +147,18 @@ async def send_email(
     text: str | None = None,
 ) -> None:
     """
-    Send a transactional email via Resend.
+    Send a transactional email via Resend (module-level convenience wrapper).
 
-    Falls back to logging the payload when RESEND_API_KEY is unset
-    so developers don't need Resend credentials to exercise the flow.
-
-    Raises httpx.HTTPStatusError if Resend rejects the request.
+    Falls back to logging the payload when RESEND_API_KEY is unset so
+    developers don't need Resend credentials to exercise the flow. Raises
+    ResendError if Resend rejects the request.
     """
-    api_key = settings.RESEND_API_KEY
-    from_address = settings.RESEND_FROM_EMAIL
-
-    if not api_key:
+    client = ResendClient()
+    if not client.is_configured:
         logger.warning(
             f"RESEND_API_KEY not set — skipping send. to={to} subject={subject!r}"
         )
         logger.info(f"Email body (html): {html}")
         return
 
-    payload = {
-        "from": from_address,
-        "to": [to],
-        "subject": subject,
-        "html": html,
-    }
-    if text:
-        payload["text"] = text
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(RESEND_API_URL, json=payload, headers=headers)
-        response.raise_for_status()
+    await client.send_email(to=to, subject=subject, html=html, text=text)

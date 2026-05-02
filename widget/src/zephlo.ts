@@ -10,6 +10,7 @@ import { zephloCore } from "./zephlo-core";
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import type { McpToolResult } from "./api";
 import { FormScanner } from "./form-scanner";
+import type { ThemeMode, ThemeColors, ThemeOptions } from "./theme";
 
 // Set flag BEFORE the custom element auto-injects so we skip the
 // backwards-compat `<zephlo-fab>` fallback injection.
@@ -22,6 +23,7 @@ export interface ZephloOptions {
   key: string;
   chatbotId: string;
   apiUrl?: string;
+  theme?: ThemeOptions;
 }
 
 export interface ZephloInstance {
@@ -31,12 +33,23 @@ export interface ZephloInstance {
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
   destroy(): void;
+
+  // Live theme controls. Setters mutate state and trigger an immediate
+  // re-style of every mounted view.
+  theme: ThemeMode;
+  headerColor: string;
+  userBubbleColor: string;
+  assistantBubbleColor: string;
+  textColor: string;
+  bgColor: string;
+  /** Update colors for a specific mode without switching to it. */
+  setColors(mode: "light" | "dark", colors: ThemeColors): void;
 }
 
 let formScanner: FormScanner | null = null;
 
 function initialize(options: ZephloOptions): ZephloInstance {
-  const { key, chatbotId, apiUrl } = options;
+  const { key, chatbotId, apiUrl, theme } = options;
   if (!key.startsWith("flk_")) throw new Error("Invalid API key format");
 
   // Clean up any prior instance (e.g. React StrictMode double-mount)
@@ -44,7 +57,7 @@ function initialize(options: ZephloOptions): ZephloInstance {
 
   // Configure the shared core — this is the ONLY thing initialize does.
   // No DOM work. Users render `<zephlo-fab>` / `<zephlo-chat>` themselves.
-  zephloCore.configure({ key, chatbotId: String(chatbotId), apiUrl });
+  zephloCore.configure({ key, chatbotId: String(chatbotId), apiUrl, theme });
 
   // Auto-scan HTML forms with zephlo-tool-name attributes
   formScanner?.disconnect();
@@ -52,7 +65,7 @@ function initialize(options: ZephloOptions): ZephloInstance {
   formScanner.scan();
   formScanner.observe();
 
-  return {
+  const instance: ZephloInstance = {
     onToolResult(cb) {
       return zephloCore.registerMcpListener(cb);
     },
@@ -72,6 +85,44 @@ function initialize(options: ZephloOptions): ZephloInstance {
       formScanner?.disconnect();
       formScanner = null;
       zephloCore.destroy();
+    },
+    setColors(mode, colors) {
+      zephloCore.setThemeColors(mode, colors);
+    },
+    // Placeholders — replaced by the accessor descriptors below.
+    theme: "auto",
+    headerColor: "",
+    userBubbleColor: "",
+    assistantBubbleColor: "",
+    textColor: "",
+    bgColor: "",
+  };
+
+  // Define live getters/setters so `instance.theme = 'dark'` and
+  // `instance.headerColor = '#ff0000'` flow through the core.
+  Object.defineProperties(instance, {
+    theme: {
+      get: () => zephloCore.getThemeMode(),
+      set: (mode: ThemeMode) => zephloCore.setThemeMode(mode),
+      enumerable: true,
+    },
+    ...colorAccessor("headerColor"),
+    ...colorAccessor("userBubbleColor"),
+    ...colorAccessor("assistantBubbleColor"),
+    ...colorAccessor("textColor"),
+    ...colorAccessor("bgColor"),
+  });
+
+  return instance;
+}
+
+/** Build a property descriptor that proxies a single color through the core. */
+function colorAccessor(key: keyof ThemeColors): PropertyDescriptorMap {
+  return {
+    [key]: {
+      get: () => zephloCore.getResolvedColors()[key as keyof ThemeColors] as string,
+      set: (value: string) => zephloCore.setActiveColor(key, value),
+      enumerable: true,
     },
   };
 }

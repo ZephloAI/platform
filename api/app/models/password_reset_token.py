@@ -22,8 +22,8 @@ class PasswordResetToken(Base):
     )
     # SHA-256 hex digest of the raw token sent in the email.
     token_hash = Column(String, unique=True, nullable=False, index=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User")

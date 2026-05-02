@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Copy, Check } from "lucide-react";
 import { useState, useRef } from "react";
+import { ease, useParallaxEnabled } from "@/lib/motion";
 
 const steps = [
   {
@@ -25,7 +26,7 @@ const steps = [
   },
 ];
 
-const codeSnippet = `<script src="https://cdn.zephlo.ai/widget.js" data-agent-id="YOUR_AGENT_UUID"></script>`;
+const codeSnippet = `<script src="https://unpkg.com/zephlo" data-agent-id="YOUR_AGENT_UUID"></script>`;
 
 function CodeBlock() {
   const [copied, setCopied] = useState(false);
@@ -79,6 +80,7 @@ function CodeBlock() {
 
 export default function HowItWorks() {
   const sectionRef = useRef<HTMLElement>(null);
+  const parallaxOn = useParallaxEnabled();
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"],
@@ -93,7 +95,7 @@ export default function HowItWorks() {
           initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.7, ease: "easeOut" as const }}
+          transition={{ duration: 0.7, ease: ease.out }}
           className="text-center mb-20"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">
@@ -112,7 +114,7 @@ export default function HowItWorks() {
             aria-hidden="true"
           >
             <motion.div
-              style={{ height: lineHeight }}
+              style={parallaxOn ? { height: lineHeight } : { height: "100%" }}
               className="w-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-light)] rounded-full"
             />
           </div>
@@ -124,7 +126,7 @@ export default function HowItWorks() {
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.6, delay: i * 0.08, ease: "easeOut" as const }}
+                transition={{ duration: 0.6, delay: i * 0.08, ease: ease.out }}
                 className="relative flex gap-6 sm:gap-12"
               >
                 <div className="flex-shrink-0 relative z-10">

@@ -33,4 +33,4 @@ class AgentTokenUsage(Base):
     prompt_tokens = Column(Integer, nullable=False, server_default="0")
     completion_tokens = Column(Integer, nullable=False, server_default="0")
     total_tokens = Column(BigInteger, nullable=False, server_default="0")
-    created_at = Column(DateTime, server_default=func.now(), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

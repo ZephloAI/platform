@@ -91,11 +91,9 @@ class PasswordResetService:
 
         raw_token = generate_token()
         token_hash = hash_token(raw_token)
-        # Store naive UTC to match the table's TIMESTAMP WITHOUT TIME ZONE column.
-        expires_at = (
-            datetime.now(timezone.utc)
-            + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES)
-        ).replace(tzinfo=None)
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES
+        )
 
         await self.token_repo.create(
             user_id=user.id,
@@ -144,22 +142,18 @@ class PasswordResetService:
 
         user.password_hash = pwd_context.hash(new_password)
         # Bump so any outstanding JWTs for this user are rejected.
-        user.password_changed_at = now.replace(tzinfo=None)
+        user.password_changed_at = now
         await self.db.commit()
 
         # Mark this token used and invalidate any siblings so they can't
         # double-reset the account.
-        await self.token_repo.invalidate_user_tokens(user.id, now.replace(tzinfo=None))
+        await self.token_repo.invalidate_user_tokens(user.id, now)
 
     @staticmethod
     def _is_valid(record: PasswordResetToken, now: datetime) -> bool:
         if record.used_at is not None:
             return False
-        # expires_at is stored naive UTC; compare in the same shape.
-        expires_at = record.expires_at
-        if expires_at.tzinfo is None:
-            return expires_at > now.replace(tzinfo=None)
-        return expires_at > now
+        return record.expires_at > now
 
     @staticmethod
     def tokens_match(expected_hash: str, raw_token: str) -> bool:

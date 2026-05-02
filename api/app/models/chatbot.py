@@ -25,7 +25,7 @@ class Chatbot(Base):
     website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
     is_active = Column(Boolean, default=True, server_default="true")
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Widget customization
     widget_icon = Column(String, nullable=True)       # Emoji or image URL
@@ -68,7 +68,7 @@ class Chatbot(Base):
     # Auto re-crawl settings
     auto_recrawl_enabled = Column(Boolean, default=True, server_default="true")
     recrawl_interval_hours = Column(Integer, default=48)
-    last_crawled_at = Column(DateTime, nullable=True)
+    last_crawled_at = Column(DateTime(timezone=True), nullable=True)
     crawled_urls = Column(JSON, nullable=True)  # stored selected URLs for re-crawl
 
     # Relationships

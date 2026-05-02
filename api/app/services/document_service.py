@@ -1,6 +1,6 @@
 """Document service for PDF upload and management."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import HTTPException, UploadFile, status
@@ -157,7 +157,7 @@ class DocumentService:
 
         update_fields = {"status": doc_status, "chunks_indexed": chunks_indexed}
         if doc_status in ("ready", "error"):
-            update_fields["processed_at"] = datetime.utcnow()
+            update_fields["processed_at"] = datetime.now(timezone.utc)
 
         return await self.document_repo.update(document_id, **update_fields)
 

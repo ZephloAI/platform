@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import Zephlo, { navigateProp } from '@zephlo/zephlo';
-import type { ZephloInstance } from '@zephlo/zephlo';
+import Zephlo, { navigateProp } from 'zephlo';
+import type { ZephloInstance } from 'zephlo';
 import * as chatbotApi from '../api/chatbots';
 import { getAppConfig, getWidgetApiUrl } from '../lib/appConfig';
 
@@ -372,15 +372,14 @@ function DashboardAssistant() {
         const chatbot = await chatbotApi.getChatbot(params.chatbot_id as string);
         const publicId = chatbot.public_id;
         const format = (params.format as string) || 'fab';
-        const origin = window.location.origin;
 
-        const initScript = `<script src="${origin}/widget/zephlo.js"></script>\n<script>\n  Zephlo.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`;
+        const initScript = `<script src="https://unpkg.com/zephlo"></script>\n<script>\n  Zephlo.initialize({\n    key: "YOUR_API_KEY",\n    chatbotId: "${publicId}"\n  });\n</script>`;
 
         const snippets: Record<string, string> = {
           fab: `${initScript}\n\n<!-- Floating chat button (bottom-right) -->\n<zephlo-fab></zephlo-fab>`,
           chat: `${initScript}\n\n<!-- Inline chat view — place it anywhere in your page -->\n<zephlo-chat width="400" height="600"></zephlo-chat>`,
           npm: `npm install zephlo\n\nimport Zephlo from "zephlo";\n\nZephlo.initialize({\n  key: "YOUR_API_KEY",\n  chatbotId: "${publicId}"\n});\n\n// Then render one (or both) in your JSX:\n// <zephlo-fab />\n// <zephlo-chat width="400" height="600" />`,
-          legacy: `<script\n  src="${origin}/widget/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
+          legacy: `<script\n  src="https://unpkg.com/zephlo/dist/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
         };
 
         if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);

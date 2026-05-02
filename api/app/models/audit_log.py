@@ -32,7 +32,7 @@ class AuditLog(Base):
     target_type = Column(String, nullable=True)
     target_id = Column(String, nullable=True)
     extra = Column(JSON, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     organization = relationship("Organization")
     actor = relationship("User")

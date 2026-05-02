@@ -19,6 +19,7 @@ import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
 import * as storage from "./storage";
 import { zephloCore, type CoreEvent, type Message as CoreMessage } from "./zephlo-core";
+import { COLOR_TO_CSS_VAR, type ResolvedColors } from "./theme";
 import { ICON_CHAT, ICON_CLOSE, ICON_SEND, ICON_BOT, ICON_NEW_CHAT, ICON_MIC, ICON_STOP, ICON_SPEAKER, ICON_KEYBOARD, ICON_SIDEBAR_LEFT_HIDE, ICON_SIDEBAR_RIGHT_HIDE, ICON_PERSON } from "./icons";
 
 const SIDEBAR_WIDTH = 300;
@@ -45,12 +46,8 @@ interface WidgetState {
   logoUrl: string | null;
   width: number;
   height: number;
-  headerColor: string;
-  userBubbleColor: string;
-  assistantBubbleColor: string;
   fontFamily: string;
   fontSize: number;
-  textColor: string;
   greetingPrompts: { title: string; prompt: string }[];
   greetingPromptDuration: number;
   voiceEnabled: boolean;
@@ -163,12 +160,8 @@ export class ChatbotWidget extends HTMLElement {
       logoUrl: null,
       width: 380,
       height: 520,
-      headerColor: "#0071e3",
-      userBubbleColor: "#0071e3",
-      assistantBubbleColor: "#f5f5f7",
       fontFamily: "",
       fontSize: 14,
-      textColor: "#1d1d1f",
       greetingPrompts: [],
       greetingPromptDuration: 0,
       voiceEnabled: false,
@@ -188,12 +181,8 @@ export class ChatbotWidget extends HTMLElement {
       this.state.logoUrl = config.widget_logo_url || null;
       this.state.width = config.widget_width || 380;
       this.state.height = config.widget_height || 520;
-      this.state.headerColor = config.widget_header_color || "#0071e3";
-      this.state.userBubbleColor = config.widget_user_bubble_color || "#0071e3";
-      this.state.assistantBubbleColor = config.widget_assistant_bubble_color || "#f5f5f7";
       this.state.fontFamily = config.widget_font_family || "";
       this.state.fontSize = config.widget_font_size || 14;
-      this.state.textColor = config.widget_text_color || "#1d1d1f";
       this.state.greetingPrompts = config.greeting_prompts || [];
       this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
       this.state.voiceEnabled = config.voice_enabled || false;
@@ -292,6 +281,9 @@ export class ChatbotWidget extends HTMLElement {
           composed: true,
           detail: { results: ev.results },
         }));
+        break;
+      case "themeChanged":
+        this.applyTheme(ev.colors);
         break;
       case "error":
         this.showError(ev.message);
@@ -396,24 +388,32 @@ export class ChatbotWidget extends HTMLElement {
     `;
   }
 
-  /** Build the CSS variable overrides from the loaded widget config. */
+  /**
+   * CSS overrides for non-color styling (font + panel dimensions). Color
+   * variables are applied separately by applyTheme() so they can be updated
+   * at runtime without re-rendering.
+   */
   protected buildCustomStyles(): string {
     const fontStack = this.state.fontFamily
       ? `"${this.state.fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`
       : '';
     return `
       :host {
-        --cb-accent: ${this.state.headerColor};
-        --cb-accent-hover: ${this.state.headerColor};
-        --cb-user-bubble: ${this.state.userBubbleColor};
-        --cb-assistant-bubble: ${this.state.assistantBubbleColor};
-        --cb-text: ${this.state.textColor};
         --cb-panel-width: ${this.state.width}px;
         --cb-panel-height: ${this.state.height}px;
         --cb-font-size: ${this.state.fontSize}px;
         ${fontStack ? `--cb-font: ${fontStack};` : ''}
       }
     `;
+  }
+
+  /** Apply the active theme's colors as CSS vars on the host element. */
+  protected applyTheme(colors: ResolvedColors): void {
+    for (const [key, cssVar] of Object.entries(COLOR_TO_CSS_VAR)) {
+      this.style.setProperty(cssVar, colors[key as keyof ResolvedColors]);
+    }
+    // Hover state shares the accent color today.
+    this.style.setProperty('--cb-accent-hover', colors.headerColor);
   }
 
   /** Load a Google font if a custom family is configured. */
@@ -471,6 +471,8 @@ export class ChatbotWidget extends HTMLElement {
       ${greetingBubbles}
       ${fabToggle}
     `;
+
+    this.applyTheme(zephloCore.getResolvedColors());
 
     // Cache DOM refs
     this.panel = this.shadow.querySelector(".cb-panel")!;
@@ -1539,6 +1541,8 @@ export class ZephloChat extends ChatbotWidget {
       <style>${WIDGET_STYLES}${this.buildCustomStyles()}</style>
       ${this.renderPanelHtml("cb-inline open")}
     `;
+
+    this.applyTheme(zephloCore.getResolvedColors());
 
     // Cache DOM refs
     this.panel = this.shadow.querySelector(".cb-panel")!;

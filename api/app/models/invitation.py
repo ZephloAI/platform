@@ -23,15 +23,15 @@ class Invitation(Base):
     token = Column(String, unique=True, nullable=False, index=True)
     invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String, nullable=False, default="pending")  # pending, accepted, expired, cancelled
-    created_at = Column(DateTime, server_default=func.now())
-    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
 
     # How many times the invite email has been sent (initial send + resends).
     send_count = Column(Integer, nullable=False, default=1, server_default="1")
     # Timestamp of the most recent send attempt (initial send or resend).
-    last_sent_at = Column(DateTime, nullable=True)
+    last_sent_at = Column(DateTime(timezone=True), nullable=True)
     # Filled in when the invite is accepted.
-    accepted_at = Column(DateTime, nullable=True)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
     accepted_by_user_id = Column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

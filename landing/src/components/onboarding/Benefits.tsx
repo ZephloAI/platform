@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { Building2, Users, Check } from "lucide-react";
 
 const saasTeamBenefits = [
@@ -26,7 +27,7 @@ const fadeUp = {
   show: (delay: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, delay, ease: "easeOut" as const },
+    transition: { duration: 0.7, delay, ease: ease.out },
   }),
 };
 
@@ -40,7 +41,7 @@ export default function OnboardingBenefits() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">Benefits</span>

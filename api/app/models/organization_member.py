@@ -22,7 +22,7 @@ class OrganizationMember(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     role = Column(String, nullable=False, default="member")  # creator, admin, member
-    joined_at = Column(DateTime, server_default=func.now())
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
 
     organization = relationship("Organization", back_populates="members")
     user = relationship("User", back_populates="memberships")

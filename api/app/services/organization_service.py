@@ -255,10 +255,7 @@ class OrganizationService:
         inviter_email = await self._get_user_email(invitation.invited_by_id)
 
         now = datetime.now(timezone.utc)
-        expires_at = invitation.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        is_expired = expires_at < now or invitation.status == "expired"
+        is_expired = invitation.expires_at < now or invitation.status == "expired"
 
         return {
             "email": invitation.email,
@@ -283,10 +280,7 @@ class OrganizationService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invitation is no longer valid",
             )
-        expires_at = invitation.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < datetime.now(timezone.utc):
+        if invitation.expires_at < datetime.now(timezone.utc):
             await self.invite_repo.update(invitation.id, status="expired")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

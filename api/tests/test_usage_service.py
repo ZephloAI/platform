@@ -121,7 +121,7 @@ async def test_record_tokens_bumps_counter(db, org):
 
 async def test_rollover_resets_counter_when_period_elapsed(db, org):
     # Pretend the current period started 35 days ago (monthly rollover).
-    org.token_period_start = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - dt.timedelta(days=35)
+    org.token_period_start = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=35)
     org.tokens_used_in_period = 500
     await db.commit()
     snap = await UsageService(db).get_snapshot(org.id)

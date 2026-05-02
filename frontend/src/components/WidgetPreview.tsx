@@ -24,7 +24,7 @@ interface WidgetPreviewProps {
   state: PreviewState;
 }
 
-const PREVIEW_FRAME_HEIGHT = 560;
+const PREVIEW_FRAME_HEIGHT = 680;
 
 function WidgetPreview({ chatbotId, state }: WidgetPreviewProps) {
   const { data: previewKey, isLoading, isError } = useChatbotPreviewKey(chatbotId);
@@ -125,20 +125,22 @@ function buildOverrideCss(state: PreviewState): string {
   const fontStack = state.fontFamily && !state.fontFamily.startsWith('-apple-system')
     ? `"${state.fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`
     : '';
-  // Force the panel to fill its host (the iframe body) regardless of the
-  // chatbot's saved widget_width/widget_height — the preview frame controls
-  // sizing here.
+  // Force the inline panel to fully fill the iframe and flatten its frame.
+  // The !important pins guarantee we win against any saved widget_width /
+  // widget_height vars or specificity quirks in the bundled CSS.
   return `
     :host {
-      --cb-accent: ${state.headerColor};
-      --cb-accent-hover: ${state.headerColor};
-      --cb-user-bubble: ${state.userBubbleColor};
-      --cb-assistant-bubble: ${state.assistantBubbleColor};
-      --cb-text: ${state.textColor};
-      --cb-panel-width: 100%;
-      --cb-panel-height: 100%;
       --cb-font-size: ${state.fontSize}px;
       ${fontStack ? `--cb-font: ${fontStack};` : ''}
+    }
+    .cb-panel.cb-inline {
+      position: relative !important;
+      inset: auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
     }
   `;
 }
@@ -163,6 +165,8 @@ function buildIframeHtml(opts: {
       body { display: block; }
       zephlo-chat {
         display: block !important;
+        position: relative !important;
+        inset: auto !important;
         width: 100% !important;
         height: 100% !important;
         box-sizing: border-box;
@@ -170,7 +174,12 @@ function buildIframeHtml(opts: {
     </style>
   </head>
   <body>
-    <zephlo-chat width="100%" height="100%"></zephlo-chat>
+    <zephlo-chat
+      width="100%"
+      height="100%"
+      data-zephlo-inline=""
+      style="--cb-panel-width:100%;--cb-panel-height:100%;"
+    ></zephlo-chat>
     <script src="${escaped(opts.scriptOrigin)}/widget/zephlo.js"></script>
     <script>
       (function () {
@@ -196,11 +205,30 @@ function buildIframeHtml(opts: {
         }
 
         var pending = null;
+        var observer = null;
+
+        // Watch the shadow root and re-apply the override after every mutation
+        // — the widget's async render() does shadow.innerHTML = ..., which wipes
+        // any style we injected. Re-injecting on each childList change keeps it
+        // pinned regardless of when render finishes.
+        function watchShadow() {
+          var chat = document.querySelector('zephlo-chat');
+          if (!chat || !chat.shadowRoot) {
+            requestAnimationFrame(watchShadow);
+            return;
+          }
+          if (observer) return;
+          observer = new MutationObserver(function () {
+            if (pending !== null) applyOverrides(pending);
+          });
+          observer.observe(chat.shadowRoot, { childList: true });
+        }
+        watchShadow();
+
         window.addEventListener('message', function (e) {
           if (!e.data || e.data.type !== 'zephlo-preview-style') return;
           pending = e.data.css;
           if (!applyOverrides(pending)) {
-            // Shadow DOM not ready yet — retry on the next animation frame.
             var retry = function () {
               if (applyOverrides(pending)) return;
               requestAnimationFrame(retry);

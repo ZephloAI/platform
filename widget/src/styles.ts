@@ -1253,9 +1253,11 @@ export const WIDGET_STYLES = /* css */ `
       justify-content: center;
     }
 
-    /* All panels become a near-full-screen overlay on mobile */
-    .cb-panel,
-    .cb-panel.sidebar {
+    /* All panels become a near-full-screen overlay on mobile.
+       Inline panels (.cb-inline) are excluded — they live in document flow
+       and are sized by their host element. */
+    .cb-panel:not(.cb-inline),
+    .cb-panel.sidebar:not(.cb-inline) {
       position: fixed;
       bottom: 0;
       left: 50%;
@@ -1266,12 +1268,12 @@ export const WIDGET_STYLES = /* css */ `
       height: 85dvh !important;
       border-radius: 16px 16px 0 0;
     }
-    .cb-panel.open,
-    .cb-panel.sidebar.open {
+    .cb-panel.open:not(.cb-inline),
+    .cb-panel.sidebar.open:not(.cb-inline) {
       transform: translateX(-50%) translateY(0) scale(1);
     }
 
-    .cb-panel.minimized {
+    .cb-panel.minimized:not(.cb-inline) {
       width: 95vw !important;
       height: auto !important;
     }

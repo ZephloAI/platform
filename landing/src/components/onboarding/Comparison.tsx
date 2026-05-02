@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { Check, X } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -31,7 +32,7 @@ export default function OnboardingComparison() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-20"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">Comparison</span>
@@ -61,7 +62,7 @@ export default function OnboardingComparison() {
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.06, ease: "easeOut" as const }}
+                transition={{ duration: 0.5, delay: i * 0.06, ease: ease.out }}
                 className="group rounded-xl border border-[var(--subtle-white)] bg-[var(--card)] px-5 py-4 transition-all duration-300 hover:border-[var(--accent)]/10 hover:bg-[var(--card-hover)]"
               >
                 <div className="hidden sm:grid grid-cols-[1.2fr_1.2fr_1.2fr] gap-4 items-center">

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { ArrowRight } from "lucide-react";
 
 export default function OnboardingCTA() {
@@ -13,7 +14,7 @@ export default function OnboardingCTA() {
           initial={{ opacity: 0, y: 32, scale: 0.98 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="rounded-3xl gradient-border bg-[var(--card)] p-10 sm:p-16 text-center flex flex-col items-center gap-7"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.15]">

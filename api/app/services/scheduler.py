@@ -1,7 +1,7 @@
 """Periodic re-crawl scheduler using APScheduler."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
@@ -25,7 +25,7 @@ async def _check_recrawls():
         )
         chatbots = result.scalars().all()
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         crawl_service = CrawlService(db)
 
         for chatbot in chatbots:

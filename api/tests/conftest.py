@@ -57,7 +57,7 @@ async def org(db, user):
         plan="free",
         is_suspended=False,
         token_period="monthly",
-        token_period_start=dt.datetime.now(dt.timezone.utc).replace(tzinfo=None),
+        token_period_start=dt.datetime.now(dt.timezone.utc),
         tokens_used_in_period=0,
     )
     db.add(o)

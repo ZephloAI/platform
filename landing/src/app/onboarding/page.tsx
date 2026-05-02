@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import OnboardingNavbar from "@/components/onboarding/Navbar";
+import Navbar from "@/components/Navbar";
 import OnboardingHero from "@/components/onboarding/Hero";
 import OnboardingProblem from "@/components/onboarding/Problem";
 import OnboardingSolution from "@/components/onboarding/Solution";
@@ -11,7 +11,7 @@ import Security from "@/components/Security";
 import OnboardingSocialProof from "@/components/onboarding/SocialProof";
 import OnboardingCTA from "@/components/onboarding/CTA";
 import ContactForm from "@/components/ContactForm";
-import OnboardingFooter from "@/components/onboarding/Footer";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Zephlo — AI Onboarding That Executes, Not Explains",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export default function OnboardingPage() {
   return (
     <>
-      <OnboardingNavbar />
+      <Navbar />
       <main>
         <OnboardingHero />
         <OnboardingProblem />
@@ -49,7 +49,7 @@ export default function OnboardingPage() {
         <OnboardingCTA />
         <ContactForm />
       </main>
-      <OnboardingFooter />
+      <Footer />
     </>
   );
 }

@@ -16,7 +16,7 @@ class Organization(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     slug = Column(String, unique=True, nullable=False, index=True)
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     size = Column(String, nullable=True)
     phone = Column(String, nullable=True)
@@ -31,7 +31,7 @@ class Organization(Base):
     # Token usage aggregates. The agent service bumps tokens_used_in_period
     # atomically per call; read-side never scans agent_token_usage rows.
     token_period = Column(String, nullable=False, server_default="monthly")
-    token_period_start = Column(DateTime, nullable=True)
+    token_period_start = Column(DateTime(timezone=True), nullable=True)
     tokens_used_in_period = Column(BigInteger, nullable=False, server_default="0")
 
     created_by = relationship("User", foreign_keys=[created_by_id])

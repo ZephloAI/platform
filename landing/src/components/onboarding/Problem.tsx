@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { BookOpen, MousePointerClick, Video, Plug, Headphones, LogOut } from "lucide-react";
 import { useRef } from "react";
 import type { ReactNode } from "react";
@@ -59,7 +60,7 @@ const cardVariants = {
     transition: {
       duration: 0.7,
       delay: i * 0.1,
-      ease: "easeOut" as const,
+      ease: ease.out,
     },
   }),
 };
@@ -79,7 +80,7 @@ export default function OnboardingProblem() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-20"
         >
           <motion.span
@@ -127,7 +128,7 @@ export default function OnboardingProblem() {
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.8, ease: "easeOut" as const }}
+            transition={{ duration: 0.8, ease: ease.out }}
             className="text-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight"
           >
             What if onboarding was{" "}

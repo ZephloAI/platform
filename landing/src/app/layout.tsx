@@ -1,27 +1,35 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Newsreader, Geist_Mono } from "next/font/google";
 import ThemeProvider from "@/components/ThemeProvider";
+import ZephloProvider from "@/components/ZephloProvider";
+import FloatingChat from "@/components/FloatingChat";
 import { siteUrl } from "@/lib/links";
 import "./globals.css";
 
+// Only ship weights actually used in the codebase. Audited usage:
+// font-medium (500), font-semibold (600), font-bold (700). 400 kept as body default.
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
+// Newsreader is only used for serif display headings (font-semibold + italic accents).
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
   style: ["normal", "italic"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
+// Mono is only used for small code snippets — trim weights.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 const title = "Zephlo — Turn your website into an Agent";
@@ -141,7 +149,9 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <ZephloProvider />
         <ThemeProvider>{children}</ThemeProvider>
+        <FloatingChat />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}

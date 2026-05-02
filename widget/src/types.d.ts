@@ -1,7 +1,24 @@
+export interface ThemeColors {
+  headerColor?: string;
+  userBubbleColor?: string;
+  assistantBubbleColor?: string;
+  textColor?: string;
+  bgColor?: string;
+}
+
+export type ThemeMode = "auto" | "light" | "dark";
+
+export interface ThemeOptions {
+  mode?: ThemeMode;
+  light?: ThemeColors;
+  dark?: ThemeColors;
+}
+
 export interface ZephloOptions {
   key: string;
   chatbotId: string;
   apiUrl?: string;
+  theme?: ThemeOptions;
 }
 
 export interface McpToolResult {
@@ -31,6 +48,14 @@ export interface ZephloInstance {
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
   destroy(): void;
+
+  theme: ThemeMode;
+  headerColor: string;
+  userBubbleColor: string;
+  assistantBubbleColor: string;
+  textColor: string;
+  bgColor: string;
+  setColors(mode: "light" | "dark", colors: ThemeColors): void;
 }
 
 interface Zephlo {

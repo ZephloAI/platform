@@ -157,7 +157,7 @@ curl -X POST https://app.zephlo.ai/api/agents/$AGENT_ID/api-keys \
 The simplest possible integration:
 
 ```html
-<script src="https://app.zephlo.ai/widget/zephlo.js"></script>
+<script src="https://unpkg.com/zephlo"></script>
 <script>
   Zephlo.initialize({
     key: "flk_your_api_key",
@@ -175,7 +175,7 @@ If you'd rather drop the chat panel directly into your layout (no floating
 button), place a `<zephlo-chat>` element anywhere and size it how you like:
 
 ```html
-<script src="https://app.zephlo.ai/widget/zephlo.js"></script>
+<script src="https://unpkg.com/zephlo"></script>
 <zephlo-chat width="420" height="620"></zephlo-chat>
 <script>
   Zephlo.initialize({

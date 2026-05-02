@@ -4,7 +4,7 @@ Mirrors DocumentService but for pasted text — no S3 upload needed.
 The text is sent directly to the crawler for chunking, embedding, and indexing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import HTTPException, status
@@ -139,7 +139,7 @@ class TextService:
 
         update_fields = {"status": text_status, "chunks_indexed": chunks_indexed}
         if text_status in ("ready", "error"):
-            update_fields["processed_at"] = datetime.utcnow()
+            update_fields["processed_at"] = datetime.now(timezone.utc)
 
         return await self.text_repo.update(text_id, **update_fields)
 

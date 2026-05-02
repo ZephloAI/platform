@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Stethoscope, Car, Scale, IdCard, ArrowRight, type LucideIcon } from "lucide-react";
 import { links } from "@/lib/links";
+import { ease } from "@/lib/motion";
 
 type Demo = {
   title: string;
@@ -51,7 +52,7 @@ export default function DemoShowcase() {
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7, ease: "easeOut" as const }}
+            transition={{ duration: 0.7, ease: ease.out }}
             className="space-y-4"
           >
             <h2 className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
@@ -81,7 +82,7 @@ function DemoCard({ demo, index }: { demo: Demo; index: number }) {
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, delay: index * 0.08, ease: "easeOut" as const }}
+      transition={{ duration: 0.6, delay: index * 0.08, ease: ease.out }}
       className="group relative flex flex-col gap-6 rounded-2xl border border-[var(--subtle-white-06)] bg-[var(--card)] p-8 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)]/30 hover:bg-[var(--card-hover)]"
       style={{ boxShadow: "0 20px 40px -24px var(--shadow-color)" }}
     >

@@ -1,6 +1,6 @@
 # Build context is the project root (set in docker-compose.yml)
 # ENV=dev  → links local widget/ (no NPM_TOKEN needed)
-# ENV=prod → installs @zephlo/zephlo from npm registry
+# ENV=prod → installs zephlo from npm registry
 
 # Stage 1: Build the local widget
 FROM node:20-alpine AS widget-build
@@ -20,13 +20,13 @@ COPY --from=widget-build /widget /widget
 
 COPY frontend/package*.json ./
 
-# Dev: strip @zephlo/zephlo from package.json, install deps, then link local widget
+# Dev: strip zephlo from package.json, install deps, then link local widget
 # Prod: use the npm token and install everything from the registry
 RUN if [ "$ENV" = "dev" ]; then \
-      sed -i '/@zephlo\/zephlo/d' package.json && \
+      sed -i '/"zephlo"/d' package.json && \
       npm install && \
       cd /widget && npm link && \
-      cd /app && npm link @zephlo/zephlo; \
+      cd /app && npm link zephlo; \
     else \
       npm config set //registry.npmjs.org/:_authToken=${NPM_TOKEN} && \
       npm install && \

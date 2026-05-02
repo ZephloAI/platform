@@ -50,8 +50,9 @@ def test_tokens_match_uses_constant_time_compare():
 
 def _record(expires_in_minutes: int, used: bool = False):
     """Minimal stand-in for a PasswordResetToken row."""
-    expires_at = datetime.utcnow() + timedelta(minutes=expires_in_minutes)
-    used_at = datetime.utcnow() if used else None
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=expires_in_minutes)
+    used_at = now if used else None
     return SimpleNamespace(expires_at=expires_at, used_at=used_at)
 
 

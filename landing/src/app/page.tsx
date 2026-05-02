@@ -1,14 +1,17 @@
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import HowItWorks from "@/components/HowItWorks";
-import UseCases from "@/components/UseCases";
-import DemoShowcase from "@/components/DemoShowcase";
-import SocialProof from "@/components/SocialProof";
-import Pricing from "@/components/Pricing";
-import CTA from "@/components/CTA";
-import Footer from "@/components/Footer";
-import FloatingChat from "@/components/FloatingChat";
+
+// Below-fold sections render server-side (so SSR HTML is complete) but their
+// hydration JS loads in separate chunks, deferred from the critical path.
+const HowItWorks = dynamic(() => import("@/components/HowItWorks"));
+const UseCases = dynamic(() => import("@/components/UseCases"));
+const DemoShowcase = dynamic(() => import("@/components/DemoShowcase"));
+const SocialProof = dynamic(() => import("@/components/SocialProof"));
+const Pricing = dynamic(() => import("@/components/Pricing"));
+const CTA = dynamic(() => import("@/components/CTA"));
+const Footer = dynamic(() => import("@/components/Footer"));
 
 export default function Home() {
   return (
@@ -25,7 +28,6 @@ export default function Home() {
         <CTA />
       </main>
       <Footer />
-      <FloatingChat />
     </>
   );
 }

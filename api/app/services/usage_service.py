@@ -98,19 +98,14 @@ class UsageService:
     async def _rollover_if_needed(self, org: Organization) -> Organization:
         """Reset the period counter when the current period has elapsed."""
         now = datetime.now(timezone.utc)
-        start = org.token_period_start
-        if start is None:
+        if org.token_period_start is None:
             org.token_period_start = now
             await self.db.commit()
             await self.db.refresh(org)
             return org
 
-        # SQLAlchemy returns naive datetimes from Postgres when the column is
-        # DateTime (no tz). Compare naive-to-naive.
-        start_naive = start.replace(tzinfo=None) if start.tzinfo else start
-        now_naive = now.replace(tzinfo=None)
-        if now_naive - start_naive >= _period_length(org.token_period):
-            org.token_period_start = now_naive
+        if now - org.token_period_start >= _period_length(org.token_period):
+            org.token_period_start = now
             org.tokens_used_in_period = 0
             await self.db.commit()
             await self.db.refresh(org)

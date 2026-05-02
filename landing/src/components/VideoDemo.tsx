@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 import { Play } from "lucide-react";
 
 export default function VideoDemo() {
@@ -11,7 +12,7 @@ export default function VideoDemo() {
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: "easeOut" as const }}
+          transition={{ duration: 0.7, ease: ease.out }}
           className="space-y-4"
         >
           <h2 className="font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -26,14 +27,14 @@ export default function VideoDemo() {
           initial={{ opacity: 0, y: 32, scale: 0.97 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.9, ease: "easeOut" as const }}
+          transition={{ duration: 0.9, ease: ease.out }}
           className="group relative aspect-video overflow-hidden rounded-2xl border border-[var(--subtle-white-06)] bg-[var(--card)]"
           style={{ boxShadow: "0 40px 100px -30px var(--shadow-color)" }}
         >
           {/* Ambient video placeholder texture */}
           <div className="absolute inset-0 opacity-30">
             <div className="absolute inset-0 dot-pattern" />
-            <div className="absolute left-1/2 top-1/2 h-[70%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--accent)]/20 blur-[120px]" />
+            <div className="absolute left-1/2 top-1/2 h-[70%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--accent)]/20 blur-[60px] md:blur-[120px]" />
           </div>
 
           {/* Play button */}

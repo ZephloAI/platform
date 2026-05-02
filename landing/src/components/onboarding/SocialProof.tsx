@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 
 const testimonials = [
   {
@@ -31,7 +32,7 @@ export default function OnboardingSocialProof() {
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" as const }}
+          transition={{ duration: 0.8, ease: ease.out }}
           className="text-center mb-16"
         >
           <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-5">Trusted by Forward-Thinking Teams</span>
@@ -44,7 +45,7 @@ export default function OnboardingSocialProof() {
               initial={{ opacity: 0, y: 32 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.7, delay: i * 0.12, ease: "easeOut" as const }}
+              transition={{ duration: 0.7, delay: i * 0.12, ease: ease.out }}
               className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-8 flex flex-col gap-6 transition-all duration-500 hover:border-[var(--accent)]/10 hover:bg-[var(--card-hover)]"
             >
               <div className="text-3xl leading-none gradient-text font-serif">&ldquo;</div>

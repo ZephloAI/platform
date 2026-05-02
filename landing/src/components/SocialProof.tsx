@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ease } from "@/lib/motion";
 
 const testimonials = [
   { quote: "Zephlo replaced three internal tools and an entire integration sprint. Our agents handle what used to take engineers weeks to build.", name: "Sarah Chen", role: "Head of Product", company: "Acme Corp" },
@@ -18,7 +19,7 @@ export default function SocialProof() {
               initial={{ opacity: 0, y: 32 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.7, delay: i * 0.12, ease: "easeOut" as const }}
+              transition={{ duration: 0.7, delay: i * 0.12, ease: ease.out }}
               className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-8 flex flex-col gap-6 transition-all duration-500 hover:border-[var(--accent)]/10 hover:bg-[var(--card-hover)]"
             >
               <div className="text-3xl leading-none gradient-text font-serif">&ldquo;</div>

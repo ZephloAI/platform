@@ -54,12 +54,8 @@ export interface WidgetConfig {
   widget_logo_url?: string | null;
   widget_width?: number | null;
   widget_height?: number | null;
-  widget_header_color?: string | null;
-  widget_user_bubble_color?: string | null;
-  widget_assistant_bubble_color?: string | null;
   widget_font_family?: string | null;
   widget_font_size?: number | null;
-  widget_text_color?: string | null;
   voice_enabled?: boolean;
   webmcp_enabled?: boolean;
 }

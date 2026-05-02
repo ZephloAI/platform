@@ -23,8 +23,8 @@ class ApiKey(Base):
     key_prefix = Column(String(8), nullable=False)
     name = Column(String, default="Default")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=func.now())
-    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     chatbot = relationship("Chatbot")

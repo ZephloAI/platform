@@ -24,6 +24,14 @@ import {
 } from "./api";
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import * as storage from "./storage";
+import {
+  resolveColors,
+  resolveActiveMode,
+  type ThemeMode,
+  type ThemeColors,
+  type ThemeOptions,
+  type ResolvedColors,
+} from "./theme";
 
 // ---- Types ----
 
@@ -47,6 +55,7 @@ export type CoreEvent =
   | { type: "adminMessage"; content: string }
   | { type: "navigate" }
   | { type: "mcpResults"; results: McpToolResult[] }
+  | { type: "themeChanged"; colors: ResolvedColors }
   | { type: "error"; message: string };
 
 type Subscriber = (event: CoreEvent) => void;
@@ -71,6 +80,14 @@ class ZephloCoreClass {
   isLoading = false;
   personMode = false;
 
+  // Theme
+  private themeMode: ThemeMode = "auto";
+  private lightOverrides: ThemeColors = {};
+  private darkOverrides: ThemeColors = {};
+  private mediaQuery: MediaQueryList | null = null;
+  private mediaListener: ((e: MediaQueryListEvent) => void) | null = null;
+  private hostThemeObserver: MutationObserver | null = null;
+
   // MCP / tool results
   mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
 
@@ -90,16 +107,100 @@ class ZephloCoreClass {
 
   // ---- Configuration ----
 
-  configure(opts: { key: string; chatbotId: string; apiUrl?: string }): void {
+  configure(opts: {
+    key: string;
+    chatbotId: string;
+    apiUrl?: string;
+    theme?: ThemeOptions;
+  }): void {
     this.apiKey = opts.key;
     this.chatbotId = String(opts.chatbotId);
     if (opts.apiUrl) this.apiUrl = opts.apiUrl;
     setApiKey(opts.key);
 
+    if (opts.theme) this.configureTheme(opts.theme);
+
     // Wake up any views that connected before initialize() was called.
     const waiters = this.configWaiters;
     this.configWaiters = [];
     waiters.forEach((resolve) => resolve());
+  }
+
+  // ---- Theme ----
+
+  configureTheme(theme: ThemeOptions): void {
+    if (theme.light) this.lightOverrides = { ...this.lightOverrides, ...theme.light };
+    if (theme.dark) this.darkOverrides = { ...this.darkOverrides, ...theme.dark };
+    if (theme.mode) this.setThemeMode(theme.mode);
+    else this.emitThemeChanged();
+  }
+
+  setThemeMode(mode: ThemeMode): void {
+    this.themeMode = mode;
+    this.detachThemeListeners();
+    if (mode === "auto") this.attachThemeListeners();
+    this.emitThemeChanged();
+  }
+
+  /**
+   * In auto mode, react when the host page's theme changes — either via
+   * `data-theme` / class toggles on <html>, or via the OS-level
+   * prefers-color-scheme media query.
+   */
+  private attachThemeListeners(): void {
+    if (typeof window !== "undefined" && window.matchMedia) {
+      this.mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      this.mediaListener = () => this.emitThemeChanged();
+      this.mediaQuery.addEventListener("change", this.mediaListener);
+    }
+    if (typeof document !== "undefined" && document.documentElement) {
+      this.hostThemeObserver = new MutationObserver(() => this.emitThemeChanged());
+      this.hostThemeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "data-theme"],
+      });
+    }
+  }
+
+  getThemeMode(): ThemeMode {
+    return this.themeMode;
+  }
+
+  /** Concrete mode currently active ("auto" resolved against the OS). */
+  getActiveMode(): "light" | "dark" {
+    return resolveActiveMode(this.themeMode);
+  }
+
+  /** Update colors for one mode without switching the active mode. */
+  setThemeColors(mode: "light" | "dark", colors: ThemeColors): void {
+    if (mode === "dark") this.darkOverrides = { ...this.darkOverrides, ...colors };
+    else this.lightOverrides = { ...this.lightOverrides, ...colors };
+    this.emitThemeChanged();
+  }
+
+  /** Update a single color on the currently active mode. */
+  setActiveColor(key: keyof ThemeColors, value: string): void {
+    this.setThemeColors(this.getActiveMode(), { [key]: value });
+  }
+
+  getResolvedColors(): ResolvedColors {
+    const active = this.getActiveMode();
+    const overrides = active === "dark" ? this.darkOverrides : this.lightOverrides;
+    return resolveColors(active, overrides);
+  }
+
+  private emitThemeChanged(): void {
+    this.emit({ type: "themeChanged", colors: this.getResolvedColors() });
+  }
+
+  private detachThemeListeners(): void {
+    if (this.mediaQuery && this.mediaListener) {
+      this.mediaQuery.removeEventListener("change", this.mediaListener);
+    }
+    this.mediaQuery = null;
+    this.mediaListener = null;
+    this.hostThemeObserver?.disconnect();
+    this.hostThemeObserver = null;
   }
 
   /**
@@ -389,6 +490,7 @@ class ZephloCoreClass {
     this.sessionId = null;
     this.widgetConfig = null;
     this.configLoaded = false;
+    this.detachThemeListeners();
     toolRegistry.clear();
   }
 }
@@ -398,3 +500,4 @@ export const zephloCore = new ZephloCoreClass();
 
 // Re-export types for views
 export type { WidgetConfig, ConnectionStatus, ChatSource, FollowUpPrompt, McpToolResult, ToolDefinition };
+export type { ThemeMode, ThemeColors, ThemeOptions, ResolvedColors };
