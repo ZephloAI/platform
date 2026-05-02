@@ -23,7 +23,6 @@ export default function Home() {
         <HowItWorks />
         <UseCases />
         <DemoShowcase />
-        <SocialProof />
         <Pricing />
         <CTA />
       </main>

@@ -20,7 +20,7 @@ export default function SecurityPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="theme-secure">
         <SecurityContent />
       </main>
       <Footer />

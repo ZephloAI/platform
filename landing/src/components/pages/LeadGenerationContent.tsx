@@ -97,16 +97,16 @@ export default function LeadGenerationContent() {
           className="pointer-events-none absolute -top-[150px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px]"
           style={{
             background:
-              "radial-gradient(ellipse at center, rgba(18,117,202,0.08) 0%, rgba(96,165,250,0.04) 40%, transparent 70%)",
+              "radial-gradient(ellipse at center, var(--page-accent-glow) 0%, var(--page-accent-soft) 40%, transparent 70%)",
           }}
         />
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-1.5 text-[12px] text-[var(--muted)] backdrop-blur-sm mb-6">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-1.5 text-[12px] text-[var(--page-accent)] backdrop-blur-sm mb-6">
               <span
                 className="h-1.5 w-1.5 animate-pulse rounded-full"
-                style={{ background: "var(--emerald)" }}
+                style={{ background: "var(--page-accent)" }}
                 aria-hidden="true"
               />
               Lead Generation
@@ -190,11 +190,11 @@ export default function LeadGenerationContent() {
                   initial="hidden"
                   whileInView="show"
                   viewport={{ once: true, margin: "-60px" }}
-                  className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 flex flex-col gap-4 transition-all duration-500 hover:border-[var(--accent)]/15 hover:bg-[var(--card-hover)]"
+                  className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 flex flex-col gap-4 transition-all duration-500 hover:border-[var(--page-accent-border)] hover:bg-[var(--card-hover)]"
                 >
                   <div
-                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--accent)]"
-                    style={{ background: "var(--icon-bg)" }}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--page-accent)]"
+                    style={{ background: "var(--page-accent-soft)" }}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
@@ -233,10 +233,10 @@ export default function LeadGenerationContent() {
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, margin: "-60px" }}
-                className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 sm:p-8 flex gap-6 sm:gap-8 transition-all duration-500 hover:border-[var(--accent)]/15 hover:bg-[var(--card-hover)]"
+                className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 sm:p-8 flex gap-6 sm:gap-8 transition-all duration-500 hover:border-[var(--page-accent-border)] hover:bg-[var(--card-hover)]"
               >
                 <div className="shrink-0">
-                  <div className="h-12 w-12 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] flex items-center justify-center text-[var(--accent)] font-mono text-sm font-semibold">
+                  <div className="h-12 w-12 rounded-xl border border-[var(--page-accent-border)] bg-[var(--page-accent-soft)] flex items-center justify-center text-[var(--page-accent)] font-mono text-sm font-semibold">
                     {item.step}
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export default function LeadGenerationContent() {
             className="rounded-3xl gradient-border bg-[var(--card)] p-10 sm:p-14 grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
           >
             <div className="flex flex-col gap-5">
-              <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">The outcome</span>
+              <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--page-accent)]">The outcome</span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight leading-[1.15]">
                 More leads. Better leads.<br />
                 <span className="gradient-text">Without more reps.</span>
@@ -283,8 +283,8 @@ export default function LeadGenerationContent() {
                 "Deploy in under a day with one script tag",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--foreground)]">
-                  <div className="mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--icon-bg)" }}>
-                    <Check className="h-3 w-3 text-[var(--accent)]" />
+                  <div className="mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--page-accent-soft)" }}>
+                    <Check className="h-3 w-3 text-[var(--page-accent)]" />
                   </div>
                   {item}
                 </li>

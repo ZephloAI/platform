@@ -17,6 +17,8 @@ type UseCase = {
   description: string;
   href?: string;
   featured?: boolean;
+  /** Wrapper class applying that page's accent on the card. */
+  themeClass?: string;
 };
 
 const useCases: UseCase[] = [
@@ -26,6 +28,7 @@ const useCases: UseCase[] = [
     description:
       "Capture and qualify leads through natural conversation, 24/7. The Agent answers in seconds, fills your CRM, and books meetings — all within the visitor’s session.",
     href: "/lead-generation",
+    themeClass: "theme-lead",
     featured: true,
   },
   {
@@ -34,6 +37,7 @@ const useCases: UseCase[] = [
     description:
       "Replace repetitive how-to questions with an Agent that takes the action for users — updating settings, navigating your app, resolving requests in-product.",
     href: "/customer-success",
+    themeClass: "theme-success",
   },
   {
     icon: Rocket,
@@ -97,7 +101,7 @@ export default function UseCases() {
 
         <div className="mt-20 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {useCases.map(
-            ({ icon: Icon, title, description, href, featured }, i) => (
+            ({ icon: Icon, title, description, href, featured, themeClass }, i) => (
               <motion.div
                 key={title}
                 custom={i}
@@ -105,17 +109,17 @@ export default function UseCases() {
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, margin: "-60px" }}
-                className={`group relative flex flex-col rounded-2xl border p-7 transition-all duration-500 ${
+                className={`group relative flex flex-col rounded-2xl border p-7 transition-all duration-500 ${themeClass ?? ""} ${
                   featured
-                    ? "border-[var(--accent)]/15 bg-[var(--accent)]/[0.02] hover:border-[var(--accent)]/25 md:col-span-2 lg:col-span-1"
-                    : "border-[var(--subtle-white)] bg-[var(--card)] hover:border-[var(--accent)]/15 hover:bg-[var(--card-hover)]"
+                    ? "border-[var(--page-accent-border)] bg-[var(--page-accent-soft)] hover:border-[var(--page-accent)] md:col-span-2 lg:col-span-1"
+                    : "border-[var(--subtle-white)] bg-[var(--card)] hover:border-[var(--page-accent-border)] hover:bg-[var(--card-hover)]"
                 }`}
               >
                 <div
                   className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-300"
-                  style={{ background: "var(--icon-bg)" }}
+                  style={{ background: "var(--page-accent-soft)" }}
                 >
-                  <Icon className="h-5 w-5 text-[var(--accent)]" />
+                  <Icon className="h-5 w-5 text-[var(--page-accent)]" />
                 </div>
                 <h3 className="text-base font-semibold text-[var(--foreground)]">
                   {title}
@@ -127,7 +131,7 @@ export default function UseCases() {
                   <div className="mt-6">
                     <a
                       href={href}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] transition-all duration-300 group-hover:gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--page-accent)] transition-all duration-300 group-hover:gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--page-accent)]"
                     >
                       Learn more
                       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

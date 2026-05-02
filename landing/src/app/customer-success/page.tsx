@@ -21,7 +21,7 @@ export default function CustomerSuccessPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="theme-success">
         <CustomerSuccessContent />
         <ContactForm />
       </main>

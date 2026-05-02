@@ -98,16 +98,16 @@ export default function SecurityContent() {
           className="pointer-events-none absolute -top-[150px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px]"
           style={{
             background:
-              "radial-gradient(ellipse at center, rgba(18,117,202,0.08) 0%, rgba(96,165,250,0.04) 40%, transparent 70%)",
+              "radial-gradient(ellipse at center, var(--page-accent-glow) 0%, var(--page-accent-soft) 40%, transparent 70%)",
           }}
         />
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--subtle-white-06)] bg-[var(--subtle-white-03)] px-4 py-1.5 text-[12px] text-[var(--muted)] backdrop-blur-sm mb-6">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-1.5 text-[12px] text-[var(--page-accent)] backdrop-blur-sm mb-6">
               <span
                 className="h-1.5 w-1.5 animate-pulse rounded-full"
-                style={{ background: "var(--emerald)" }}
+                style={{ background: "var(--page-accent)" }}
                 aria-hidden="true"
               />
               Security
@@ -170,11 +170,11 @@ export default function SecurityContent() {
                   initial="hidden"
                   whileInView="show"
                   viewport={{ once: true, margin: "-60px" }}
-                  className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 flex flex-col gap-4 transition-all duration-500 hover:border-[var(--accent)]/15 hover:bg-[var(--card-hover)]"
+                  className="group rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-7 flex flex-col gap-4 transition-all duration-500 hover:border-[var(--page-accent-border)] hover:bg-[var(--card-hover)]"
                 >
                   <div
-                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--accent)]"
-                    style={{ background: "var(--icon-bg)" }}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--page-accent)]"
+                    style={{ background: "var(--page-accent-soft)" }}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
@@ -199,7 +199,7 @@ export default function SecurityContent() {
             className="rounded-3xl border border-[var(--subtle-white)] bg-[var(--card)] p-10 sm:p-14 grid grid-cols-1 md:grid-cols-2 gap-10 items-start"
           >
             <div className="flex flex-col gap-5">
-              <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">Access control</span>
+              <span className="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--page-accent)]">Access control</span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight leading-[1.15]">
                 Role-based,<br />
                 <span className="gradient-text">audited end-to-end.</span>
@@ -214,8 +214,8 @@ export default function SecurityContent() {
             <ul className="flex flex-col gap-3.5">
               {accessControls.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--foreground)]">
-                  <div className="mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--icon-bg)" }}>
-                    <ClipboardCheck className="h-3 w-3 text-[var(--accent)]" />
+                  <div className="mt-0.5 h-5 w-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--page-accent-soft)" }}>
+                    <ClipboardCheck className="h-3 w-3 text-[var(--page-accent)]" />
                   </div>
                   {item}
                 </li>
@@ -260,13 +260,13 @@ export default function SecurityContent() {
               >
                 <div className="flex items-center justify-between">
                   <div
-                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--accent)]"
-                    style={{ background: "var(--icon-bg)" }}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--page-accent)]"
+                    style={{ background: "var(--page-accent-soft)" }}
                   >
                     <FileCheck className="h-5 w-5" />
                   </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] px-2.5 py-1 text-[11px] font-medium text-[var(--accent)]">
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--page-accent)]">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--page-accent)" }} />
                     {item.status}
                   </span>
                 </div>

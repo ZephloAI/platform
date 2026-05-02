@@ -21,7 +21,7 @@ export default function LeadGenerationPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="theme-lead">
         <LeadGenerationContent />
         <ContactForm />
       </main>
