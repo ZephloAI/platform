@@ -9,15 +9,15 @@ resources:
 # Image tags are updated by CI/CD pipeline
 images:
   - name: docker.io/flunkie/frontend
-    newTag: 6eff5189d8bf2063a83e51d376cc61dbb4ae562f
+    newTag: ff9840ed1c353d611b600a15d01c2e69b4d63c0f
   - name: docker.io/flunkie/api
-    newTag: 6eff5189d8bf2063a83e51d376cc61dbb4ae562f
+    newTag: ff9840ed1c353d611b600a15d01c2e69b4d63c0f
   - name: docker.io/flunkie/agent
-    newTag: 6eff5189d8bf2063a83e51d376cc61dbb4ae562f
+    newTag: ff9840ed1c353d611b600a15d01c2e69b4d63c0f
   - name: docker.io/flunkie/crawler
-    newTag: 6eff5189d8bf2063a83e51d376cc61dbb4ae562f
+    newTag: ff9840ed1c353d611b600a15d01c2e69b4d63c0f
   - name: docker.io/flunkie/landing
-    newTag: 6eff5189d8bf2063a83e51d376cc61dbb4ae562f
+    newTag: ff9840ed1c353d611b600a15d01c2e69b4d63c0f
 
 # Production replica counts
 replicas:
