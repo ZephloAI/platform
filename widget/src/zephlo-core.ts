@@ -271,6 +271,12 @@ class ZephloCoreClass {
     this.chatSocket.connect().catch(() => {});
   }
 
+  /** Reconnect the WS to an existing session, but never create a new one. */
+  async resumeSessionIfExists(): Promise<void> {
+    if (!storage.getItem(`cb_session_${this.chatbotId}`)) return;
+    await this.ensureSession();
+  }
+
   private setupSocketListeners(): void {
     if (!this.chatSocket) return;
 
@@ -401,7 +407,7 @@ class ZephloCoreClass {
     return this.sendMessage(prompt);
   }
 
-  /** Clear everything and create a fresh session. */
+  /** Clear local chat state. The next sendMessage() will create a fresh session lazily. */
   async startNewChat(): Promise<void> {
     this.chatSocket?.close();
     this.chatSocket = null;
@@ -418,8 +424,6 @@ class ZephloCoreClass {
 
     this.emit({ type: "messagesReset" });
     this.emit({ type: "personModeChanged" });
-
-    await this.ensureSession();
   }
 
   /** Switch to human agent handoff. */
