@@ -195,8 +195,10 @@ export class ChatbotWidget extends HTMLElement {
       return;
     }
 
-    // Ensure session+socket exist on the shared core (fire-and-forget)
-    zephloCore.ensureSession();
+    // Reconnect WS only for returning visitors with an existing session.
+    // New visitors stay session-less until they send their first message,
+    // so empty conversations don't appear on the operator dashboard.
+    zephloCore.resumeSessionIfExists();
 
     // Subscribe to core events so this view stays in sync with state changes
     // from other views sharing the same core.
