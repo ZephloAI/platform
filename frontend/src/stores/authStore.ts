@@ -44,14 +44,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Register a new account.
-   * Automatically logs the user in after successful registration.
+   * If invitationToken is passed, the backend joins the inviting org
+   * atomically and skips onboarding — no personal org is created.
    */
-  register: async (email: string, password: string, firstName: string, lastName: string) => {
+  register: async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    invitationToken?: string,
+  ) => {
     const response = await apiClient.post('/api/auth/register', {
       email,
       password,
       first_name: firstName,
       last_name: lastName,
+      invitation_token: invitationToken,
     });
     const { token, id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin } = response.data;
     const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin };
@@ -67,10 +75,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Log in via OAuth provider (Google or Microsoft).
-   * Sends the provider's ID token to the backend for verification.
+   * If invitationToken is passed, brand-new users are joined to the inviting
+   * org atomically (and skip onboarding).
    */
-  oauthLogin: async (provider: string, idToken: string) => {
-    const response = await apiClient.post('/api/auth/oauth', { provider, id_token: idToken });
+  oauthLogin: async (provider: string, idToken: string, invitationToken?: string) => {
+    const response = await apiClient.post('/api/auth/oauth', {
+      provider,
+      id_token: idToken,
+      invitation_token: invitationToken,
+    });
     const { token, id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin } = response.data;
     const user: User = { id, email: userEmail, first_name, last_name, onboarding_completed, is_platform_admin };
 

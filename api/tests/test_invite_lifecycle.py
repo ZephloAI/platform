@@ -185,6 +185,7 @@ def service(monkeypatch):
             pass
 
         enforce_max_users = staticmethod(_allow_all_users)
+        enforce_seat_available_for_invite = staticmethod(_allow_all_users)
 
     monkeypatch.setattr(
         org_service_module, "UsageService", FakeUsageService

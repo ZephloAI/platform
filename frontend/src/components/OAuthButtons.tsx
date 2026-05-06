@@ -3,8 +3,6 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../config/msalConfig';
 import { useAuth } from '../hooks/useAuth';
-import { useAcceptInvitation } from '../hooks/useOrganization';
-import { useAuthStore } from '../stores/authStore';
 
 // ============================================================
 // OAuthButtons
@@ -19,7 +17,6 @@ interface OAuthButtonsProps {
 function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
   const { oauthLogin } = useAuth();
   const { instance } = useMsal();
-  const acceptInvitation = useAcceptInvitation();
   const [loading, setLoading] = useState<'google' | 'microsoft' | null>(null);
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const [googleBtnWidth, setGoogleBtnWidth] = useState(320);
@@ -36,24 +33,18 @@ function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
     return () => observer.disconnect();
   }, []);
 
-  const handleInvitation = async () => {
-    const pendingToken = sessionStorage.getItem('pendingInvitationToken');
-    if (pendingToken) {
-      sessionStorage.removeItem('pendingInvitationToken');
-      await acceptInvitation.mutateAsync(pendingToken);
-      useAuthStore.getState().updateUser({ onboarding_completed: true });
-    }
-  };
-
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     if (!credentialResponse.credential) {
       onError('Google login failed. No credential received.');
       return;
     }
     setLoading('google');
+    // Pass the pending invitation token so the backend can join the inviting
+    // org atomically for new sign-ups.
+    const pendingToken = sessionStorage.getItem('pendingInvitationToken') ?? undefined;
     try {
-      await oauthLogin('google', credentialResponse.credential);
-      await handleInvitation();
+      await oauthLogin('google', credentialResponse.credential, pendingToken);
+      if (pendingToken) sessionStorage.removeItem('pendingInvitationToken');
       onSuccess();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Google login failed.';

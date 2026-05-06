@@ -216,17 +216,18 @@ export class ChatbotWidget extends HTMLElement {
     }
 
     // Auto-open after agent-driven navigation. The previous page set this
-    // flag right before calling window.location.assign(url). FAB views open
-    // themselves; inline views are always visible so the flag is just cleared.
-    try {
-      const autoOpenKey = `cb_auto_open_${this.state.chatbotId}`;
-      if (storage.getItem(autoOpenKey)) {
-        storage.removeItem(autoOpenKey);
-        if (!this.isInline && !this.isOpen) {
-          this.toggle();
+    // flag right before calling window.location.assign(url). Only FAB views
+    // consume the flag — inline views are always visible, and if we let
+    // them clear it the FAB on the same page would never see it.
+    if (!this.isInline) {
+      try {
+        const autoOpenKey = `cb_auto_open_${this.state.chatbotId}`;
+        if (storage.getItem(autoOpenKey)) {
+          storage.removeItem(autoOpenKey);
+          if (!this.isOpen) this.toggle();
         }
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+    }
   }
 
   /** React to core state changes coming from other views or the server. */
@@ -257,11 +258,19 @@ export class ChatbotWidget extends HTMLElement {
         this.showWaitingStatus();
         break;
       case "navigate":
-        // If the agent sent a URL, the page is about to reload — the new
-        // page's widget handles auto-opening via the cb_auto_open flag.
-        // If no URL (legacy behavior), keep minimizing so the user can see
-        // whatever on-page action a host-registered tool performed.
-        if (!ev.url && this.isOpen) this.minimize();
+        if (ev.url) {
+          // Persist the auto-open flag so the new page's FAB re-opens after
+          // navigation, then take the visitor to the URL on the host page.
+          try {
+            storage.setItem(`cb_auto_open_${this.state.chatbotId}`, "1");
+          } catch { /* ignore */ }
+          window.location.assign(ev.url);
+        } else if (!this.isInline && this.isOpen) {
+          // No URL = legacy on-page action (host-registered tool). Step out
+          // of the way so the user can see the page change. Inline views
+          // skip this — they live in document flow and shouldn't collapse.
+          this.minimize();
+        }
         break;
       case "triggerOpen":
         // Manual trigger in "open" mode — expand the FAB panel if collapsed.

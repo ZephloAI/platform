@@ -27,13 +27,20 @@ class OAuthService:
         self.db = db
         self.user_repo = UserRepository(db)
 
-    async def authenticate(self, provider: str, id_token: str) -> dict:
+    async def authenticate(
+        self,
+        provider: str,
+        id_token: str,
+        invitation_token: str | None = None,
+    ) -> dict:
         """
         Main entry point for OAuth login.
 
         1. Verify the ID token with the provider
-        2. Find or create the user
-        3. Return user info + JWT token
+        2. Find or create the user (no default org — onboarding makes one)
+        3. If an invitation_token is present, accept it atomically so the
+           user lands directly in the inviting org
+        4. Return user info + JWT token
         """
         if provider == "google":
             token_data = self._verify_google_token(id_token)
@@ -45,7 +52,7 @@ class OAuthService:
                 detail=f"Unsupported OAuth provider: {provider}",
             )
 
-        user = await self._find_or_create_user(
+        user, was_created = await self._find_or_create_user(
             provider=provider,
             provider_user_id=token_data["sub"],
             email=token_data["email"],
@@ -53,10 +60,22 @@ class OAuthService:
             last_name=token_data["last_name"],
         )
 
-        # Get user's first organization
         org_service = OrganizationService(self.db)
-        orgs = await org_service.get_user_organizations(user.id)
-        org_id = orgs[0]["id"] if orgs else None
+        org_id: int | None = None
+
+        # Brand-new sign-up via invite: accept atomically so they skip
+        # onboarding and land in the inviting org.
+        if was_created and invitation_token:
+            invitation = await org_service.accept_invitation(
+                invitation_token, user.id
+            )
+            user.onboarding_completed = True
+            await self.db.commit()
+            await self.db.refresh(user)
+            org_id = invitation.organization_id
+        else:
+            orgs = await org_service.get_user_organizations(user.id)
+            org_id = orgs[0]["id"] if orgs else None
 
         token = self._create_token(user.id)
         return {
@@ -147,8 +166,14 @@ class OAuthService:
         email: str,
         first_name: str,
         last_name: str,
-    ) -> User:
-        """Find an existing user by email or create a new one, linking the OAuth provider."""
+    ) -> tuple[User, bool]:
+        """
+        Find an existing user by email or create a new one, linking the
+        OAuth provider. Returns ``(user, was_created)`` so the caller can
+        decide what to do for brand-new sign-ups (e.g. accept an invitation
+        atomically). New users are created without a default organization —
+        onboarding creates one when needed.
+        """
         email = email.lower()
 
         user = await self.user_repo.get_by_email(email)
@@ -173,7 +198,7 @@ class OAuthService:
                 self.db.add(oauth_link)
                 await self.db.commit()
 
-            return user
+            return user, False
 
         # Create a new user (no password for OAuth users)
         user = await self.user_repo.create(
@@ -181,13 +206,6 @@ class OAuthService:
             password_hash=None,
             first_name=first_name,
             last_name=last_name,
-        )
-
-        # Create default organization
-        org_service = OrganizationService(self.db)
-        await org_service.create_organization(
-            user_id=user.id,
-            name=f"{email}'s Organization",
         )
 
         # Link the OAuth provider
@@ -199,7 +217,7 @@ class OAuthService:
         self.db.add(oauth_link)
         await self.db.commit()
 
-        return user
+        return user, True
 
     def _create_token(self, user_id: int) -> str:
         """Create a JWT token with the user's ID as the subject."""

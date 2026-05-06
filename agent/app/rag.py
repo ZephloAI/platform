@@ -143,9 +143,15 @@ def format_context_for_llm(contexts: list[dict]) -> str:
     if not contexts:
         return "No relevant information found."
 
+    # Including the canonical URL on the header line gives the LLM a clean,
+    # copy-pasteable URL for navigate_to_page — without this it scrapes URLs
+    # out of markdown body text and ships malformed paths to the widget.
     formatted = ""
-    for i, ctx in enumerate(contexts, 1):
-        formatted += f"--- {ctx['title']} ---\n"
+    for ctx in contexts:
+        title = ctx.get("title", "")
+        url = ctx.get("url", "")
+        header = f"{title} ({url})" if url else title
+        formatted += f"--- {header} ---\n"
         formatted += f"{ctx['text']}\n\n"
 
     return formatted

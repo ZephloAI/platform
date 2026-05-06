@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import { useOrgStore } from '../stores/orgStore';
+import { useOrgUsage } from '../hooks/useOrganization';
 
 // ============================================================
 // OnboardingPage
@@ -51,11 +52,26 @@ function OnboardingPage() {
     { email: '', role: 'member' },
   ]);
 
-  const totalSteps = 3;
+  // If the org has a hard user cap and no remaining seats, drop the invite
+  // step entirely. seats_remaining is null when there's no cap (unlimited).
+  const usage = useOrgUsage(currentOrg?.id ?? 0);
+  const seatsRemaining = usage.data?.seats_remaining ?? null;
+  const skipInviteStep = seatsRemaining === 0;
+  const totalSteps = skipInviteStep ? 2 : 3;
+
+  // If usage loads after the user already advanced to step 3, snap back so
+  // they don't get stranded on a step that no longer exists.
+  useEffect(() => {
+    if (step > totalSteps) setStep(totalSteps);
+  }, [step, totalSteps]);
 
   const addTeamMember = () => {
+    if (seatsRemaining !== null && teamMembers.length >= seatsRemaining) return;
     setTeamMembers([...teamMembers, { email: '', role: 'member' }]);
   };
+
+  const canAddMoreMembers =
+    seatsRemaining === null || teamMembers.length < seatsRemaining;
 
   const removeTeamMember = (index: number) => {
     setTeamMembers(teamMembers.filter((_, i) => i !== index));
@@ -262,13 +278,23 @@ function OnboardingPage() {
                   )}
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={addTeamMember}
-                className="text-[13px] text-accent hover:text-accent-hover transition-colors font-semibold"
-              >
-                + Add another
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={addTeamMember}
+                  disabled={!canAddMoreMembers}
+                  className="text-[13px] text-accent hover:text-accent-hover transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  + Add another
+                </button>
+                {seatsRemaining !== null && (
+                  <span className="text-[12px] text-label-tertiary">
+                    {seatsRemaining === 1
+                      ? '1 seat remaining'
+                      : `${seatsRemaining} seats remaining`}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

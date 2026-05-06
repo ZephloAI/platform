@@ -171,6 +171,8 @@ function PhoneField({
         {/* Phone input */}
         <input
           type="tel"
+          name="phone"
+          zephlo-param-description="Local phone number digits (no country code)"
           value={phone}
           onChange={(e) => onPhoneChange(e.target.value)}
           placeholder="712 345 678"
@@ -184,6 +186,7 @@ function PhoneField({
 export default function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", company: "", countryCode: "+1", phone: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const countryCodeInputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -194,6 +197,23 @@ export default function ContactForm() {
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
+
+  // When the agent sets the hidden country_code input, sync it back to React state.
+  useEffect(() => {
+    const el = countryCodeInputRef.current;
+    if (!el) return;
+    const handler = () => {
+      const next = el.value.startsWith("+") ? el.value : `+${el.value}`;
+      const match = countryCodes.find((c) => c.code === next);
+      if (match) update("countryCode", match.code);
+    };
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+    return () => {
+      el.removeEventListener("input", handler);
+      el.removeEventListener("change", handler);
+    };
+  }, []);
 
   return (
     <section id="contact" className="relative py-24 sm:py-40 px-6">
@@ -266,31 +286,42 @@ export default function ContactForm() {
                 </p>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-5"
+                zephlo-tool-name="contact_zephlo_team"
+                zephlo-tool-description="Submit a contact request to the Zephlo team to build a custom AI agent. Collects the prospect's name, work email, company, phone number, and a description of their use case."
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <Field
                     label="Name"
+                    name="name"
                     type="text"
                     placeholder="Jane Smith"
                     value={form.name}
                     onChange={(v) => update("name", v)}
+                    paramDescription="Full name of the person reaching out"
                     required
                   />
                   <Field
                     label="Work email"
+                    name="email"
                     type="email"
                     placeholder="jane@company.com"
                     value={form.email}
                     onChange={(v) => update("email", v)}
+                    paramDescription="Work email address for follow-up"
                     required
                   />
                 </div>
                 <Field
                   label="Company"
+                  name="company"
                   type="text"
                   placeholder="Company name"
                   value={form.company}
                   onChange={(v) => update("company", v)}
+                  paramDescription="Name of the company or organization"
                   required
                 />
                 <PhoneField
@@ -299,6 +330,14 @@ export default function ContactForm() {
                   onCountryChange={(code) => update("countryCode", code)}
                   onPhoneChange={(phone) => update("phone", phone)}
                 />
+                {/* Hidden mirror of the country dropdown so the agent can set it via the form scanner */}
+                <input
+                  ref={countryCodeInputRef}
+                  type="hidden"
+                  name="country_code"
+                  value={form.countryCode}
+                  zephlo-param-description="International dialing code with leading + (e.g. +1, +44, +254)"
+                />
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[12px] font-medium text-[var(--foreground)]">
                     Tell us about your use case
@@ -306,6 +345,8 @@ export default function ContactForm() {
                   <textarea
                     required
                     rows={4}
+                    name="message"
+                    zephlo-param-description="Describe the workflows to automate and the tools the users need"
                     value={form.message}
                     onChange={(e) => update("message", e.target.value)}
                     placeholder="What workflows would you like to automate? What tools do your users need?"
@@ -335,18 +376,22 @@ export default function ContactForm() {
 
 function Field({
   label,
+  name,
   type,
   placeholder,
   value,
   onChange,
   required,
+  paramDescription,
 }: {
   label: string;
+  name: string;
   type: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  paramDescription?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -355,6 +400,8 @@ function Field({
       </label>
       <input
         type={type}
+        name={name}
+        zephlo-param-description={paramDescription}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}

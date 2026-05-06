@@ -42,7 +42,11 @@ sudo kubectl create secret generic app-secrets \
     --from-literal=OPENROUTER_MODEL="${OPENROUTER_MODEL:-google/gemini-3-flash-preview}" \
     --from-literal=ELEVEN_LABS_API_KEY="${ELEVEN_LABS_API_KEY:-}" \
     --from-literal=ELEVEN_LABS_VOICE_ID="${ELEVEN_LABS_VOICE_ID:-}" \
-    --from-literal=ELEVEN_LABS_MODEL_ID="${ELEVEN_LABS_MODEL_ID:-eleven_multilingual_v2}"
+    --from-literal=ELEVEN_LABS_MODEL_ID="${ELEVEN_LABS_MODEL_ID:-eleven_multilingual_v2}"\
+    --from-literal=RESEND_API_KEY="${RESEND_API_KEY:-}"\
+    --from-literal=RESEND_FROM_EMAIL='Zephlo <invites@zephlo.ai>' \
+    --from-literal=RESEND_INVITE_TEMPLATE_ID='invite'
+
 
 # AWS credentials
 sudo kubectl create secret generic aws-credentials \

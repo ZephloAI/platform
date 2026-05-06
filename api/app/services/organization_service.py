@@ -147,6 +147,12 @@ class OrganizationService:
 
         normalized_email = email.strip().lower()
 
+        # Block invite creation when no seat is available. Pending invites
+        # reserve seats — without this, an admin could send many invites and
+        # the failure would only surface to the invitee at acceptance time.
+        usage_service = UsageService(self.db)
+        await usage_service.enforce_seat_available_for_invite(org_id)
+
         token = secrets.token_urlsafe(32)
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=settings.INVITE_EXPIRY_DAYS)
@@ -393,6 +399,7 @@ class OrganizationService:
 
         accept_url = self._build_accept_url(invitation.token)
         subject = f"You've been invited to {organization_name}"
+        expires_at_human = invitation.expires_at.strftime("%B %d, %Y")
         try:
             if settings.RESEND_INVITE_TEMPLATE_ID:
                 response = await self.resend.send_email(
@@ -401,10 +408,11 @@ class OrganizationService:
                     template_id=settings.RESEND_INVITE_TEMPLATE_ID,
                     template_data={
                         "organization_name": organization_name,
-                        "inviter_email": inviter_email,
-                        "accept_url": accept_url,
+                        "invited_by": inviter_email,
+                        "invite_url": accept_url,
                         "role": invitation.role,
                         "invited_email": invitation.email,
+                        "expires_at": expires_at_human,
                     },
                 )
             else:

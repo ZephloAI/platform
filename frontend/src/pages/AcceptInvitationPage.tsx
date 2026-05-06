@@ -51,7 +51,20 @@ function AcceptInvitationPage() {
     }
     if (previewError) {
       setStatus('error');
-      setErrorMessage('This invitation could not be found. It may have been cancelled.');
+      const err = previewError as any;
+      const detail = err?.response?.data?.detail;
+      const httpStatus = err?.response?.status;
+      if (httpStatus === 404) {
+        setErrorMessage('This invitation could not be found. It may have been cancelled.');
+      } else if (detail) {
+        setErrorMessage(detail);
+      } else {
+        setErrorMessage(
+          httpStatus
+            ? `Could not load invitation (HTTP ${httpStatus}).`
+            : 'Could not reach the server. Check your connection and try again.',
+        );
+      }
       return;
     }
     if (preview?.is_expired || preview?.status === 'expired') {
@@ -79,9 +92,14 @@ function AcceptInvitationPage() {
       },
       onError: (err: any) => {
         setStatus('error');
-        setErrorMessage(
-          err?.response?.data?.detail || 'Failed to accept invitation.',
-        );
+        const detail = err?.response?.data?.detail;
+        // Usage-limit errors return a structured {code, message, limit};
+        // everything else is a string.
+        const message =
+          typeof detail === 'string'
+            ? detail
+            : detail?.message || 'Failed to accept invitation.';
+        setErrorMessage(message);
       },
     });
   };

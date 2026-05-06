@@ -36,10 +36,18 @@ async function handleMsalRedirect() {
   const response = await msalInstance.handleRedirectPromise();
   if (response?.idToken) {
     try {
+      // If the user came from an invite link, that token survives the
+      // Microsoft redirect via sessionStorage. Send it so the backend can
+      // join them to the inviting org atomically.
+      const invitationToken =
+        sessionStorage.getItem('pendingInvitationToken') ?? undefined;
       const res = await apiClient.post('/api/auth/oauth', {
         provider: 'microsoft',
         id_token: response.idToken,
+        invitation_token: invitationToken,
       });
+      if (invitationToken) sessionStorage.removeItem('pendingInvitationToken');
+
       const { token, id, email, first_name, last_name, onboarding_completed } = res.data;
       const user = { id, email, first_name, last_name, onboarding_completed };
 

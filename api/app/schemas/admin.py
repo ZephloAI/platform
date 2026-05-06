@@ -14,11 +14,14 @@ class UsageSnapshotResponse(BaseModel):
     plan: str
     is_suspended: bool
     users_count: int
+    pending_invites_count: int
     agents_count: int
     tokens_used_in_period: int
     max_users: int | None = None
     max_agents: int | None = None
     max_tokens_per_period: int | None = None
+    # None when max_users is None (unlimited).
+    seats_remaining: int | None = None
     token_period: str
     token_period_start: datetime | None = None
 

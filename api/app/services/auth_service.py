@@ -29,20 +29,24 @@ class AuthService:
     # -- Public methods --
 
     async def register(
-        self, email: str, password: str, first_name: str, last_name: str
+        self,
+        email: str,
+        password: str,
+        first_name: str,
+        last_name: str,
+        invitation_token: str | None = None,
     ) -> dict:
         """
         Register a new user.
 
-        1. Check if the email is already taken
-        2. Hash the password
-        3. Create the user record
-        4. Generate a JWT token
-        5. Return user info + token
+        Behaviour:
+        - With an invitation_token: the user joins the inviting org and skips
+          onboarding. No personal org is created.
+        - Without one: the user is created with no org. They land on
+          onboarding to create one (or they can be invited later).
 
         Raises 400 if email is already registered.
         """
-        # Check for existing user
         existing = await self.user_repo.get_by_email(email)
         if existing:
             raise HTTPException(
@@ -50,7 +54,6 @@ class AuthService:
                 detail="Email already registered",
             )
 
-        # Hash password and create user
         password_hash = pwd_context.hash(password)
         user = await self.user_repo.create(
             email=email,
@@ -59,14 +62,8 @@ class AuthService:
             last_name=last_name,
         )
 
-        # Auto-create a default organization for the new user
-        org_service = OrganizationService(self.db)
-        org = await org_service.create_organization(
-            user_id=user.id,
-            name=f"{email}'s Organization",
-        )
+        organization_id = await self._maybe_accept_invitation(user, invitation_token)
 
-        # Generate token and return response
         token = self._create_token(user.id)
         return {
             "id": user.id,
@@ -76,8 +73,33 @@ class AuthService:
             "onboarding_completed": user.onboarding_completed,
             "is_platform_admin": user.is_platform_admin,
             "token": token,
-            "organization_id": org.id,
+            "organization_id": organization_id,
         }
+
+    async def _maybe_accept_invitation(
+        self, user: User, invitation_token: str | None
+    ) -> int | None:
+        """
+        Accept the invitation atomically as part of sign-up if a token was
+        passed. Returns the inviting org id (or None when no token was given).
+
+        We surface invitation errors (expired, already-accepted, seat limit)
+        as the same 4xx responses accept_invitation already raises — the
+        caller's transaction is rolled back, so we won't leave a user
+        without an org membership in that case.
+        """
+        if not invitation_token:
+            return None
+
+        org_service = OrganizationService(self.db)
+        invitation = await org_service.accept_invitation(
+            invitation_token, user.id
+        )
+        # Joining via invite means there's nothing left to onboard.
+        user.onboarding_completed = True
+        await self.db.commit()
+        await self.db.refresh(user)
+        return invitation.organization_id
 
     async def login(self, email: str, password: str) -> dict:
         """

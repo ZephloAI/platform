@@ -48,11 +48,14 @@ export interface UsageSnapshot {
   plan: string;
   is_suspended: boolean;
   users_count: number;
+  pending_invites_count: number;
   agents_count: number;
   tokens_used_in_period: number;
   max_users: number | null;
   max_agents: number | null;
   max_tokens_per_period: number | null;
+  /** null when max_users is null (unlimited). */
+  seats_remaining: number | null;
   token_period: string;
   token_period_start: string | null;
 }
@@ -99,8 +102,14 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
-  oauthLogin: (provider: string, idToken: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    invitationToken?: string,
+  ) => Promise<void>;
+  oauthLogin: (provider: string, idToken: string, invitationToken?: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }

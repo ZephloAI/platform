@@ -61,7 +61,11 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     """
     auth_service = AuthService(db)
     return await auth_service.register(
-        body.email, body.password, body.first_name, body.last_name
+        body.email,
+        body.password,
+        body.first_name,
+        body.last_name,
+        invitation_token=body.invitation_token,
     )
 
 
@@ -89,7 +93,9 @@ async def oauth_login(body: OAuthRequest, db: AsyncSession = Depends(get_db)):
     - Returns user info + JWT token
     """
     oauth_service = OAuthService(db)
-    return await oauth_service.authenticate(body.provider, body.id_token)
+    return await oauth_service.authenticate(
+        body.provider, body.id_token, invitation_token=body.invitation_token
+    )
 
 
 @router.post("/forgot-password", response_model=GenericMessageResponse)

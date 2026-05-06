@@ -163,6 +163,10 @@ services:
     build:
       context: .
       dockerfile: landing/Dockerfile
+      args:
+        NEXT_PUBLIC_ZEPHLO_API_KEY: flk_3493a85b9bbe1651bd6750e5aeb46f68
+        NEXT_PUBLIC_ZEPHLO_CHATBOT_ID: de9451c2-dc58-4af7-8ddf-be696eead2ba
+        NEXT_PUBLIC_ZEPHLO_API_URL: http://localhost
     ports:
       - "3000:3000"
     restart: unless-stopped

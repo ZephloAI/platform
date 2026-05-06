@@ -11,6 +11,10 @@ class OAuthRequest(BaseModel):
     """Schema for OAuth login — provider name and ID token."""
     provider: str
     id_token: str
+    # If present, accept this invitation atomically as part of the OAuth
+    # sign-up. Lets invited users land directly in the inviting org instead
+    # of needing to create a personal one first.
+    invitation_token: str | None = None
 
 
 class UserCreate(BaseModel):
@@ -19,6 +23,9 @@ class UserCreate(BaseModel):
     password: str
     first_name: str
     last_name: str
+    # Same purpose as OAuthRequest.invitation_token — when present, the new
+    # user joins the inviting org instead of getting a personal org.
+    invitation_token: str | None = None
 
 
 class LoginRequest(BaseModel):

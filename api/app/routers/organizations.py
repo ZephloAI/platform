@@ -4,6 +4,7 @@ Organizations router - CRUD endpoints for organization management.
 All endpoints require authentication (get_current_user dependency).
 """
 
+import logging
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,6 +33,8 @@ from app.schemas.organization import (
 )
 from app.services.organization_service import OrganizationService
 from app.services.usage_service import UsageService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
@@ -215,11 +218,13 @@ async def get_org_usage(
         plan=snapshot.plan,
         is_suspended=snapshot.is_suspended,
         users_count=snapshot.users_count,
+        pending_invites_count=snapshot.pending_invites_count,
         agents_count=snapshot.agents_count,
         tokens_used_in_period=snapshot.tokens_used_in_period,
         max_users=snapshot.max_users,
         max_agents=snapshot.max_agents,
         max_tokens_per_period=snapshot.max_tokens_per_period,
+        seats_remaining=snapshot.seats_remaining,
         token_period=snapshot.token_period,
         token_period_start=snapshot.token_period_start,
     )
@@ -337,8 +342,19 @@ async def preview_invitation(
     signs in. Does not reveal anything an attacker couldn't obtain by already
     guessing the 32-byte token.
     """
+    # Log enough to diagnose lookup mismatches without leaking the full token.
+    token_preview = (token[:8] + "…") if token else "<empty>"
+    logger.info(f"invitation preview lookup: token_len={len(token)} prefix={token_preview}")
     service = OrganizationService(db)
-    return await service.get_invitation_preview(token)
+    try:
+        result = await service.get_invitation_preview(token)
+    except HTTPException as exc:
+        logger.warning(
+            f"invitation preview {exc.status_code}: {exc.detail} "
+            f"(token_len={len(token)} prefix={token_preview})"
+        )
+        raise
+    return result
 
 
 @accept_router.post("/api/invitations/accept")

@@ -79,6 +79,21 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: MICROSOFT_CLIENT_ID
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: RESEND_API_KEY
+            - name: RESEND_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: RESEND_FROM_EMAIL
+            - name: RESEND_INVITE_TEMPLATE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: RESEND_INVITE_TEMPLATE_ID
           livenessProbe:
             httpGet:
               path: /health

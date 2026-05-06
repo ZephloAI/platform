@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useAcceptInvitation } from '../hooks/useOrganization';
-import { useAuthStore } from '../stores/authStore';
 import OAuthButtons from '../components/OAuthButtons';
 
 // ============================================================
@@ -10,6 +8,19 @@ import OAuthButtons from '../components/OAuthButtons';
 // Warm Editorial registration with card surface, ambient warm
 // gradients, and premium editorial typography.
 // ============================================================
+
+// Pulls a user-friendly message out of an axios/HTTP error.
+// FastAPI returns either {detail: "..."} or, for usage limits, a structured
+// {detail: {code, message, limit}}. We surface `message` when present so the
+// user sees "This organization has reached its user limit" instead of a
+// generic 402.
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as any)?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (detail && typeof detail.message === 'string') return detail.message;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
 
 function RegisterPage() {
   const [firstName, setFirstName] = useState('');
@@ -21,7 +32,6 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-  const acceptInvitation = useAcceptInvitation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,26 +49,24 @@ function RegisterPage() {
 
     setLoading(true);
 
+    // The invite (if any) is consumed atomically inside /api/auth/register.
+    // The backend joins the user to the inviting org and marks onboarding
+    // complete in the same transaction, so there's no second call here.
+    const pendingToken = sessionStorage.getItem('pendingInvitationToken') ?? undefined;
+
     try {
-      await register(email, password, firstName, lastName);
-
-      // Check for a pending invitation token stored before registration
-      const pendingToken = sessionStorage.getItem('pendingInvitationToken');
-      if (pendingToken) {
-        sessionStorage.removeItem('pendingInvitationToken');
-        await acceptInvitation.mutateAsync(pendingToken);
-        // Invited users skip onboarding
-        useAuthStore.getState().updateUser({ onboarding_completed: true });
-      }
-
-      navigate('/dashboard');
+      await register(email, password, firstName, lastName, pendingToken);
+      if (pendingToken) sessionStorage.removeItem('pendingInvitationToken');
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setError(message);
-    } finally {
+      setError(extractErrorMessage(err, 'Registration failed. Please try again.'));
       setLoading(false);
+      return;
     }
+
+    // Where to land is decided by ProtectedRoute: users without onboarding
+    // completed (i.e. no org yet) get redirected to /onboarding; invited
+    // users go straight to /dashboard.
+    navigate('/dashboard');
   };
 
   return (

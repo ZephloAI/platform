@@ -16,6 +16,7 @@ How the chat flow works:
 """
 import logging
 import re
+from urllib.parse import urlparse
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
@@ -193,6 +194,27 @@ class FollowUpTools(Toolkit):
         return f"Follow-ups set: {', '.join(names)}"
 
 
+def _sanitize_navigate_url(url: str) -> str | None:
+    """
+    Strip stray markup the LLM may have copied out of indexed markdown
+    (angle brackets, closing tags, surrounding parens/quotes) and confirm
+    the result parses as an http(s) URL with a host. Returns the cleaned
+    URL, or None if it can't be salvaged.
+    """
+    cleaned = url.strip().strip("<>\"'() ")
+    # Collapse "/<" and "/</" (stray angle-bracket residue from markdown/HTML)
+    # into a single "/", so "host:3000/</path" and "host:3000/<path" both
+    # become "host:3000/path".
+    cleaned = re.sub(r"/<+/?", "/", cleaned)
+    # Drop any trailing angle-bracket / quote noise.
+    cleaned = cleaned.rstrip("<>\"' ")
+
+    parsed = urlparse(cleaned)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return None
+    return cleaned
+
+
 class NavigationTools(Toolkit):
     """
     Toolkit that lets the agent navigate the visitor to a page on the website.
@@ -228,13 +250,19 @@ class NavigationTools(Toolkit):
         """
         if not url or not url.strip():
             return "Error: url is required"
+
+        cleaned = _sanitize_navigate_url(url)
+        if not cleaned:
+            logger.warning(f"navigate_to_page rejected malformed url: {url!r}")
+            return f"Error: '{url}' is not a valid URL"
+
         try:
             await self.dispatcher.send_json({
                 "message_type": "navigate",
-                "url": url.strip(),
+                "url": cleaned,
             })
-            logger.info(f"navigate_to_page: url={url} reason={reason}")
-            return f"Navigating visitor to {url}"
+            logger.info(f"navigate_to_page: url={cleaned} reason={reason}")
+            return f"Navigating visitor to {cleaned}"
         except Exception as e:
             logger.warning(f"navigate_to_page failed: {e}")
             return "Error: could not navigate"

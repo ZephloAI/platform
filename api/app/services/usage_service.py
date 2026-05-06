@@ -23,6 +23,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chatbot import Chatbot
+from app.models.invitation import Invitation
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 
@@ -40,6 +41,7 @@ class UsageSnapshot:
     plan: str
     is_suspended: bool
     users_count: int
+    pending_invites_count: int
     agents_count: int
     tokens_used_in_period: int
     max_users: int | None
@@ -47,6 +49,14 @@ class UsageSnapshot:
     max_tokens_per_period: int | None
     token_period: str
     token_period_start: datetime | None
+
+    @property
+    def seats_remaining(self) -> int | None:
+        """How many more members can join. None means unlimited."""
+        if self.max_users is None:
+            return None
+        used = self.users_count + self.pending_invites_count
+        return max(self.max_users - used, 0)
 
 
 def _limit_error(code: str, message: str, limit: int | None) -> HTTPException:
@@ -89,6 +99,16 @@ class UsageService:
         )
         return int(result.scalar() or 0)
 
+    async def _pending_invites_count(self, org_id: int) -> int:
+        """Pending invitations reserve a seat each — they may turn into members."""
+        result = await self.db.execute(
+            select(func.count(Invitation.id)).where(
+                Invitation.organization_id == org_id,
+                Invitation.status == "pending",
+            )
+        )
+        return int(result.scalar() or 0)
+
     async def _agents_count(self, org_id: int) -> int:
         result = await self.db.execute(
             select(func.count(Chatbot.id)).where(Chatbot.organization_id == org_id)
@@ -117,12 +137,14 @@ class UsageService:
         """Return the current usage + limits for an organization."""
         org = await self._rollover_if_needed(await self._get_org(org_id))
         users = await self._users_count(org_id)
+        pending_invites = await self._pending_invites_count(org_id)
         agents = await self._agents_count(org_id)
         return UsageSnapshot(
             organization_id=org.id,
             plan=org.plan,
             is_suspended=org.is_suspended,
             users_count=users,
+            pending_invites_count=pending_invites,
             agents_count=agents,
             tokens_used_in_period=org.tokens_used_in_period or 0,
             max_users=org.max_users,
@@ -152,6 +174,23 @@ class UsageService:
             raise _limit_error(
                 ERR_MAX_USERS,
                 f"This organization has reached its user limit ({org.max_users}).",
+                org.max_users,
+            )
+
+    async def enforce_seat_available_for_invite(self, org_id: int) -> None:
+        """
+        Call BEFORE creating a new invitation. Each pending invite reserves a
+        seat so an admin can't oversell capacity by sending many invites.
+        """
+        org = await self.assert_not_suspended(org_id)
+        if org.max_users is None:
+            return
+        members = await self._users_count(org_id)
+        pending = await self._pending_invites_count(org_id)
+        if members + pending >= org.max_users:
+            raise _limit_error(
+                ERR_MAX_USERS,
+                f"No seats available — this organization has reached its user limit ({org.max_users}).",
                 org.max_users,
             )
 

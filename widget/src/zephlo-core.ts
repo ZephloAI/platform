@@ -53,7 +53,7 @@ export type CoreEvent =
   | { type: "waiting" } // "Message sent" indicator
   | { type: "personModeChanged" }
   | { type: "adminMessage"; content: string }
-  | { type: "navigate" }
+  | { type: "navigate"; url?: string }
   | { type: "mcpResults"; results: McpToolResult[] }
   | { type: "themeChanged"; colors: ResolvedColors }
   | { type: "error"; message: string };
@@ -98,6 +98,13 @@ class ZephloCoreClass {
 
   // Retry guard
   private sessionRetried = false;
+
+  // Navigate messages arrive mid-`arun()` — before the assistant response.
+  // Buffer the URL until sendMessage()'s finally block flushes it, so the
+  // new page loads with the full chat history saved to localStorage.
+  // Triggers/switchToPerson don't set isLoading, so they pass through.
+  private pendingNavigateUrl: string | null = null;
+  private pendingNavigateTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Subscribers
   private subscribers: Set<Subscriber> = new Set();
@@ -292,8 +299,15 @@ class ZephloCoreClass {
       this.emit({ type: "waiting" });
     });
 
-    this.chatSocket.onNavigate(() => {
-      this.emit({ type: "navigate" });
+    this.chatSocket.onNavigate((url) => {
+      if (url && this.isLoading) {
+        this.pendingNavigateUrl = url;
+        // Safety net: flush even if isLoading stays stuck (lost response, bug).
+        if (this.pendingNavigateTimer) clearTimeout(this.pendingNavigateTimer);
+        this.pendingNavigateTimer = setTimeout(() => this.flushPendingNavigate(), 5000);
+        return;
+      }
+      this.emit({ type: "navigate", url });
     });
 
     this.chatSocket.onMcpResult((results) => {
@@ -367,7 +381,19 @@ class ZephloCoreClass {
     } finally {
       this.isLoading = false;
       this.emit({ type: "loading", loading: false });
+      this.flushPendingNavigate();
     }
+  }
+
+  private flushPendingNavigate(): void {
+    if (this.pendingNavigateTimer) {
+      clearTimeout(this.pendingNavigateTimer);
+      this.pendingNavigateTimer = null;
+    }
+    const url = this.pendingNavigateUrl;
+    if (!url) return;
+    this.pendingNavigateUrl = null;
+    this.emit({ type: "navigate", url });
   }
 
   /** Add a user message that was already sent (e.g. from quick-prompt clicks). */
@@ -382,6 +408,11 @@ class ZephloCoreClass {
     this.sessionId = null;
     this.messages = [];
     this.personMode = false;
+    this.pendingNavigateUrl = null;
+    if (this.pendingNavigateTimer) {
+      clearTimeout(this.pendingNavigateTimer);
+      this.pendingNavigateTimer = null;
+    }
     storage.removeItem(`cb_session_${this.chatbotId}`);
     storage.removeItem(`cb_messages_${this.chatbotId}`);
 
@@ -490,6 +521,11 @@ class ZephloCoreClass {
     this.sessionId = null;
     this.widgetConfig = null;
     this.configLoaded = false;
+    this.pendingNavigateUrl = null;
+    if (this.pendingNavigateTimer) {
+      clearTimeout(this.pendingNavigateTimer);
+      this.pendingNavigateTimer = null;
+    }
     this.detachThemeListeners();
     toolRegistry.clear();
   }
