@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.http_client import get_client
 from app.models.chat_session import ChatSession
 from app.models.message import Message
 from app.models.user import User
@@ -222,12 +223,13 @@ async def send_admin_message(
 
     # Push admin message to visitor's widget via agent service
     try:
-        async with httpx.AsyncClient(timeout=5.0) as http_client:
-            push_resp = await http_client.post(
-                f"{settings.AGENT_SERVICE_URL}/api/internal/push",
-                json={"session_id": session_id, "content": body.content},
-            )
-            logger.info(f"Push to agent: status={push_resp.status_code}, body={push_resp.text}")
+        http_client = get_client()
+        push_resp = await http_client.post(
+            f"{settings.AGENT_SERVICE_URL}/api/internal/push",
+            json={"session_id": session_id, "content": body.content},
+            timeout=5.0,
+        )
+        logger.info(f"Push to agent: status={push_resp.status_code}, body={push_resp.text}")
     except Exception as e:
         logger.warning(f"Failed to push admin message to agent: {e}")
 

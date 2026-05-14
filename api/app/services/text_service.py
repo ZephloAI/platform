@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.http_client import get_client
 from app.repositories.agent_text_repository import AgentTextRepository
 from app.repositories.chatbot_repository import ChatbotRepository
 
@@ -48,19 +49,19 @@ class TextService:
 
         callback_url = f"{settings.API_CALLBACK_URL}/api/internal/agent-texts/{text_record.id}"
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/process-text",
-                    json={
-                        "chatbot_id": chatbot_id,
-                        "chatbot_name": chatbot.name,
-                        "text_id": text_record.id,
-                        "title": title,
-                        "content": content,
-                        "callback_url": callback_url,
-                    },
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/process-text",
+                json={
+                    "chatbot_id": chatbot_id,
+                    "chatbot_name": chatbot.name,
+                    "text_id": text_record.id,
+                    "title": title,
+                    "content": content,
+                    "callback_url": callback_url,
+                },
+                timeout=10.0,
+            )
         except httpx.RequestError:
             pass  # Stays "pending" — crawler may pick it up later
 
@@ -104,19 +105,19 @@ class TextService:
 
         callback_url = f"{settings.API_CALLBACK_URL}/api/internal/agent-texts/{text_id}"
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/process-text",
-                    json={
-                        "chatbot_id": chatbot_id,
-                        "chatbot_name": chatbot.name,
-                        "text_id": text_id,
-                        "title": title,
-                        "content": content,
-                        "callback_url": callback_url,
-                    },
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/process-text",
+                json={
+                    "chatbot_id": chatbot_id,
+                    "chatbot_name": chatbot.name,
+                    "text_id": text_id,
+                    "title": title,
+                    "content": content,
+                    "callback_url": callback_url,
+                },
+                timeout=10.0,
+            )
         except httpx.RequestError:
             pass
 

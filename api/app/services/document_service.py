@@ -7,6 +7,7 @@ from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.http_client import get_client
 from app.repositories.chatbot_repository import ChatbotRepository
 from app.repositories.document_repository import DocumentRepository
 from app.services.s3_storage import upload_document
@@ -61,18 +62,18 @@ class DocumentService:
         # Call crawler service to process the document
         callback_url = f"{settings.API_CALLBACK_URL}/api/internal/documents/{document.id}"
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/process-document",
-                    json={
-                        "chatbot_id": chatbot_id,
-                        "chatbot_name": chatbot.name,
-                        "document_id": document.id,
-                        "pdf_url": s3_url,
-                        "callback_url": callback_url,
-                    },
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/process-document",
+                json={
+                    "chatbot_id": chatbot_id,
+                    "chatbot_name": chatbot.name,
+                    "document_id": document.id,
+                    "pdf_url": s3_url,
+                    "callback_url": callback_url,
+                },
+                timeout=10.0,
+            )
         except httpx.RequestError:
             pass  # Document stays "pending", crawler may pick it up later
 
@@ -127,18 +128,18 @@ class DocumentService:
 
         callback_url = f"{settings.API_CALLBACK_URL}/api/internal/documents/{document_id}"
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/process-document",
-                    json={
-                        "chatbot_id": chatbot_id,
-                        "chatbot_name": chatbot.name,
-                        "document_id": document_id,
-                        "pdf_url": new_s3_url,
-                        "callback_url": callback_url,
-                    },
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/process-document",
+                json={
+                    "chatbot_id": chatbot_id,
+                    "chatbot_name": chatbot.name,
+                    "document_id": document_id,
+                    "pdf_url": new_s3_url,
+                    "callback_url": callback_url,
+                },
+                timeout=10.0,
+            )
         except httpx.RequestError:
             pass
 

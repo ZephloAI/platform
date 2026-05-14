@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
+from app.http_client import get_client
 from app.models.message import Message
 from app.services.auth_service import AuthService
 
@@ -105,15 +106,16 @@ async def admin_chat_ws(websocket: WebSocket, session_id: str, token: str):
 
                 # Push to visitor's widget via agent service
                 try:
-                    async with httpx.AsyncClient(timeout=5.0) as http_client:
-                        push_resp = await http_client.post(
-                            f"{settings.AGENT_SERVICE_URL}/api/internal/push",
-                            json={"session_id": session_id, "content": content},
-                        )
-                        import logging
-                        logging.getLogger(__name__).info(
-                            f"WS admin push: status={push_resp.status_code}, body={push_resp.text}"
-                        )
+                    http_client = get_client()
+                    push_resp = await http_client.post(
+                        f"{settings.AGENT_SERVICE_URL}/api/internal/push",
+                        json={"session_id": session_id, "content": content},
+                        timeout=5.0,
+                    )
+                    import logging
+                    logging.getLogger(__name__).info(
+                        f"WS admin push: status={push_resp.status_code}, body={push_resp.text}"
+                    )
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).warning(f"WS admin push failed: {e}")

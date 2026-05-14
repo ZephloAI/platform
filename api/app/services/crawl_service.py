@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.http_client import get_client
 from app.models.crawl_job import CrawlJob
 from app.repositories.chatbot_repository import ChatbotRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
@@ -46,17 +47,17 @@ class CrawlService:
 
         # Call the crawler service's discover endpoint
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/discover",
-                    json={
-                        "website_url": website_url,
-                        "max_pages": 50,
-                    },
-                    timeout=300.0,
-                )
-                response.raise_for_status()
-                return response.json()
+            client = get_client()
+            response = await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/discover",
+                json={
+                    "website_url": website_url,
+                    "max_pages": 50,
+                },
+                timeout=300.0,
+            )
+            response.raise_for_status()
+            return response.json()
         except httpx.RequestError:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -112,12 +113,12 @@ class CrawlService:
 
         # Call the crawler service asynchronously (fire-and-forget style)
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/crawl",
-                    json=crawler_payload,
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/crawl",
+                json=crawler_payload,
+                timeout=10.0,
+            )
         except httpx.RequestError:
             # Crawler service is unreachable - job stays "pending"
             pass
@@ -202,12 +203,12 @@ class CrawlService:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{settings.CRAWLER_SERVICE_URL}/crawl",
-                    json=crawler_payload,
-                    timeout=10.0,
-                )
+            client = get_client()
+            await client.post(
+                f"{settings.CRAWLER_SERVICE_URL}/crawl",
+                json=crawler_payload,
+                timeout=10.0,
+            )
         except httpx.RequestError:
             pass
 

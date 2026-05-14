@@ -10,15 +10,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import http_client
 from app.routers import admin, auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin, documents, texts
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await http_client.startup()
     start_scheduler()
     yield
     stop_scheduler()
+    await http_client.shutdown()
 
 
 # Create the FastAPI application

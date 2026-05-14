@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.http_client import get_client
 from app.models.oauth_provider import UserOAuthProvider
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -114,10 +115,10 @@ class OAuthService:
         """Verify a Microsoft OAuth ID token and extract user info."""
         jwks_url = f"https://login.microsoftonline.com/{settings.MICROSOFT_TENANT_ID}/discovery/v2.0/keys"
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(jwks_url)
-            resp.raise_for_status()
-            jwks = resp.json()
+        client = get_client()
+        resp = await client.get(jwks_url)
+        resp.raise_for_status()
+        jwks = resp.json()
 
         try:
             # Decode header to find the matching key
