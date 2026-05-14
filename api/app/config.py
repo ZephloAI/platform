@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Database connection string (async driver: asyncpg)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/chatbot_saas"
 
+    # Redis (used for caching hot public endpoints)
+    REDIS_URL: str = "redis://redis:6379/0"
+
     # JWT authentication settings
     JWT_SECRET: str = "your-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"

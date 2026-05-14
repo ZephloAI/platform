@@ -12,12 +12,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import admin, auth, chatbots, crawl_jobs, public_chat, session, api_keys, organizations, onboarding, conversations, internal, ws_admin, documents, texts
 from app.services.scheduler import start_scheduler, stop_scheduler
+from app import redis_client
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     start_scheduler()
+    await redis_client.startup()
     yield
+    await redis_client.shutdown()
     stop_scheduler()
 
 
