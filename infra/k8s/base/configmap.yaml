@@ -19,6 +19,9 @@ data:
   QDRANT_HOST: "qdrant"
   QDRANT_PORT: "6333"
 
+  # Redis (cache)
+  REDIS_URL: "redis://redis:6379/0"
+
   # OpenRouter
   OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1"
 
