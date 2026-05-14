@@ -64,13 +64,17 @@ async def list_conversations(
     """
     chatbot = await _resolve_chatbot(db, agent_id)
 
-    # Subquery: last message content and timestamp per session
+    # Subquery: last message (content + timestamp) per session using
+    # PostgreSQL DISTINCT ON. This picks the newest row per session_id in
+    # a single pass over `messages`, avoiding a per-session follow-up query.
     last_msg_sub = (
         select(
-            Message.session_id,
-            func.max(Message.created_at).label("last_message_at"),
+            Message.session_id.label("session_id"),
+            Message.content.label("last_message"),
+            Message.created_at.label("last_message_at"),
         )
-        .group_by(Message.session_id)
+        .order_by(Message.session_id, desc(Message.created_at))
+        .distinct(Message.session_id)
         .subquery()
     )
 
@@ -84,10 +88,12 @@ async def list_conversations(
         .subquery()
     )
 
-    # Main query
+    # Main query: one round-trip returns sessions + last message + count.
+    # Each table (chat_sessions, messages) is scanned at most once.
     query = (
         select(
             ChatSession,
+            last_msg_sub.c.last_message,
             last_msg_sub.c.last_message_at,
             count_sub.c.message_count,
         )
@@ -104,36 +110,20 @@ async def list_conversations(
     result = await db.execute(query)
     rows = result.all()
 
-    # For each row, fetch the last message content
-    items: list[SessionListItem] = []
-    for session, last_message_at, message_count in rows:
-        last_message = None
-        if last_message_at:
-            msg_result = await db.execute(
-                select(Message.content)
-                .where(
-                    Message.session_id == session.id,
-                    Message.created_at == last_message_at,
-                )
-                .limit(1)
-            )
-            last_message = msg_result.scalar_one_or_none()
-
-        items.append(
-            SessionListItem(
-                id=str(session.id),
-                chatbot_id=session.chatbot_id,
-                mode=session.mode,
-                is_unread=session.is_unread,
-                created_at=session.created_at,
-                updated_at=session.updated_at,
-                last_message=last_message,
-                last_message_at=last_message_at,
-                message_count=message_count or 0,
-            )
+    return [
+        SessionListItem(
+            id=str(session.id),
+            chatbot_id=session.chatbot_id,
+            mode=session.mode,
+            is_unread=session.is_unread,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            last_message=last_message,
+            last_message_at=last_message_at,
+            message_count=message_count or 0,
         )
-
-    return items
+        for session, last_message, last_message_at, message_count in rows
+    ]
 
 
 @router.get(
