@@ -19,4 +19,8 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Workers, event loop, and HTTP parser tuned for k8s:
+# - 2 workers per pod fits the 1000m CPU limit (k8s scales replicas via HPA)
+# - uvloop and httptools come with uvicorn[standard] and are faster than the defaults
+# Bumping --workers further requires raising Postgres max_connections (pool_size=20 per worker).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--loop", "uvloop", "--http", "httptools"]
