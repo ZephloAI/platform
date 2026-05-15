@@ -41,12 +41,25 @@ export declare const navigateProp: {
   };
 };
 
+export type CooldownPolicy =
+  | "session"
+  | "once"
+  | { minutes: number }
+  | null;
+
+export interface TriggerOptions {
+  mode?: "open" | "prompt";
+  cooldown?: CooldownPolicy;
+  pageContext?: Record<string, unknown>;
+}
+
 export interface ZephloInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
+  trigger(id: string, prompt: string, options?: TriggerOptions): Promise<{ fired: boolean }>;
   destroy(): void;
 
   theme: ThemeMode;
@@ -60,6 +73,7 @@ export interface ZephloInstance {
 
 interface Zephlo {
   initialize(options: ZephloOptions): ZephloInstance;
+  trigger(id: string, prompt: string, options?: TriggerOptions): Promise<{ fired: boolean }>;
 }
 
 declare const Zephlo: Zephlo;

@@ -281,9 +281,23 @@ export class ChatSocket {
   private static MAX_RETRIES = 3;
   private static BASE_DELAY_MS = 1000;
 
+  // Shared promise so concurrent connect() callers join the same handshake
+  // instead of racing and opening duplicate WebSockets.
+  private connectPromise: Promise<void> | null = null;
+
   async connect(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+    if (this.connectPromise) return this.connectPromise;
 
+    this.connectPromise = this.doConnect();
+    try {
+      await this.connectPromise;
+    } finally {
+      this.connectPromise = null;
+    }
+  }
+
+  private async doConnect(): Promise<void> {
     let lastError: Error | null = null;
     const wsUrl = this.buildWsUrl();
 

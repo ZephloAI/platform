@@ -1,6 +1,6 @@
 {
   "name": "zephlo",
-  "version": "0.1.2",
+  "version": "0.1.4-beta.0",
   "description": "Zephlo - AI chatbot widget for your website. Drop-in script tag or npm install.",
   "author": "Zephlo",
   "license": "Elastic-2.0",

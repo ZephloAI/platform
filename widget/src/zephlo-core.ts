@@ -56,6 +56,8 @@ export type CoreEvent =
   | { type: "navigate"; url?: string }
   | { type: "mcpResults"; results: McpToolResult[] }
   | { type: "themeChanged"; colors: ResolvedColors }
+  | { type: "triggerOpen" }
+  | { type: "triggerToast"; content: string }
   | { type: "error"; message: string };
 
 type Subscriber = (event: CoreEvent) => void;
@@ -444,6 +446,91 @@ class ZephloCoreClass {
   /** Send page context metadata to the agent. */
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void {
     this.chatSocket?.sendContextUpdate(data, includePageDetails);
+  }
+
+  /**
+   * Fire a manual agent trigger.
+   *
+   * - mode "open": the agent's response is pushed into chat history and
+   *   the FAB panel auto-expands.
+   * - mode "prompt" (default): the response shows as a clickable toast
+   *   above the FAB; it's only committed to chat history if the user
+   *   clicks the toast.
+   *
+   * Cooldown:
+   *   null            -> always fire (default)
+   *   "session"       -> once per browser tab/session
+   *   "once"          -> once forever per device
+   *   { minutes: N }  -> at most every N minutes
+   *
+   * Returns { fired: false } when the cooldown blocked the call.
+   */
+  async trigger(
+    id: string,
+    prompt: string,
+    options: {
+      mode?: "open" | "prompt";
+      cooldown?: storage.CooldownPolicy;
+      pageContext?: Record<string, unknown>;
+    } = {},
+  ): Promise<{ fired: boolean }> {
+    const mode = options.mode ?? "prompt";
+    const cooldown = options.cooldown ?? null;
+
+    if (!storage.shouldFire(id, cooldown)) return { fired: false };
+
+    await this.ensureSession();
+    if (!this.chatSocket) {
+      this.emit({ type: "error", message: "Unable to connect. Please try again." });
+      return { fired: false };
+    }
+
+    // ensureSession() kicks off connect() fire-and-forget. Await it here so
+    // the WS is OPEN before sendTrigger runs — otherwise sendTrigger sees a
+    // CONNECTING socket, opens a duplicate, and the orphan's close handler
+    // can reject the pending promise.
+    try {
+      await this.chatSocket.connect();
+    } catch (err) {
+      this.emit({
+        type: "error",
+        message: err instanceof Error ? err.message : "Connection failed.",
+      });
+      return { fired: false };
+    }
+
+    // Record BEFORE awaiting so a slow agent reply can't let a second call
+    // sneak through under "once"/"session" policies.
+    storage.recordFire(id, cooldown);
+
+    try {
+      const data = await this.chatSocket.sendTrigger(id, prompt, mode, options.pageContext);
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: data.response,
+        sources: data.sources,
+        followUpPrompts: data.follow_up_prompts,
+        audio: data.audio || null,
+      };
+
+      if (mode === "open") {
+        this.messages.push(assistantMsg);
+        this.saveMessages();
+        this.emit({ type: "messageAdded", message: assistantMsg });
+        this.emit({ type: "triggerOpen" });
+      } else {
+        this.pendingTriggerMessage = assistantMsg;
+        this.emit({ type: "triggerToast", content: data.response });
+      }
+
+      return { fired: true };
+    } catch (err) {
+      this.emit({
+        type: "error",
+        message: err instanceof Error ? err.message : "Trigger failed.",
+      });
+      return { fired: false };
+    }
   }
 
   /**

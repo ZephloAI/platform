@@ -11,6 +11,7 @@ import { toolRegistry, type ToolDefinition } from "./webmcp";
 import type { McpToolResult } from "./api";
 import { FormScanner } from "./form-scanner";
 import type { ThemeMode, ThemeColors, ThemeOptions } from "./theme";
+import type { CooldownPolicy } from "./storage";
 
 // Set flag BEFORE the custom element auto-injects so we skip the
 // backwards-compat `<zephlo-fab>` fallback injection.
@@ -26,12 +27,22 @@ export interface ZephloOptions {
   theme?: ThemeOptions;
 }
 
+export interface TriggerOptions {
+  /** "prompt" (default) shows a clickable toast; "open" expands the chat panel. */
+  mode?: "open" | "prompt";
+  /** Throttle: null = always fire, "session" = once/tab, "once" = once/device, {minutes:N} = every N min. */
+  cooldown?: CooldownPolicy;
+  /** Extra page metadata sent to the agent. */
+  pageContext?: Record<string, unknown>;
+}
+
 export interface ZephloInstance {
   onToolResult(cb: (results: McpToolResult[]) => void): () => void;
   registerTool(tool: ToolDefinition): void;
   sendContextUpdate(data: Record<string, any>, includePageDetails?: boolean): void;
   webMcpTools(): { name: string; description: string; inputSchema: Record<string, unknown> }[];
   scanForms(): void;
+  trigger(id: string, prompt: string, options?: TriggerOptions): Promise<{ fired: boolean }>;
   destroy(): void;
 
   // Live theme controls. Setters mutate state and trigger an immediate
@@ -80,6 +91,9 @@ function initialize(options: ZephloOptions): ZephloInstance {
     },
     scanForms() {
       formScanner?.scan();
+    },
+    trigger(id: string, prompt: string, options?: TriggerOptions) {
+      return zephloCore.trigger(id, prompt, options);
     },
     destroy() {
       formScanner?.disconnect();
@@ -134,7 +148,20 @@ export const navigateProp = {
   },
 } as const;
 
-const Zephlo = { initialize };
+/**
+ * Global trigger — works whether called before or after initialize().
+ * If called early, waits for Zephlo.initialize() to land before firing.
+ */
+async function trigger(
+  id: string,
+  prompt: string,
+  options?: TriggerOptions,
+): Promise<{ fired: boolean }> {
+  await zephloCore.waitForConfiguration();
+  return zephloCore.trigger(id, prompt, options);
+}
+
+const Zephlo = { initialize, trigger };
 export default Zephlo;
 
 // For IIFE/script tag usage
