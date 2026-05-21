@@ -35,6 +35,7 @@ export interface McpToolResult {
 
 export interface ChatResponse {
   response: string;
+  message_id?: string;
   sources: ChatSource[];
   session_id: string | null;
   follow_up_prompts?: FollowUpPrompt[];

@@ -267,12 +267,10 @@ export class ChatbotWidget extends HTMLElement {
             storage.setItem(`cb_auto_open_${this.state.chatbotId}`, "1");
           } catch { /* ignore */ }
           window.location.assign(ev.url);
-        } else if (!this.isInline && this.isOpen) {
-          // No URL = legacy on-page action (host-registered tool). Step out
-          // of the way so the user can see the page change. Inline views
-          // skip this — they live in document flow and shouldn't collapse.
-          this.minimize();
         }
+        // No URL = on-page action by a host-registered tool. Leave the chat
+        // alone — collapsing it here hides messages and slides the input to
+        // the top of the panel, which feels like the widget broke.
         break;
       case "triggerOpen":
         // Manual trigger in "open" mode — expand the FAB panel if collapsed.
@@ -668,12 +666,11 @@ export class ChatbotWidget extends HTMLElement {
     if (this.isInline) return; // inline views have no toggle
     this.isOpen = !this.isOpen;
 
-    // Dismiss greeting bubbles + any trigger toast when opening chat.
-    // If the user opened the chat via the FAB (not the toast), treat that
-    // as ignoring the nudge and discard the pending message.
+    // Dismiss greeting bubbles + any trigger toast when opening chat. The
+    // trigger message is already in history, so opening from the FAB simply
+    // hides the nudge.
     if (this.isOpen) {
       this.dismissGreetings();
-      zephloCore.clearPendingTrigger();
       this.hideTriggerToast();
     }
 
@@ -778,20 +775,17 @@ export class ChatbotWidget extends HTMLElement {
     toast.appendChild(body);
     toast.appendChild(closeBtn);
 
-    // Click the bubble (but not the close button) → commit the pending
-    // message to history and open the chat. Committing FIRST ensures the
-    // panel is already showing the new turn when it expands.
+    // Click the bubble (but not the close button) → hide the nudge and open
+    // the chat. The message is already in history regardless of interaction.
     toast.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).closest(".cb-trigger-toast-close")) return;
-      zephloCore.commitPendingTrigger();
       this.hideTriggerToast();
       if (!this.isOpen) this.toggle();
     });
 
-    // Close button → dismiss and discard the pending message
+    // Close button → just dismiss the toast. Message stays in history.
     closeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      zephloCore.clearPendingTrigger();
       this.hideTriggerToast();
     });
 
@@ -815,8 +809,6 @@ export class ChatbotWidget extends HTMLElement {
     if (this.triggerToastTimer) clearTimeout(this.triggerToastTimer);
     this.triggerToastTimer = setTimeout(
       () => {
-        // Auto-dismiss = user ignored the nudge → discard the pending message
-        zephloCore.clearPendingTrigger();
         this.hideTriggerToast();
       },
       ChatbotWidget.TRIGGER_TOAST_DURATION_MS,

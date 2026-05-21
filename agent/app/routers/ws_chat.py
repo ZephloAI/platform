@@ -11,6 +11,7 @@ Endpoint:
     Server sends: { "response": "...", "sources": [...], "session_id": "...", "follow_up_prompts": [...] }
 """
 
+import hashlib
 import json
 import logging
 import uuid
@@ -35,6 +36,23 @@ install_patch()
 
 # Active visitor WebSocket connections: session_id -> WebSocket
 active_connections: dict[str, WebSocket] = {}
+
+
+def _compute_message_id(response_text: str, tools) -> str:
+    """Stable content hash for client-side dedup. Combines tool calls
+    (name + arguments) and response text into a sorted-key JSON payload,
+    SHA-256 hashed, truncated to 16 hex chars. Transient — not persisted.
+    """
+    tool_sigs = [
+        {"name": t.tool_name, "args": getattr(t, "arguments", None)}
+        for t in (tools or [])
+    ]
+    payload = json.dumps(
+        {"tools": tool_sigs, "text": response_text},
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 async def store_message(session_id: str, role: str, content: str, is_resolved: bool | None = None):
@@ -256,11 +274,7 @@ async def ws_chat(ws: WebSocket):
             # the normal pipeline. No synthetic "user" message is stored in
             # history because the visitor didn't actually type anything.
             is_trigger = data.get("message_type") == "trigger"
-            # "prompt" mode triggers are tentative — the response is held in
-            # a toast on the client and only committed to history if the user
-            # clicks it. We skip DB persistence here to avoid orphan rows.
             trigger_mode = data.get("mode", "open") if is_trigger else None
-            skip_persist = is_trigger and trigger_mode == "prompt"
             if is_trigger:
                 trigger_prompt = data.get("prompt", "")
                 trigger_id = data.get("trigger_id", "")
@@ -443,9 +457,12 @@ async def ws_chat(ws: WebSocket):
             if voice and response_text.strip():
                 audio = await text_to_speech(response_text)
 
+            message_id = _compute_message_id(response_text, response.tools)
+
             await dispatcher.send_json(
                 {
                     "message_type": "response",
+                    "message_id": message_id,
                     "response": response_text,
                     "sources": sources,
                     "session_id": session_id,
@@ -455,14 +472,12 @@ async def ws_chat(ws: WebSocket):
                 }
             )
 
-            # Store messages via API callback.
-            # For triggers, skip the "user" side — the visitor didn't type anything.
-            # For prompt-mode triggers, also skip the assistant side — the
-            # client will only commit it to history if the user engages.
+            # Store messages via API callback. Triggers skip the "user" side
+            # because the visitor didn't actually type anything; the assistant
+            # side is always persisted so trigger turns live in history.
             if not is_trigger:
                 await store_message(session_id, "user", message)
-            if not skip_persist:
-                await store_message(session_id, "assistant", response_text, is_resolved=is_resolved)
+            await store_message(session_id, "assistant", response_text, is_resolved=is_resolved)
 
     except WebSocketDisconnect:
         logger.info(f"Client disconnected (chatbot_id={chatbot_id})")

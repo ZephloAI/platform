@@ -93,10 +93,10 @@ class ZephloCoreClass {
   // MCP / tool results
   mcpGlobalListeners: ((results: McpToolResult[]) => void)[] = [];
 
-  // Prompt-mode triggers hold their assistant response here until the user
-  // clicks the toast. If the toast is dismissed or auto-expires, the message
-  // is discarded and never touches chat history (client or server).
-  private pendingTriggerMessage: Message | null = null;
+  // Transient dedup set. The server attaches a content hash to every
+  // assistant response; we drop a repeat occurrence so the same turn never
+  // renders twice (retries, races between FAB + inline views). Not persisted.
+  private seenMessageIds: Set<string> = new Set();
 
   // Retry guard
   private sessionRetried = false;
@@ -326,6 +326,19 @@ class ZephloCoreClass {
 
   // ---- Actions ----
 
+  /**
+   * Returns true if a server-provided message_id is new and the assistant
+   * message should be rendered. Returns false if we've already accepted this
+   * id (drop the dupe). Missing ids pass through — older agents without the
+   * hash field still work.
+   */
+  private shouldAccept(messageId: string | undefined): boolean {
+    if (!messageId) return true;
+    if (this.seenMessageIds.has(messageId)) return false;
+    this.seenMessageIds.add(messageId);
+    return true;
+  }
+
   /** Send a user message and wait for assistant response. */
   async sendMessage(text: string, options: { voice?: boolean } = {}): Promise<void> {
     if (!text.trim() || this.isLoading) return;
@@ -348,16 +361,18 @@ class ZephloCoreClass {
       const data = await this.chatSocket.sendMessage(text, options.voice);
       this.sessionRetried = false;
 
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: data.response,
-        sources: data.sources,
-        followUpPrompts: data.follow_up_prompts,
-        audio: data.audio || null,
-      };
-      this.messages.push(assistantMsg);
-      this.saveMessages();
-      this.emit({ type: "messageAdded", message: assistantMsg });
+      if (this.shouldAccept(data.message_id)) {
+        const assistantMsg: Message = {
+          role: "assistant",
+          content: data.response,
+          sources: data.sources,
+          followUpPrompts: data.follow_up_prompts,
+          audio: data.audio || null,
+        };
+        this.messages.push(assistantMsg);
+        this.saveMessages();
+        this.emit({ type: "messageAdded", message: assistantMsg });
+      }
     } catch (err) {
       // Retry once with a fresh session (handles stale sessions)
       if (!this.sessionRetried) {
@@ -366,16 +381,18 @@ class ZephloCoreClass {
           try {
             const data = await this.chatSocket!.sendMessage(text, options.voice);
             this.sessionRetried = false;
-            const assistantMsg: Message = {
-              role: "assistant",
-              content: data.response,
-              sources: data.sources,
-              followUpPrompts: data.follow_up_prompts,
-              audio: data.audio || null,
-            };
-            this.messages.push(assistantMsg);
-            this.saveMessages();
-            this.emit({ type: "messageAdded", message: assistantMsg });
+            if (this.shouldAccept(data.message_id)) {
+              const assistantMsg: Message = {
+                role: "assistant",
+                content: data.response,
+                sources: data.sources,
+                followUpPrompts: data.follow_up_prompts,
+                audio: data.audio || null,
+              };
+              this.messages.push(assistantMsg);
+              this.saveMessages();
+              this.emit({ type: "messageAdded", message: assistantMsg });
+            }
             return;
           } catch {
             // Fall through to error
@@ -415,6 +432,7 @@ class ZephloCoreClass {
     this.chatSocket = null;
     this.sessionId = null;
     this.messages = [];
+    this.seenMessageIds.clear();
     this.personMode = false;
     this.pendingNavigateUrl = null;
     if (this.pendingNavigateTimer) {
@@ -513,13 +531,18 @@ class ZephloCoreClass {
         audio: data.audio || null,
       };
 
-      if (mode === "open") {
+      // Trigger replies always join history regardless of mode. The toast is
+      // a nudge for prompt-mode but no longer gates whether the message lives
+      // in the conversation.
+      if (this.shouldAccept(data.message_id)) {
         this.messages.push(assistantMsg);
         this.saveMessages();
         this.emit({ type: "messageAdded", message: assistantMsg });
+      }
+
+      if (mode === "open") {
         this.emit({ type: "triggerOpen" });
       } else {
-        this.pendingTriggerMessage = assistantMsg;
         this.emit({ type: "triggerToast", content: data.response });
       }
 
@@ -531,24 +554,6 @@ class ZephloCoreClass {
       });
       return { fired: false };
     }
-  }
-
-  /**
-   * Commit a pending prompt-mode trigger into chat history. Called by the
-   * view when the user clicks the toast.
-   */
-  commitPendingTrigger(): void {
-    const msg = this.pendingTriggerMessage;
-    if (!msg) return;
-    this.pendingTriggerMessage = null;
-    this.messages.push(msg);
-    this.saveMessages();
-    this.emit({ type: "messageAdded", message: msg });
-  }
-
-  /** Discard a pending prompt-mode trigger (toast dismissed / expired). */
-  clearPendingTrigger(): void {
-    this.pendingTriggerMessage = null;
   }
 
   /** Register a callback for MCP tool results. */
