@@ -33,6 +33,29 @@
   }
 }
 
+@layer base {
+  /* Material Symbols icon font — usage: <span class="material-symbols-outlined">search</span> */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .material-symbols-outlined.fill {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
 @layer components {
   /* ─── Cards ─── */
   .card {
@@ -41,6 +64,34 @@
   }
   .card:hover {
     @apply shadow-card-hover;
+  }
+
+  /* A crisper 1px border used by the dashboard surfaces */
+  .hairline-border {
+    @apply border border-[#E5E5E7];
+  }
+
+  /* ─── Status pills (agent state) ─── */
+  .status-pill {
+    @apply inline-flex items-center px-3 py-0.5 rounded-full text-[12px] font-semibold;
+  }
+  .status-pill-active { background: rgba(52, 199, 89, 0.12); color: #1F9D45; }
+  .status-pill-crawling { background: rgba(0, 122, 255, 0.10); color: #0A6CD4; }
+  .status-pill-suspended { background: rgba(255, 59, 48, 0.10); color: #E5342A; }
+  .status-pill-not-ready { background: rgba(142, 142, 147, 0.14); color: #6E6E78; }
+
+  /* ─── Trend badges (metric delta) ─── */
+  .trend-badge {
+    @apply inline-flex items-center text-[12px] font-semibold px-2 py-0.5 rounded-full tabular-nums;
+  }
+  .trend-up { background: #FBE5D2; color: #8A4200; }
+  .trend-down { background: #FFDAD6; color: #BA1A1A; }
+  .trend-flat { background: rgba(0, 0, 0, 0.05); color: #6E6E78; }
+
+  /* Top-bar round icon button */
+  .icon-btn {
+    @apply flex items-center justify-center p-2 rounded-full text-label-secondary
+           hover:bg-black/[0.04] hover:text-label-primary transition-colors;
   }
 
   /* ─── Buttons ─── */
@@ -171,6 +222,16 @@
   .stagger-3 { animation-delay: 120ms; }
   .stagger-4 { animation-delay: 180ms; }
   .stagger-5 { animation-delay: 240ms; }
+}
+
+/* Sparkline draw-on animation (used by metric cards) */
+@keyframes spark-draw {
+  to { stroke-dashoffset: 0; }
+}
+.sparkline-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: spark-draw 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
 @layer utilities {

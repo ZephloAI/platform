@@ -7,7 +7,7 @@
 
 import apiClient from './client';
 import { useOrgStore } from '../stores/orgStore';
-import type { AgentText, Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, Document, OrgAnalytics, WidgetSettings } from '../types';
+import type { AgentText, Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, DiscoveredUrl, Document, OrgAnalytics, RecentConversation, WidgetSettings } from '../types';
 
 // --- Helpers ---
 
@@ -206,6 +206,13 @@ export async function getOrgChatbotAnalytics(orgId: number): Promise<Record<numb
 
 export async function getOrgChatbotMetrics(orgId: number): Promise<ChatbotMetricsMap> {
   const response = await apiClient.get(`/api/organizations/${orgId}/chatbot-metrics`);
+  return response.data;
+}
+
+export async function getOrgRecentConversations(orgId: number, limit = 3): Promise<RecentConversation[]> {
+  const response = await apiClient.get(`/api/organizations/${orgId}/recent-conversations`, {
+    params: { limit },
+  });
   return response.data;
 }
 
