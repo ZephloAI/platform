@@ -49,10 +49,7 @@ function ChatbotCard({ chatbot, metrics, onDelete }: ChatbotCardProps) {
   const status = resolveStatus(chatbot);
 
   const messages = metrics?.total_messages ?? 0;
-  const resRate =
-    metrics && metrics.total_conversations > 0
-      ? Math.min(100, Math.round((metrics.resolved_requests / metrics.total_conversations) * 100))
-      : 0;
+  const resolved = metrics?.resolved_requests ?? 0;
 
   return (
     <div className="relative group">
@@ -82,7 +79,7 @@ function ChatbotCard({ chatbot, metrics, onDelete }: ChatbotCardProps) {
               Activity
             </p>
             <p className="text-[13px] font-medium text-label-secondary tabular-nums">
-              {formatCompactNumber(messages)} msgs • {resRate}% res
+              {formatCompactNumber(messages)} msgs • {formatCompactNumber(resolved)} resolved
             </p>
           </div>
           <span className="material-symbols-outlined text-label-tertiary group-hover:translate-x-1 transition-transform">

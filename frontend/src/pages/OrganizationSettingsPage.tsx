@@ -283,7 +283,7 @@ function OrganizationSettingsPage() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto bg-surface-primary">
-          <div className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-8 animate-fade-in">
+          <div className="w-full max-w-[1600px] mx-auto px-4 py-6 md:px-8 md:py-8 lg:w-[90%] animate-fade-in">
             {activeSection === 'members' && (
               <MembersTab
                 orgId={orgId}

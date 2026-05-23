@@ -20,7 +20,6 @@ function buildMetrics(a: OrgAnalytics) {
 
   const convTotal = sum(a.conversations_per_day);
   const resTotal = sum(a.resolved_per_day);
-  const resRate = convTotal > 0 ? Math.min(100, Math.round((resTotal / convTotal) * 100)) : 0;
 
   return [
     {
@@ -37,7 +36,7 @@ function buildMetrics(a: OrgAnalytics) {
     },
     {
       label: 'Resolved',
-      value: `${resRate}%`,
+      value: formatCompactNumber(resTotal),
       series: counts(a.resolved_per_day),
       trend: trendFromSeries(counts(a.resolved_per_day)),
     },

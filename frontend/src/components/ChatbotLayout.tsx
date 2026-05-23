@@ -5,83 +5,16 @@ import { useChatbot, useChatbots } from '../hooks/useChatbots';
 import { useConversations } from '../hooks/useConversations';
 import { useOrgStore } from '../stores/orgStore';
 
-type Section = 'overview' | 'details' | 'knowledge' | 'config' | 'tools' | 'conversations';
+type Section = 'general' | 'knowledge' | 'config' | 'tools' | 'conversations';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 type ToolsTab = 'mcp-servers';
 
-const NAV_ITEMS: { key: Section; label: string; icon: JSX.Element }[] = [
-  {
-    key: 'overview',
-    label: 'Overview',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    key: 'conversations',
-    label: 'Conversations',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'details',
-    label: 'Details',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-    ),
-  },
-  {
-    key: 'knowledge',
-    label: 'Knowledge',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'config',
-    label: 'Config',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'tools',
-    label: 'Tools',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-      </svg>
-    ),
-  },
-];
-
-const CONFIG_SUB_ITEMS: { key: ConfigTab; label: string }[] = [
-  { key: 'appearance', label: 'Appearance' },
-  { key: 'quick-prompts', label: 'Quick Prompts' },
-  { key: 'follow-up-prompts', label: 'Follow-Up Prompts' },
-  { key: 'greeting-prompts', label: 'Greeting Prompts' },
-];
-
-const TOOLS_SUB_ITEMS: { key: ToolsTab; label: string }[] = [
-  { key: 'mcp-servers', label: 'MCP Servers' },
+const NAV_ITEMS: { key: Section; label: string; icon: string }[] = [
+  { key: 'general', label: 'General', icon: 'dashboard' },
+  { key: 'conversations', label: 'Conversations', icon: 'chat_bubble' },
+  { key: 'knowledge', label: 'Knowledge', icon: 'book' },
+  { key: 'config', label: 'Config', icon: 'tune' },
+  { key: 'tools', label: 'Tools', icon: 'construction' },
 ];
 
 function ChatbotLayout() {
@@ -96,7 +29,7 @@ function ChatbotLayout() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeSection = (searchParams.get('section') as Section) || 'overview';
+  const activeSection = (searchParams.get('section') as Section) || 'general';
   const activeConfigTab = (searchParams.get('configTab') as ConfigTab) || 'appearance';
   const activeToolsTab = (searchParams.get('toolsTab') as ToolsTab) || 'mcp-servers';
 
@@ -105,16 +38,6 @@ function ChatbotLayout() {
     if (section === 'config') params.configTab = 'appearance';
     if (section === 'tools') params.toolsTab = 'mcp-servers';
     setSearchParams(params);
-    setSidebarOpen(false);
-  };
-
-  const setActiveConfigTab = (tab: ConfigTab) => {
-    setSearchParams({ section: 'config', configTab: tab });
-    setSidebarOpen(false);
-  };
-
-  const setActiveToolsTab = (tab: ToolsTab) => {
-    setSearchParams({ section: 'tools', toolsTab: tab });
     setSidebarOpen(false);
   };
 
@@ -141,7 +64,7 @@ function ChatbotLayout() {
   const otherChatbots = chatbots?.filter((c) => c.public_id !== chatbotId) || [];
 
   const navLinkClass = (active: boolean) =>
-    `w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-smooth ${
+    `w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-[14px] font-medium transition-all duration-200 ease-smooth ${
       active
         ? 'bg-accent-light text-accent'
         : 'text-label-secondary hover:bg-surface-secondary hover:text-label-primary'
@@ -171,9 +94,9 @@ function ChatbotLayout() {
             onClick={() => setSidebarOpen(false)}
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2 px-2'} py-1`}
           >
-            <img src="/logo.svg" alt="Zephlo" className="w-6 h-6 shrink-0" />
+            <img src="/logo.svg" alt="Zephlo" className="w-7 h-7 shrink-0" />
             {!collapsed && (
-              <span className="text-[14px] font-display font-bold text-label-primary tracking-tight">
+              <span className="text-[16px] font-display font-bold text-label-primary tracking-tight">
                 Zephlo
               </span>
             )}
@@ -190,7 +113,10 @@ function ChatbotLayout() {
                 className={navLinkClass(activeSection === item.key)}
                 title={collapsed ? item.label : undefined}
               >
-                <span className={`shrink-0 ${activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}`}>
+                <span
+                  className={`material-symbols-outlined shrink-0 ${activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}`}
+                  style={{ fontSize: 20 }}
+                >
                   {item.icon}
                 </span>
                 {!collapsed && (
@@ -201,61 +127,12 @@ function ChatbotLayout() {
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
-                    {(item.key === 'config' || item.key === 'tools') && (
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`transition-transform duration-200 ease-smooth ${activeSection === item.key ? 'rotate-180 text-accent' : ''}`}
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    )}
                   </>
                 )}
                 {collapsed && item.key === 'conversations' && unreadCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-accent w-2 h-2 rounded-full" />
                 )}
               </button>
-              {!collapsed && item.key === 'config' && activeSection === 'config' && (
-                <div className="ml-7 mt-1 space-y-0.5">
-                  {CONFIG_SUB_ITEMS.map((sub) => (
-                    <button
-                      key={sub.key}
-                      onClick={() => setActiveConfigTab(sub.key)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-smooth ${
-                        activeConfigTab === sub.key
-                          ? 'bg-accent-light text-accent'
-                          : 'text-label-tertiary hover:bg-surface-secondary hover:text-label-secondary'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {!collapsed && item.key === 'tools' && activeSection === 'tools' && (
-                <div className="ml-7 mt-1 space-y-0.5">
-                  {TOOLS_SUB_ITEMS.map((sub) => (
-                    <button
-                      key={sub.key}
-                      onClick={() => setActiveToolsTab(sub.key)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-smooth ${
-                        activeToolsTab === sub.key
-                          ? 'bg-accent-light text-accent'
-                          : 'text-label-tertiary hover:bg-surface-secondary hover:text-label-secondary'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </nav>
@@ -274,7 +151,7 @@ function ChatbotLayout() {
               </div>
               {!collapsed && (
                 <>
-                  <span className="text-[13px] font-display font-semibold text-label-primary truncate flex-1 text-left">
+                  <span className="text-[14px] font-display font-semibold text-label-primary truncate flex-1 text-left">
                     {chatbot?.name || 'Loading...'}
                   </span>
                   <svg
@@ -296,7 +173,7 @@ function ChatbotLayout() {
               <div className="absolute bottom-full left-0 right-0 mb-1 dropdown-glass rounded-xl animate-scale-in z-50">
                 {otherChatbots.length > 0 && (
                   <div className="py-1">
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-label-quaternary uppercase tracking-wider">
+                    <p className="px-3 py-1.5 text-[11px] font-semibold text-label-quaternary uppercase tracking-wider">
                       Switch agent
                     </p>
                     {otherChatbots.map((c) => (
@@ -347,7 +224,7 @@ function ChatbotLayout() {
           {/* Collapse toggle - desktop only */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className={`hidden md:flex items-center ${collapsed ? 'justify-center w-full' : 'gap-3 w-full px-2'} py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth`}
+            className={`hidden md:flex items-center ${collapsed ? 'justify-center w-full' : 'gap-3 w-full px-2'} py-2 rounded-lg text-[14px] font-medium text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-all duration-200 ease-smooth`}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -386,7 +263,7 @@ function ChatbotLayout() {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <span className="text-[13px] text-label-tertiary font-medium capitalize">
+            <span className="text-[14px] text-label-tertiary font-medium capitalize">
               {activeSection}
             </span>
           </div>
@@ -463,7 +340,7 @@ function ChatbotLayout() {
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           ) : (
-            <div className="w-full max-w-5xl mx-auto px-4 py-6 md:px-10 md:py-8 lg:w-3/4">
+            <div className="w-full max-w-[1600px] mx-auto px-4 py-6 md:px-10 md:py-8 lg:w-[90%]">
               <Outlet context={{ activeSection, activeConfigTab, activeToolsTab }} />
             </div>
           )}

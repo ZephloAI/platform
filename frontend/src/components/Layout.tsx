@@ -122,7 +122,7 @@ function Layout() {
         </div>
       </header>
 
-      <main className="max-w-[1440px] mx-auto px-4 py-6 md:px-8 md:py-8">
+      <main className="w-full max-w-[1600px] mx-auto px-4 py-6 md:px-8 md:py-8 lg:w-[90%]">
         <Outlet />
       </main>
     </div>
