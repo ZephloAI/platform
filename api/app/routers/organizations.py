@@ -10,16 +10,19 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession as SASession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.chatbot import Chatbot
+from app.models.chat_session import ChatSession
+from app.models.message import Message
 from app.models.user import User
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.schemas.api_key import ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse
 from app.schemas.chatbot import ChatbotMetrics, ChatbotMetricsMap, ChatbotMiniAnalytics, OrgAnalytics
+from app.schemas.chat import RecentConversationItem
 from app.schemas.admin import UsageSnapshotResponse
 from app.schemas.organization import (
     OrganizationCreate,
@@ -198,6 +201,71 @@ async def get_org_chatbot_analytics(
 
     from app.routers.chatbots import _compute_analytics_batch
     return await _compute_analytics_batch(db, chatbot_ids=chatbot_ids, days=days)
+
+
+@router.get(
+    "/{org_id}/recent-conversations",
+    response_model=list[RecentConversationItem],
+)
+async def get_org_recent_conversations(
+    org_id: int,
+    limit: int = 3,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Most recently active chat sessions across all agents in the organization."""
+    service = OrganizationService(db)
+    await service.verify_membership(org_id, user.id)
+
+    limit = max(1, min(limit, 20))
+
+    # Newest message (content + timestamp) per session via DISTINCT ON,
+    # same single-pass approach used by list_conversations.
+    last_msg_sub = (
+        select(
+            Message.session_id.label("session_id"),
+            Message.content.label("last_message"),
+            Message.created_at.label("last_message_at"),
+        )
+        .order_by(Message.session_id, desc(Message.created_at))
+        .distinct(Message.session_id)
+        .subquery()
+    )
+
+    # Join sessions to their agent and last message; only sessions that have
+    # at least one message, ordered by most recent activity.
+    query = (
+        select(
+            ChatSession,
+            Chatbot.public_id,
+            Chatbot.name,
+            last_msg_sub.c.last_message,
+            last_msg_sub.c.last_message_at,
+        )
+        .join(Chatbot, ChatSession.chatbot_id == Chatbot.id)
+        .join(last_msg_sub, ChatSession.id == last_msg_sub.c.session_id)
+        .where(Chatbot.organization_id == org_id)
+        .order_by(desc(last_msg_sub.c.last_message_at))
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    return [
+        RecentConversationItem(
+            id=str(session.id),
+            chatbot_id=session.chatbot_id,
+            chatbot_public_id=public_id,
+            chatbot_name=name,
+            mode=session.mode,
+            is_unread=session.is_unread,
+            last_message=last_message,
+            last_message_at=last_message_at,
+            updated_at=session.updated_at,
+        )
+        for session, public_id, name, last_message, last_message_at in rows
+    ]
 
 
 # -- Members --

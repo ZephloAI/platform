@@ -65,6 +65,9 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
   const [fontSize, setFontSize] = useState(chatbot.widget_font_size || 14);
   const [width, setWidth] = useState(chatbot.widget_width || 380);
   const [height, setHeight] = useState(chatbot.widget_height || 520);
+  // Voice: the Appearance toggle is currently hidden (see the Appearance tab),
+  // but this state is still synced and saved so the value is preserved and the
+  // feature can be re-enabled by restoring that toggle.
   const [voiceEnabled, setVoiceEnabled] = useState(chatbot.voice_enabled || false);
 
   // Sync from chatbot when it updates (e.g. after save + refetch)
@@ -455,34 +458,17 @@ function WidgetConfigurator({ chatbot, activeTab, onPreviewChange }: WidgetConfi
             </div>
           </div>
 
-          {/* Voice */}
-          <div className="card p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-[14px] font-display font-semibold text-label-primary">
-                  Voice
-                </h3>
-                <p className="text-[12px] text-label-tertiary mt-1">
-                  Allow visitors to use their microphone to speak to the agent and hear spoken responses.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={voiceEnabled}
-                onClick={() => setVoiceEnabled(!voiceEnabled)}
-                className={`relative inline-flex h-[28px] w-[50px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  voiceEnabled ? 'bg-[#34c759]' : 'bg-surface-tertiary'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-[24px] w-[24px] transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                    voiceEnabled ? 'translate-x-[22px]' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+          {/*
+            VOICE — UI hidden for now (product decision). Everything behind it is
+            still intact: the `voiceEnabled` state below, the `voice_enabled` field
+            in the save payload, the widget, and the API. To re-enable, restore a
+            toggle here bound to `voiceEnabled` / `setVoiceEnabled` (it controlled
+            mic input + spoken responses):
+
+            <div className="card p-5">
+              ...toggle bound to voiceEnabled / setVoiceEnabled...
             </div>
-          </div>
+          */}
         </div>
       )}
 

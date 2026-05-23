@@ -217,14 +217,9 @@ function ToolsSection({ chatbot, activeTab }: ToolsSectionProps) {
               </svg>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-display font-semibold text-label-primary">
-                  Browser Tools
-                </h3>
-                <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-[10px] font-medium text-purple-500 uppercase tracking-wide">
-                  Preview
-                </span>
-              </div>
+              <h3 className="text-[14px] font-display font-semibold text-label-primary">
+                Browser Tools
+              </h3>
               <p className="text-[12px] text-label-tertiary mt-0.5">
                 Allow the agent to use tools registered on the host website via WebMCP.
               </p>

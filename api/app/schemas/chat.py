@@ -65,6 +65,21 @@ class SessionListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RecentConversationItem(BaseModel):
+    """A recent chat session across an organization's agents (dashboard feed)."""
+    id: str
+    chatbot_id: int
+    chatbot_public_id: str
+    chatbot_name: str
+    mode: str
+    is_unread: bool
+    last_message: str | None = None
+    last_message_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class SessionDetailResponse(BaseModel):
     """Full session with its message history."""
     id: str

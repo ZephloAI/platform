@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrgStore } from '../stores/orgStore';
-import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, ChatMessage, OrgAnalytics, WidgetSettings } from '../types';
+import type { Chatbot, ChatbotMetricsMap, ChatbotMiniAnalytics, CrawlJob, ChatMessage, OrgAnalytics, RecentConversation, WidgetSettings } from '../types';
 import * as chatbotApi from '../api/chatbots';
 
 // ============================================================
@@ -346,6 +346,18 @@ export function useOrgChatbotMetrics(orgId: number | undefined) {
   return useQuery({
     queryKey: ['orgChatbotMetrics', orgId] as const,
     queryFn: (): Promise<ChatbotMetricsMap> => chatbotApi.getOrgChatbotMetrics(orgId!),
+    enabled: !!orgId,
+    refetchInterval: 15_000,
+  });
+}
+
+/**
+ * Fetch the most recent conversations across all agents in the org.
+ */
+export function useOrgRecentConversations(orgId: number | undefined) {
+  return useQuery({
+    queryKey: ['orgRecentConversations', orgId] as const,
+    queryFn: (): Promise<RecentConversation[]> => chatbotApi.getOrgRecentConversations(orgId!),
     enabled: !!orgId,
     refetchInterval: 15_000,
   });

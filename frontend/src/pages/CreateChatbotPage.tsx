@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCreateChatbot } from '../hooks/useChatbots';
+import { useOrgUsage } from '../hooks/useOrganization';
+import { useOrgStore } from '../stores/orgStore';
 
 function CreateChatbotPage() {
   const [name, setName] = useState('');
@@ -8,9 +10,16 @@ function CreateChatbotPage() {
   const navigate = useNavigate();
   const createMutation = useCreateChatbot();
 
+  const activeOrg = useOrgStore((state) => state.activeOrganization);
+  const { data: usage } = useOrgUsage(activeOrg?.id ?? 0);
+  const atLimit =
+    !!usage && usage.max_agents !== null && usage.agents_count >= usage.max_agents;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (atLimit) return;
 
     if (!name.trim()) {
       setError('Please enter a name for your agent.');
@@ -23,8 +32,10 @@ function CreateChatbotPage() {
         onSuccess: (chatbot) => {
           navigate(`/agents/${chatbot.public_id}`);
         },
-        onError: () => {
-          setError('Failed to create agent. Please try again.');
+        onError: (err: any) => {
+          // Surface the server's limit message (HTTP 402) when present
+          const detail = err?.response?.data?.detail;
+          setError(detail?.message || 'Failed to create agent. Please try again.');
         },
       }
     );
@@ -40,6 +51,21 @@ function CreateChatbotPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-5">
+        {atLimit && (
+          <div className="bg-amber-50 text-amber-800 text-[13px] rounded-xl p-3 border border-amber-100">
+            You've reached your plan's agent limit ({usage?.max_agents}).{' '}
+            {activeOrg && (
+              <Link
+                to={`/organizations/${activeOrg.id}/settings?section=usage`}
+                className="font-semibold underline"
+              >
+                Manage your organization
+              </Link>
+            )}{' '}
+            to add more.
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 text-red-600 text-[13px] rounded-xl p-3 border border-red-100">
             {error}
@@ -65,7 +91,7 @@ function CreateChatbotPage() {
         <div className="flex items-center gap-3 pt-1">
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || atLimit}
             className="btn-accent"
           >
             {createMutation.isPending ? 'Creating...' : 'Create Agent'}

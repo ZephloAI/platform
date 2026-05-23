@@ -94,7 +94,7 @@ function DashboardAssistant() {
       },
       execute: async (params) => {
         const chatbot = await chatbotApi.getChatbot(params.chatbot_id as string);
-        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=general`);
         return JSON.stringify(chatbot, null, 2);
       },
     });
@@ -145,7 +145,7 @@ function DashboardAssistant() {
         await chatbotApi.updateChatbot(chatbotId, data);
         queryClient.invalidateQueries({ queryKey: ['chatbots', chatbotId] });
         queryClient.invalidateQueries({ queryKey: ['chatbots'] });
-        if (params.navigate) navigate(`/agents/${chatbotId}?section=details`);
+        if (params.navigate) navigate(`/agents/${chatbotId}?section=general&generalTab=details`);
         return JSON.stringify({ id: chatbotId, ...data });
       },
     });
@@ -179,7 +179,7 @@ function DashboardAssistant() {
         '  /dashboard - Home page with all agents',
         '  /agents/new - Create a new agent',
         '  /agents/{id} - Agent detail page (general info)',
-        '  /agents/{id}?section=overview - Overview with status, embed code, API keys',
+        '  /agents/{id}?section=general - General page (Overview & Details tabs)',
         '  /agents/{id}?section=knowledge - Knowledge / crawl settings',
         '  /agents/{id}?section=config - Widget configuration',
         '  /agents/{id}?section=tools - MCP server tools',
@@ -298,7 +298,7 @@ function DashboardAssistant() {
       execute: async (params) => {
         const key = await chatbotApi.createApiKey(params.chatbot_id as string, params.name as string);
         await navigator.clipboard.writeText(key.key);
-        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=general`);
         return `Created API key "${key.name}" and copied it to the user's clipboard. This is the only time the full key is available.`;
       },
     });
@@ -317,7 +317,7 @@ function DashboardAssistant() {
       },
       execute: async (params) => {
         const keys = await chatbotApi.listApiKeys(params.chatbot_id as string);
-        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=general`);
         if (keys.length === 0) return 'No API keys found for this agent.';
         return JSON.stringify(
           keys.map((k) => ({
@@ -346,7 +346,7 @@ function DashboardAssistant() {
       },
       execute: async (params) => {
         await chatbotApi.revokeApiKey(params.chatbot_id as string, params.key_id as number);
-        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=general`);
         return `Revoked API key ${params.key_id}.`;
       },
     });
@@ -382,7 +382,7 @@ function DashboardAssistant() {
           legacy: `<script\n  src="https://unpkg.com/zephlo/dist/chatbot-widget.js"\n  data-chatbot-id="${publicId}"\n></script>`,
         };
 
-        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=overview`);
+        if (params.navigate) navigate(`/agents/${params.chatbot_id}?section=general`);
         return (snippets[format] || snippets.fab) as string;
       },
     });

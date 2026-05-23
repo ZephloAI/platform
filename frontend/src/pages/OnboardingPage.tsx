@@ -132,7 +132,7 @@ function OnboardingPage() {
             {step === 2 && 'About you'}
             {step === 3 && 'Invite your team'}
           </h1>
-          <p className="text-[15px] text-label-tertiary">
+          <p className="text-[16px] text-label-tertiary">
             {step === 1 && 'Tell us about your company'}
             {step === 2 && 'A few details to personalize your experience'}
             {step === 3 && 'Collaborate with your team members'}

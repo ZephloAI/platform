@@ -330,6 +330,19 @@ export interface ConversationSession {
   message_count: number;
 }
 
+/** A recent conversation across all agents, for the dashboard feed */
+export interface RecentConversation {
+  id: string;
+  chatbot_id: number;
+  chatbot_public_id: string;
+  chatbot_name: string;
+  mode: 'ai' | 'person';
+  is_unread: boolean;
+  last_message: string | null;
+  last_message_at: string | null;
+  updated_at: string | null;
+}
+
 /** Full conversation detail with messages */
 export interface ConversationDetail {
   id: string;

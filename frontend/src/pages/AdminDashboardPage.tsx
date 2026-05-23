@@ -62,7 +62,7 @@ function AdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6 animate-fade-in">
+      <main className="w-full max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6 animate-fade-in lg:w-[90%]">
         {/* Metrics strip */}
         <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <MetricCard label="Active orgs" value={metrics?.active_orgs ?? 0} />

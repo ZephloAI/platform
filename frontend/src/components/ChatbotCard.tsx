@@ -1,124 +1,99 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
-import type { Chatbot, ChatbotMiniAnalytics, DailyDataPoint } from '../types';
+import type { Chatbot } from '../types';
+import { formatCompactNumber, formatRelativeTime } from '../lib/format';
+
+interface ChatbotMetrics {
+  total_conversations: number;
+  total_messages: number;
+  resolved_requests: number;
+}
 
 interface ChatbotCardProps {
   chatbot: Chatbot;
-  analytics?: ChatbotMiniAnalytics;
+  metrics?: ChatbotMetrics;
   onDelete: () => void;
 }
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+type StatusKey = 'active' | 'crawling' | 'suspended' | 'not-ready';
+
+interface StatusInfo {
+  key: StatusKey;
+  label: string;
+  detail: string;
 }
 
-function SparkTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const date = payload[0]?.payload?.date;
-  return (
-    <div className="bg-white rounded-lg px-2 py-1 shadow-card-hover text-[10px] border border-black/[0.06]">
-      <p className="text-label-tertiary">{date ? formatDate(date) : ''}</p>
-      <p className="font-semibold text-label-primary">{payload[0].value}</p>
-    </div>
-  );
+/** Show a simple Active / Inactive state driven by the agent's is_active flag. */
+function resolveStatus(chatbot: Chatbot): StatusInfo {
+  if (chatbot.is_active) {
+    const when = chatbot.last_crawled_at || chatbot.created_at;
+    return { key: 'active', label: 'Active', detail: `Updated ${formatRelativeTime(when)}` };
+  }
+  return { key: 'not-ready', label: 'Inactive', detail: 'Currently disabled' };
 }
 
-function Sparkline({ data, color }: { data: DailyDataPoint[]; color: string }) {
-  const total = useMemo(() => data.reduce((sum, d) => sum + d.count, 0), [data]);
+function ChatbotCard({ chatbot, metrics, onDelete }: ChatbotCardProps) {
+  const status = resolveStatus(chatbot);
+
+  const messages = metrics?.total_messages ?? 0;
+  const resolved = metrics?.resolved_requests ?? 0;
 
   return (
-    <div className="flex items-center gap-2.5 min-w-0">
-      <div className="w-20 h-8 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 1, right: 0, left: 0, bottom: 1 }}>
-            <defs>
-              <linearGradient id={`spark-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.15} />
-                <stop offset="100%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Tooltip content={<SparkTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke={color}
-              strokeWidth={1.2}
-              fill={`url(#spark-${color.replace('#', '')})`}
-              dot={false}
-              activeDot={{ r: 2, strokeWidth: 1, fill: '#fff', stroke: color }}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-      <p className="text-[12px] font-semibold text-label-primary tabular-nums leading-none">
-        {total.toLocaleString()}
-      </p>
-    </div>
-  );
-}
-
-const emptyData: DailyDataPoint[] = Array.from({ length: 14 }, () => ({
-  date: '',
-  count: 0,
-}));
-
-function ChatbotCard({ chatbot, analytics, onDelete }: ChatbotCardProps) {
-  const isActive = chatbot.is_active !== false;
-
-  return (
-    <div className="flex items-center gap-4 px-3 py-3 md:px-5 md:py-3.5 hover:bg-surface-secondary/50 transition-colors group">
-      {/* Icon + Name */}
+    <div className="relative group">
       <Link
         to={`/agents/${chatbot.public_id}`}
-        className="w-9 h-9 rounded-xl bg-accent-light flex items-center justify-center shrink-0"
+        className={`flex items-center justify-between gap-4 bg-white hairline-border rounded-xl p-5 hover:bg-surface-secondary/60 hover:shadow-sm transition-all ${
+          chatbot.is_active ? '' : 'opacity-80'
+        }`}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-      </Link>
-      <Link to={`/agents/${chatbot.public_id}`} className="min-w-0 flex-1 md:flex-none md:w-40 shrink-0">
-        <p className="text-[14px] font-display font-semibold text-label-primary truncate group-hover:text-accent transition-colors">
-          {chatbot.name}
-        </p>
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-14 h-14 rounded-full bg-surface-tertiary flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+            {chatbot.widget_logo_url ? (
+              <img src={chatbot.widget_logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              '🤖'
+            )}
+          </div>
+          <div className="min-w-0">
+            <h4 className="heading-md truncate">{chatbot.name}</h4>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`status-pill status-pill-${status.key}`}>{status.label}</span>
+              <span className="text-label-quaternary">•</span>
+              <p className="text-[13px] text-label-tertiary truncate">{status.detail}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-right shrink-0">
+          <div className="hidden md:block">
+            <p className="text-[11px] font-semibold text-label-quaternary uppercase tracking-wider">
+              Activity
+            </p>
+            <p className="text-[13px] font-medium text-label-secondary tabular-nums">
+              {formatCompactNumber(messages)} msgs • {formatCompactNumber(resolved)} resolved
+            </p>
+          </div>
+          <span className="material-symbols-outlined text-label-tertiary group-hover:translate-x-1 transition-transform">
+            chevron_right
+          </span>
+        </div>
       </Link>
 
-      {/* Sparkline metrics - hidden on mobile */}
-      <div className="hidden md:flex flex-1 items-center justify-center gap-8">
-        <Sparkline data={analytics?.messages ?? emptyData} color="#1275CA" />
-        <Sparkline data={analytics?.conversations ?? emptyData} color="#1A1A2E" />
-        <Sparkline data={analytics?.resolved ?? emptyData} color="#6B8F71" />
-      </div>
-
-      {/* Status + Actions */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span
-          className={`w-2 h-2 rounded-full ${isActive ? 'bg-sage-500' : 'bg-label-quaternary'}`}
-          title={isActive ? 'Active' : 'Inactive'}
-        />
-        <Link
-          to={`/agents/${chatbot.public_id}`}
-          className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-black/[0.05] transition-colors"
-          title="Edit"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-label-quaternary group-hover:text-label-secondary transition-colors" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-        </Link>
-        <button
-          onClick={onDelete}
-          className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors"
-          title="Delete"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-label-quaternary hover:text-red-500 transition-colors" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
-      </div>
+      {/* Delete — revealed on hover, sits above the link */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete();
+        }}
+        title="Delete agent"
+        className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center
+                   bg-white/90 text-label-quaternary opacity-0 group-hover:opacity-100
+                   hover:bg-red-50 hover:text-red-500 transition-all"
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+          delete
+        </span>
+      </button>
     </div>
   );
 }
