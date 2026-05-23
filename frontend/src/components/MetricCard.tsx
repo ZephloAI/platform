@@ -36,7 +36,7 @@ function MetricCard({ label, value, series, trend }: MetricCardProps) {
         {trend && <TrendBadge trend={trend} />}
       </div>
       <div className="mt-2 flex items-end justify-between gap-3">
-        <h2 className="font-display text-[28px] font-bold text-label-primary tracking-tight leading-none tabular-nums">
+        <h2 className="metric-value">
           {value}
         </h2>
         <div className="w-20 h-10 shrink-0">

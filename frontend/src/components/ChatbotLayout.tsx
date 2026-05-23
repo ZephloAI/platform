@@ -186,7 +186,7 @@ function ChatbotLayout() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors ease-smooth text-left"
                       >
-                        <div className="w-5 h-5 rounded bg-accent-light flex items-center justify-center text-[9px] font-semibold text-accent shrink-0">
+                        <div className="w-5 h-5 rounded bg-accent-light flex items-center justify-center text-[10px] font-semibold text-accent shrink-0">
                           {c.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="truncate">{c.name}</span>

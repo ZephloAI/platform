@@ -188,7 +188,7 @@ function ConversationsSection() {
                   <VisitorAvatar size={11} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-display text-[15px] font-bold text-label-primary truncate">Visitor</span>
+                      <span className="heading-sm truncate">Visitor</span>
                       <span className="text-[11px] text-label-quaternary shrink-0">
                         {formatRelativeTime(session.last_message_at || session.created_at)}
                       </span>
@@ -245,7 +245,7 @@ function ConversationsSection() {
                 </button>
                 <VisitorAvatar size={10} />
                 <div className="min-w-0">
-                  <h3 className="font-display text-[16px] font-bold text-label-primary leading-tight">Visitor</h3>
+                  <h3 className="heading-sm leading-tight">Visitor</h3>
                   <p className="text-[12px] text-label-tertiary flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${isPerson ? 'bg-sage-500' : 'bg-accent'}`} />
                     {isPerson ? 'A teammate is replying' : 'AI is handling replies'}

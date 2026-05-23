@@ -79,7 +79,7 @@ function DashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="heading-xl">{firstName ? `Hi, ${firstName}` : 'Home'}</h1>
-          <p className="text-[15px] text-label-tertiary mt-1">
+          <p className="text-[16px] text-label-tertiary mt-1">
             Here's what's happening with your AI agents today.
           </p>
         </div>

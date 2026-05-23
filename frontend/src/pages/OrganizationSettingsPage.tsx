@@ -70,7 +70,7 @@ function OrganizationSettingsPage() {
   const orgName = activeOrg?.name || 'Organization';
 
   const navLinkClass = (active: boolean) =>
-    `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
+    `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-all duration-200 ${
       active
         ? 'bg-accent-light text-accent'
         : 'text-label-secondary hover:bg-surface-secondary hover:text-label-primary'
@@ -101,7 +101,7 @@ function OrganizationSettingsPage() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-blue-800 flex items-center justify-center text-white text-[11px] font-semibold shrink-0">
               {orgName.charAt(0).toUpperCase()}
             </div>
-            <span className="text-[13px] font-semibold font-display text-label-primary truncate flex-1 text-left">
+            <span className="text-[14px] font-semibold font-display text-label-primary truncate flex-1 text-left">
               {orgName}
             </span>
           </div>
@@ -113,81 +113,59 @@ function OrganizationSettingsPage() {
           <Link
             to="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 mb-2"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 mb-2"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+            <span className="material-symbols-outlined text-label-tertiary" style={{ fontSize: 20 }}>home</span>
             Home
           </Link>
 
           <div className="border-t border-black/[0.06] my-2" />
 
           {/* Users section */}
-          <p className="section-label px-3 py-1.5">
-            Users
-          </p>
-          <button
-            onClick={() => setActiveSection('members')}
-            className={navLinkClass(activeSection === 'members')}
-          >
-            <span className={activeSection === 'members' ? 'text-accent' : 'text-label-tertiary'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </span>
-            <span className="flex-1 text-left">Members</span>
-          </button>
-          <button
-            onClick={() => setActiveSection('invitations')}
-            className={navLinkClass(activeSection === 'invitations')}
-          >
-            <span className={activeSection === 'invitations' ? 'text-accent' : 'text-label-tertiary'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-              </svg>
-            </span>
-            <span className="flex-1 text-left">Invitations</span>
-          </button>
+          <p className="section-label px-3 py-1.5">Users</p>
+          {([
+            { key: 'members', label: 'Members', icon: 'group' },
+            { key: 'invitations', label: 'Invitations', icon: 'mail' },
+          ] as const).map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveSection(item.key)}
+              className={navLinkClass(activeSection === item.key)}
+            >
+              <span
+                className={`material-symbols-outlined ${activeSection === item.key ? 'text-accent' : 'text-label-tertiary'}`}
+                style={{ fontSize: 20 }}
+              >
+                {item.icon}
+              </span>
+              <span className="flex-1 text-left">{item.label}</span>
+            </button>
+          ))}
 
           <div className="border-t border-black/[0.06] my-2" />
 
-          {/* API Keys section */}
-          <p className="section-label px-3 py-1.5">
-            Developer
-          </p>
-          <button
-            onClick={() => setActiveSection('api-keys')}
-            className={navLinkClass(activeSection === 'api-keys')}
-          >
-            <span className={activeSection === 'api-keys' ? 'text-accent' : 'text-label-tertiary'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-              </svg>
+          {/* Developer section */}
+          <p className="section-label px-3 py-1.5">Developer</p>
+          <button onClick={() => setActiveSection('api-keys')} className={navLinkClass(activeSection === 'api-keys')}>
+            <span
+              className={`material-symbols-outlined ${activeSection === 'api-keys' ? 'text-accent' : 'text-label-tertiary'}`}
+              style={{ fontSize: 20 }}
+            >
+              key
             </span>
             <span className="flex-1 text-left">API Keys</span>
           </button>
 
           <div className="border-t border-black/[0.06] my-2" />
 
-          {/* Usage section */}
-          <p className="section-label px-3 py-1.5">
-            Billing
-          </p>
-          <button
-            onClick={() => setActiveSection('usage')}
-            className={navLinkClass(activeSection === 'usage')}
-          >
-            <span className={activeSection === 'usage' ? 'text-accent' : 'text-label-tertiary'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v18h18" />
-                <path d="M7 14l4-4 4 4 5-5" />
-              </svg>
+          {/* Billing section */}
+          <p className="section-label px-3 py-1.5">Billing</p>
+          <button onClick={() => setActiveSection('usage')} className={navLinkClass(activeSection === 'usage')}>
+            <span
+              className={`material-symbols-outlined ${activeSection === 'usage' ? 'text-accent' : 'text-label-tertiary'}`}
+              style={{ fontSize: 20 }}
+            >
+              bar_chart
             </span>
             <span className="flex-1 text-left">Usage</span>
           </button>
@@ -198,13 +176,9 @@ function OrganizationSettingsPage() {
           <Link
             to="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-label-tertiary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium text-label-tertiary hover:bg-surface-secondary hover:text-label-primary transition-all duration-200 w-full"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>help</span>
             Help
           </Link>
         </div>
@@ -220,15 +194,9 @@ function OrganizationSettingsPage() {
               onClick={() => setSidebarOpen(true)}
               className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-secondary transition-colors"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>menu</span>
             </button>
-            <h1 className="heading-md font-display text-label-primary">
-              {sectionTitle[activeSection]}
-            </h1>
+            <h1 className="heading-md">{sectionTitle[activeSection]}</h1>
           </div>
           <div className="relative" ref={accountRef}>
             <button
@@ -256,10 +224,7 @@ function OrganizationSettingsPage() {
                     onClick={() => setAccountOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-label-secondary hover:bg-surface-secondary hover:text-label-primary transition-colors"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                      <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>home</span>
                     Home
                   </Link>
                 </div>
@@ -268,11 +233,7 @@ function OrganizationSettingsPage() {
                     onClick={() => { setAccountOpen(false); logout(); }}
                     className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors w-full text-left"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
                     Sign Out
                   </button>
                 </div>
@@ -349,7 +310,7 @@ function MembersTab({
         members.map((member) => (
           <div
             key={member.id}
-            className="card flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-card-hover"
+            className="bg-white hairline-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-sm"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center text-[14px] font-semibold text-label-secondary shrink-0">
@@ -481,9 +442,9 @@ function ApiKeysTab({
           {apiKeys.map((key) => (
             <div
               key={key.id}
-              className={`card flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-3 transition-all ${
+              className={`bg-white hairline-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-3 transition-all ${
                 key.is_active
-                  ? 'hover:shadow-card-hover'
+                  ? 'hover:shadow-sm'
                   : 'opacity-50'
               }`}
             >
@@ -529,9 +490,7 @@ function ApiKeysTab({
           <div className="bg-white rounded-2xl shadow-card-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
+                <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 18 }}>key</span>
               </div>
               <h3 className="text-[16px] font-semibold font-display text-label-primary">
                 API Key Created
@@ -662,7 +621,7 @@ function InvitationsTab({
           {invitations.map((inv) => (
             <div
               key={inv.id}
-              className="card flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-card-hover"
+              className="bg-white hairline-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition-all duration-200 hover:shadow-sm"
             >
               <div className="min-w-0">
                 <p className="text-[14px] font-medium text-label-primary truncate">
@@ -729,7 +688,7 @@ function UsageTab({ orgId }: { orgId: number }) {
   return (
     <div className="space-y-5">
       {usage.is_suspended && (
-        <div className="card p-4 border border-red-200 bg-red-50">
+        <div className="rounded-xl p-4 border border-red-200 bg-red-50">
           <p className="text-[13px] font-medium text-red-700">
             This organization is suspended. Chat is disabled. Contact support to
             reactivate.
@@ -737,7 +696,7 @@ function UsageTab({ orgId }: { orgId: number }) {
         </div>
       )}
 
-      <div className="card p-5 flex items-center justify-between">
+      <div className="bg-white hairline-border rounded-xl p-5 flex items-center justify-between">
         <div>
           <p className="text-[12px] uppercase tracking-wide text-label-quaternary">Plan</p>
           <p className="text-[18px] font-semibold font-display text-label-primary mt-1 capitalize">
@@ -795,7 +754,7 @@ function UsageMeter({
     : 'bg-accent';
 
   return (
-    <div className="card p-4">
+    <div className="bg-white hairline-border rounded-xl p-4">
       <p className="text-[12px] uppercase tracking-wide text-label-quaternary">
         {label}
       </p>

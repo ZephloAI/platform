@@ -120,7 +120,7 @@ function ChatWidget({ chatbotId }: ChatWidgetProps) {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p className="text-[15px] font-medium text-label-primary mb-1">Start a conversation</p>
+            <p className="text-[16px] font-medium text-label-primary mb-1">Start a conversation</p>
             <p className="text-[13px] text-label-tertiary">
               Ask anything about the website content.
             </p>

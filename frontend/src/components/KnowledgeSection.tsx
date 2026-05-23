@@ -333,7 +333,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
                 ].map((s) => (
                   <div key={s.label} className="p-4 bg-surface-secondary/50 rounded-lg border border-black/[0.04]">
                     <p className="text-[12px] text-label-tertiary mb-1">{s.label}</p>
-                    <p className="font-display text-[24px] font-bold text-label-primary tabular-nums">{s.value}</p>
+                    <p className="metric-value text-[22px]">{s.value}</p>
                     <p className="text-[12px] text-label-tertiary mt-1">{s.sub}</p>
                   </div>
                 ))}

@@ -157,7 +157,7 @@ Zephlo.initialize({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="font-display text-[24px] md:text-[30px] font-bold tracking-tight text-label-primary truncate">
+              <h2 className="heading-xl truncate">
                 {chatbot.name}
               </h2>
               {chatbot.is_active ? (
@@ -172,7 +172,7 @@ Zephlo.initialize({
                 </span>
               )}
             </div>
-            <p className="text-[15px] text-label-tertiary mt-1.5 line-clamp-2">
+            <p className="text-[16px] text-label-tertiary mt-1.5 line-clamp-2">
               {chatbot.description || 'No description yet — add one in Details.'}
             </p>
           </div>
@@ -212,7 +212,7 @@ Zephlo.initialize({
               <TrendBadge trend={tile.trend} />
             </div>
             <h4 className="text-[13px] font-medium text-label-tertiary">{tile.label}</h4>
-            <p className="font-display text-[28px] md:text-[32px] font-bold text-label-primary tracking-tight mt-1 tabular-nums">
+            <p className="metric-value mt-1">
               {tile.value}
             </p>
             <p className="mt-3 text-[12px] text-label-quaternary">{tile.caption}</p>
