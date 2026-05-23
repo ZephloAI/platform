@@ -152,8 +152,12 @@ Zephlo.initialize({
       {/* Hero: agent identity + status toggle */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white hairline-border p-6 md:p-8 rounded-3xl blue-glow-card">
         <div className="flex items-center gap-5 min-w-0">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-accent/5 rounded-2xl flex items-center justify-center text-accent shrink-0">
-            <span className="material-symbols-outlined fill" style={{ fontSize: 38 }}>smart_toy</span>
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-accent/5 rounded-2xl flex items-center justify-center text-accent shrink-0 overflow-hidden">
+            {chatbot.widget_logo_url ? (
+              <img src={chatbot.widget_logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="material-symbols-outlined fill" style={{ fontSize: 38 }}>smart_toy</span>
+            )}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">

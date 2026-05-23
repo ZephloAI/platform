@@ -22,27 +22,13 @@ interface StatusInfo {
   detail: string;
 }
 
-/** Map an agent's raw state to a pill + a human-readable detail line. */
+/** Show a simple Active / Inactive state driven by the agent's is_active flag. */
 function resolveStatus(chatbot: Chatbot): StatusInfo {
-  if (!chatbot.is_active) {
-    return { key: 'suspended', label: 'Suspended', detail: 'Deactivated' };
-  }
-  if (chatbot.status === 'crawling') {
-    const pages = chatbot.crawl_jobs?.find((j) => j.status === 'in_progress')?.pages_crawled;
-    return {
-      key: 'crawling',
-      label: 'Crawling',
-      detail: pages ? `Indexed ${formatCompactNumber(pages)} pages…` : 'Crawling website…',
-    };
-  }
-  if (chatbot.status === 'ready' || chatbot.status === 'active') {
+  if (chatbot.is_active) {
     const when = chatbot.last_crawled_at || chatbot.created_at;
     return { key: 'active', label: 'Active', detail: `Updated ${formatRelativeTime(when)}` };
   }
-  if (chatbot.status === 'error') {
-    return { key: 'not-ready', label: 'Not Ready', detail: 'Needs attention' };
-  }
-  return { key: 'not-ready', label: 'Not Ready', detail: 'Awaiting setup' };
+  return { key: 'not-ready', label: 'Inactive', detail: 'Currently disabled' };
 }
 
 function ChatbotCard({ chatbot, metrics, onDelete }: ChatbotCardProps) {
@@ -56,12 +42,16 @@ function ChatbotCard({ chatbot, metrics, onDelete }: ChatbotCardProps) {
       <Link
         to={`/agents/${chatbot.public_id}`}
         className={`flex items-center justify-between gap-4 bg-white hairline-border rounded-xl p-5 hover:bg-surface-secondary/60 hover:shadow-sm transition-all ${
-          status.key === 'suspended' ? 'opacity-80' : ''
+          chatbot.is_active ? '' : 'opacity-80'
         }`}
       >
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-14 h-14 rounded-full bg-surface-tertiary flex items-center justify-center text-3xl shrink-0">
-            🤖
+          <div className="w-14 h-14 rounded-full bg-surface-tertiary flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+            {chatbot.widget_logo_url ? (
+              <img src={chatbot.widget_logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              '🤖'
+            )}
           </div>
           <div className="min-w-0">
             <h4 className="heading-md truncate">{chatbot.name}</h4>
