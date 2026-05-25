@@ -1,16 +1,19 @@
 """Periodic re-crawl scheduler using APScheduler."""
 
-import asyncio
 from datetime import datetime, timedelta, timezone
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select
 
 from app.database import async_session
 from app.models.chatbot import Chatbot
 from app.services.crawl_service import CrawlService
 
-scheduler = BackgroundScheduler()
+# AsyncIOScheduler runs jobs as coroutines on the app's running event loop.
+# This is required because our DB connections live on that same loop - using a
+# BackgroundScheduler (separate thread + asyncio.run) would create a new event
+# loop per run and corrupt the shared connection pool.
+scheduler = AsyncIOScheduler()
 
 
 async def _check_recrawls():
@@ -40,14 +43,11 @@ async def _check_recrawls():
             await crawl_service.start_auto_recrawl(chatbot.id)
 
 
-def _run_check():
-    """Wrapper to run the async check in a new event loop."""
-    asyncio.run(_check_recrawls())
-
-
 def start_scheduler():
     """Start the background scheduler."""
-    scheduler.add_job(_run_check, "interval", hours=2, id="recrawl_check")
+    # The coroutine is scheduled directly - AsyncIOScheduler awaits it on the
+    # app's event loop, so DB sessions reuse the same loop as the engine.
+    scheduler.add_job(_check_recrawls, "interval", hours=2, id="recrawl_check")
     scheduler.start()
     print("Re-crawl scheduler started (checking every 2 hours)")
 
