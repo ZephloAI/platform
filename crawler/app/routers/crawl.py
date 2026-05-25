@@ -2,40 +2,25 @@
 Crawl API endpoints.
 
 Provides:
-  - POST /discover  -- discover all URLs on a site (synchronous)
+  - GET  /discover  -- stream discovered URLs live as Server-Sent Events
   - POST /crawl     -- start a background crawl job
   - GET  /health    -- service health check
 """
 
+import json
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.crawler import discover_urls
 from app.orchestrator import run_crawl_job, run_document_job, run_text_job
+from app.scrapy_runner import stream_discovery
 
 router = APIRouter()
 
 
 # -- Request / Response models --
-
-class DiscoverRequest(BaseModel):
-    """Request body for URL discovery."""
-    website_url: str
-    max_pages: int = 50
-
-
-class DiscoveredUrl(BaseModel):
-    """A single discovered URL with its page title."""
-    url: str
-    title: str = ""
-
-
-class DiscoverResponse(BaseModel):
-    """Response containing all discovered URLs on a site."""
-    urls: list[DiscoveredUrl]
-
 
 class CrawlRequest(BaseModel):
     """Request body for starting a crawl job."""
@@ -57,20 +42,34 @@ class CrawlResponse(BaseModel):
 
 # -- Endpoints --
 
-@router.post("/discover", response_model=DiscoverResponse)
-async def discover(request: DiscoverRequest):
+@router.get("/discover")
+async def discover(website_url: str, max_pages: int = 50):
     """
-    Discover all reachable URLs on a website.
+    Stream discovered URLs on a website as Server-Sent Events.
 
-    Spiders the site and returns a list of URLs with page titles.
-    This is synchronous -- the caller waits until discovery is done.
-    Use the results to let the user pick which pages to crawl.
+    Spiders the site and emits each page the moment it's found:
+      - data: {"url": ..., "title": ...}   for every page
+      - event: complete                    when discovery finishes
+      - event: error                       if the crawl fails
+
+    Streaming lets the dashboard show pages live over a single request,
+    instead of waiting for the whole site to be spidered.
     """
-    urls = await discover_urls(
-        website_url=request.website_url,
-        max_pages=request.max_pages,
+    async def event_stream():
+        count = 0
+        try:
+            async for page in stream_discovery(website_url, max_pages):
+                count += 1
+                yield f"data: {json.dumps(page)}\n\n"
+            yield f"event: complete\ndata: {json.dumps({'count': count})}\n\n"
+        except Exception as e:
+            yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-    return DiscoverResponse(urls=[DiscoveredUrl(**u) for u in urls])
 
 
 @router.post("/crawl", response_model=CrawlResponse)

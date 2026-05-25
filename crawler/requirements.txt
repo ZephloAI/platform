@@ -1,6 +1,15 @@
 fastapi==0.110.0
 uvicorn[standard]==0.27.1
-crawl4ai==0.4.247
+scrapy==2.11.2
+# Pin Twisted: Scrapy 2.11.2 imports twisted.internet._sslverify._setAcceptableProtocols,
+# which newer Twisted (24.7+) removed. Without this pin the download handlers fail to load
+# and the spider can't fetch anything.
+Twisted==24.3.0
+scrapy-playwright==0.0.34
+# Pin Playwright so the runtime matches the Chromium baked into the base image
+# (Dockerfile.base installs this same version before `playwright install chromium`).
+playwright==1.60.0
+trafilatura==1.12.2
 sentence-transformers==3.4.1
 qdrant-client==1.12.1
 httpx==0.27.0

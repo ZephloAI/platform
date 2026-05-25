@@ -95,21 +95,6 @@ export function useDeleteChatbot() {
 }
 
 /**
- * Discover all URLs on a website. Accepts chatbotId and the website URL to spider.
- */
-export function useDiscoverUrls() {
-  return useMutation({
-    mutationFn: ({
-      chatbotId,
-      websiteUrl,
-    }: {
-      chatbotId: string;
-      websiteUrl: string;
-    }) => chatbotApi.discoverUrls(chatbotId, websiteUrl),
-  });
-}
-
-/**
  * Start a crawl job for a chatbot. Accepts optional selected URLs.
  * Invalidates the chatbot detail on success.
  */

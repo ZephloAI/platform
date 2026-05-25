@@ -7,6 +7,7 @@ crawl job details.
 """
 
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import HTTPException, status
@@ -24,50 +25,25 @@ class CrawlService:
         self.crawl_job_repo = CrawlJobRepository(db)
         self.chatbot_repo = ChatbotRepository(db)
 
-    async def discover_urls(
-        self, chatbot_id: int, user_id: int, website_url: str
-    ) -> dict:
+    async def stream_discovery(self, website_url: str):
         """
-        Discover URLs on a website.
+        Stream the crawler's live URL-discovery feed straight to the client.
 
-        Proxies the request to the crawler service's /discover endpoint
-        and returns the list of discovered URLs. The website_url is provided
-        by the caller (not stored on the chatbot).
+        Opens a streaming GET to the crawler's /discover endpoint (which emits
+        Server-Sent Events as it spiders the site) and re-yields each chunk.
+        timeout=None because the stream stays open for the whole crawl.
 
-        Raises 404 if chatbot not found or not owned by user.
-        Raises 502 if the crawler service is unreachable or returns an error.
+        Ownership is verified by the caller before this generator runs.
         """
-        # Verify ownership
-        chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
-        if not chatbot or chatbot.user_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Agent not found",
-            )
-
-        # Call the crawler service's discover endpoint
-        try:
-            client = get_client()
-            response = await client.post(
-                f"{settings.CRAWLER_SERVICE_URL}/discover",
-                json={
-                    "website_url": website_url,
-                    "max_pages": 50,
-                },
-                timeout=300.0,
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.RequestError:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Crawler service is unreachable",
-            )
-        except httpx.HTTPStatusError:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Crawler service returned an error",
-            )
+        client = get_client()
+        async with client.stream(
+            "GET",
+            f"{settings.CRAWLER_SERVICE_URL}/discover",
+            params={"website_url": website_url, "max_pages": 50},
+            timeout=None,
+        ) as response:
+            async for chunk in response.aiter_bytes():
+                yield chunk
 
     async def start_crawl(
         self,
@@ -95,8 +71,10 @@ class CrawlService:
                 detail="Agent not found",
             )
 
-        # Create the crawl job
-        crawl_job = await self.crawl_job_repo.create(chatbot_id=chatbot_id)
+        # Create the crawl job (record how many pages it will crawl for progress)
+        crawl_job = await self.crawl_job_repo.create(
+            chatbot_id=chatbot_id, total_pages=len(selected_urls)
+        )
 
         # Mark the chatbot as "crawling" and save selected URLs for re-crawl
         await self.chatbot_repo.update(chatbot_id, status="crawling", crawled_urls=selected_urls)
@@ -126,10 +104,18 @@ class CrawlService:
         return crawl_job
 
     async def update_crawl_status(
-        self, crawl_job_id: int, job_status: str, pages_crawled: int
+        self,
+        crawl_job_id: int,
+        job_status: str,
+        pages_crawled: int,
+        page: dict | None = None,
+        total_pages: int | None = None,
     ) -> CrawlJob:
         """
         Update a crawl job's status (called by the crawler service callback).
+
+        If `page` is given (the page just crawled, {url, title}), it's appended
+        to the job's crawled_pages list so the dashboard can show pages live.
 
         Also updates the chatbot status:
         - "completed" crawl -> chatbot becomes "ready"
@@ -147,6 +133,15 @@ class CrawlService:
             "status": job_status,
             "pages_crawled": pages_crawled,
         }
+
+        # Keep the real total in sync (re-crawl re-discovers, so it can change)
+        if total_pages is not None:
+            update_fields["total_pages"] = total_pages
+
+        # Append the just-crawled page (reassign a new list so SQLAlchemy
+        # detects the change on the JSON column)
+        if page is not None:
+            update_fields["crawled_pages"] = list(crawl_job.crawled_pages or []) + [page]
 
         # Set completed_at timestamp for terminal states
         if job_status in ("completed", "failed"):
@@ -166,40 +161,64 @@ class CrawlService:
 
         return updated_job
 
+    @staticmethod
+    def _discovery_seed(chatbot) -> str | None:
+        """
+        The URL to re-discover from on a re-crawl.
+
+        Prefer the chatbot's saved website_url; otherwise fall back to the root
+        of the first previously-crawled URL, so agents crawled before we stored
+        a website_url still re-crawl correctly.
+        """
+        if chatbot.website_url:
+            return chatbot.website_url
+        for url in (chatbot.crawled_urls or []):
+            parsed = urlparse(url)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}/"
+        return None
+
     async def start_recrawl(self, chatbot_id: int, user_id: int) -> CrawlJob:
-        """Start a re-crawl using stored URLs (user-initiated, with ownership check)."""
+        """Re-crawl a chatbot: re-discover its site, then crawl (user-initiated)."""
         chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
         if not chatbot or chatbot.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Agent not found",
             )
-        if not chatbot.crawled_urls:
+        if not self._discovery_seed(chatbot):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No previous crawl URLs found. Crawl the website first.",
+                detail="No website to re-crawl. Crawl a website first.",
             )
         return await self._do_recrawl(chatbot)
 
     async def start_auto_recrawl(self, chatbot_id: int) -> CrawlJob | None:
-        """Start a re-crawl using stored URLs (called by scheduler, no ownership check)."""
+        """Re-crawl a chatbot (called by scheduler, no ownership check)."""
         chatbot = await self.chatbot_repo.get_by_id(chatbot_id)
-        if not chatbot or not chatbot.crawled_urls:
+        if not chatbot or not self._discovery_seed(chatbot):
             return None
         return await self._do_recrawl(chatbot)
 
     async def _do_recrawl(self, chatbot) -> CrawlJob:
-        """Shared logic for re-crawling a chatbot using its stored URLs."""
-        crawl_job = await self.crawl_job_repo.create(chatbot_id=chatbot.id)
+        """
+        Shared re-crawl logic: tell the crawler to re-discover the site (no
+        selected_urls), then crawl what it finds. total_pages starts as an
+        estimate from the last crawl and is corrected once discovery completes.
+        """
+        crawl_job = await self.crawl_job_repo.create(
+            chatbot_id=chatbot.id, total_pages=len(chatbot.crawled_urls or [])
+        )
         await self.chatbot_repo.update(chatbot.id, status="crawling")
 
         crawler_payload = {
             "crawl_job_id": crawl_job.id,
             "chatbot_id": chatbot.id,
             "chatbot_name": chatbot.name,
-            "website_url": chatbot.website_url or "",
+            "website_url": self._discovery_seed(chatbot) or "",
             "callback_url": f"{settings.API_CALLBACK_URL}/api/internal/crawl-jobs/{crawl_job.id}",
-            "selected_urls": chatbot.crawled_urls,
+            # No selected_urls -> the crawler re-discovers from website_url first.
+            "selected_urls": None,
         }
 
         try:

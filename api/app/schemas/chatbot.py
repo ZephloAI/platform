@@ -100,6 +100,8 @@ class ChatbotDetailResponse(ChatbotResponse):
     crawl_jobs: list[CrawlJobResponse] = []
     documents: list[DocumentResponse] = []
     agent_texts: list[AgentTextResponse] = []
+    # Previously crawled URLs, used by the dashboard to seed re-discovery on re-crawl.
+    crawled_urls: list[str] | None = None
 
 
 class WidgetSettingsUpdate(BaseModel):

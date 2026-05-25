@@ -1,0 +1,33 @@
+# Build & push the agent BASE image (flunkie/agent-base).
+#
+# This carries the heavy, slow-changing layers (CPU PyTorch, sentence-transformers,
+# the pre-downloaded embedding model). The normal agent build in ci.yml just
+# installs the app deps and layers code on top of it, so it stays fast.
+#
+# Triggered manually only (Actions tab -> "Run workflow"). Run it when the
+# agent's dependencies or base Dockerfile change. After it pushes, re-run
+# ci.yml (or push any commit) so the agent image picks up the new base.
+name: Agent Base Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push-base:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build and push agent-base
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/agent-base"
+          docker build --platform linux/amd64 \
+            -f agent/Dockerfile.base \
+            -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \
+            agent
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"

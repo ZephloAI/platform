@@ -1,39 +1,23 @@
-# Stage 1: Build dependencies
-FROM python:3.13-slim AS builder
+# Agent RUNTIME image.
+#
+# The heavy setup (CPU PyTorch, the pre-downloaded embedding model) lives in the
+# base image — built from Dockerfile.base and published to Docker Hub as
+# flunkie/agent-base. Here we install the app's Python deps and copy the code,
+# so this build is fast.
+#
+# When you change requirements.txt, this rebuilds quickly; rebuild & push the
+# base image only when torch / the model / sentence-transformers change.
+
+ARG AGENT_BASE=flunkie/agent-base:latest
+FROM ${AGENT_BASE}
 
 WORKDIR /app
-
-RUN pip install --no-cache-dir --upgrade pip wheel
-
-# CPU-only PyTorch (no CUDA libs ~1.5GB saved)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download the embedding model so it's cached in the image
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
-
-
-# Stage 2: Final slim image
-FROM python:3.13-slim
-
-WORKDIR /app
-
-# Copy installed packages and cached HF model from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /root/.cache/huggingface /home/appuser/.cache/huggingface
-
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
-    mkdir -p /home/appuser/.cache && \
-    chown -R appuser:appuser /home/appuser
-
-ENV HF_HOME=/home/appuser/.cache/huggingface
-
-COPY . .
-RUN chown -R appuser:appuser /app
+# Copy the application code, owned by the non-root user created in the base image
+COPY --chown=appuser:appuser . .
 
 USER appuser
 

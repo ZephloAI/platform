@@ -6,10 +6,12 @@ into a single end-to-end pipeline. Sends progress callbacks to the
 API service at each stage.
 """
 
+import asyncio
+
 import httpx
 
 from app.config import settings
-from app.crawler import crawl_website, crawl_selected_urls
+from app.scrapy_runner import stream_crawl, stream_discovery
 from app.chunker import chunk_text
 from app.embedder import generate_embeddings
 from app.indexer import create_collection, ensure_collection, delete_web_points, index_chunks
@@ -39,45 +41,50 @@ async def run_crawl_job(
     selected_urls: list[str] | None = None,
 ):
     """
-    Run the full crawl pipeline as a background task.
+    Run the crawl pipeline as a background task.
+
+    There are two ways the page list is determined:
+      - selected_urls given  -> crawl exactly those (a normal crawl, after the
+        user picked pages in the streamed /discover step).
+      - selected_urls empty  -> re-discover website_url first, then crawl what we
+        find (a re-crawl, so new/removed pages are picked up).
+
+    Each page is chunked, embedded, and indexed the moment Scrapy delivers it,
+    and a progress callback is sent to the API after each one.
 
     Steps:
       1. Notify API that crawl is in progress
-      2. Crawl the website -- either spider the whole site OR fetch only
-         the user-selected URLs if provided
-      3. Create a fresh Qdrant collection for the chatbot
-      4. For each page: chunk text -> embed chunks -> store in Qdrant
-      5. Send progress updates after each page
+      2. Determine the URL list (selected, or freshly discovered)
+      3. Make a fresh start for web content in Qdrant (keeps documents/text)
+      4. Stream pages from Scrapy; for each: chunk -> embed -> index
+      5. Send a progress update after each page
       6. Notify API when complete (or on failure)
-
-    Args:
-        selected_urls: If provided, only these URLs are crawled (no link
-            following). This is used after the user picks pages from the
-            /discover endpoint.
     """
     try:
         # Step 1: Tell the API we've started
         await send_callback(callback_url, {"status": "in_progress"})
 
-        # Step 2: Crawl the website
+        # Step 2: Decide which URLs to crawl.
         if selected_urls:
-            # User picked specific pages -- crawl only those
-            print(
-                f"Starting selective crawl for chatbot {chatbot_id}: "
-                f"{len(selected_urls)} URLs"
-            )
-            pages = await crawl_selected_urls(selected_urls)
+            # Normal crawl: the user already picked these pages during discovery.
+            urls = selected_urls
+            print(f"Starting crawl for chatbot {chatbot_id}: {len(urls)} selected URLs")
+        elif website_url:
+            # Re-crawl: re-discover the site first so pages added or removed since
+            # the last crawl are picked up, then crawl whatever we find.
+            print(f"Re-discovering {website_url} for chatbot {chatbot_id}")
+            urls = [
+                page["url"]
+                async for page in stream_discovery(website_url, settings.MAX_PAGES)
+            ]
+            print(f"Re-discovery found {len(urls)} pages")
         else:
-            # No selection -- spider the whole site as before
-            print(f"Starting crawl for chatbot {chatbot_id}: {website_url}")
-            pages = await crawl_website(website_url, max_pages=settings.MAX_PAGES)
+            urls = []
 
-        print(f"Crawled {len(pages)} pages from {website_url}")
-
-        if not pages:
+        if not urls:
             await send_callback(callback_url, {
                 "status": "failed",
-                "error": "No pages could be crawled from the website",
+                "error": "No URLs were provided or discovered to crawl",
             })
             return
 
@@ -86,61 +93,74 @@ async def run_crawl_job(
         ensure_collection(chatbot_name, chatbot_id)
         delete_web_points(chatbot_name, chatbot_id)
 
-        # Step 4: Process each page
+        # Now that we know the real page count, tell the API (a re-crawl's total
+        # can differ from the original since we just re-discovered).
+        await send_callback(callback_url, {
+            "status": "in_progress",
+            "pages_crawled": 0,
+            "total_pages": len(urls),
+        })
+
+        # Step 4: Stream pages from Scrapy and index each as it arrives
         total_chunks_indexed = 0
-        for i, page in enumerate(pages):
-            # Skip pages with no content
-            if not page["content"]:
-                continue
+        pages_done = 0
+        async for page in stream_crawl(urls):
+            pages_done += 1
+            content = page.get("content") or ""
 
-            # Chunk the page text
-            chunks = chunk_text(
-                page["content"],
-                chunk_size=settings.CHUNK_SIZE,
-                overlap=settings.CHUNK_OVERLAP,
-            )
+            if content:
+                chunks = chunk_text(
+                    content,
+                    chunk_size=settings.CHUNK_SIZE,
+                    overlap=settings.CHUNK_OVERLAP,
+                )
+                if chunks:
+                    # Embed + index off the event loop so Scrapy can keep
+                    # fetching the next pages while this one is processed.
+                    embeddings = await asyncio.to_thread(generate_embeddings, chunks)
+                    chunk_objects = [
+                        {
+                            "text": text,
+                            "embedding": embedding,
+                            "url": page["url"],
+                            "title": page.get("title", page["url"]),
+                            "source_type": "web",
+                        }
+                        for text, embedding in zip(chunks, embeddings)
+                    ]
+                    await asyncio.to_thread(
+                        index_chunks, chatbot_name, chatbot_id, chunk_objects
+                    )
+                    total_chunks_indexed += len(chunk_objects)
 
-            if not chunks:
-                continue
-
-            # Generate embeddings for all chunks in this page
-            embeddings = generate_embeddings(chunks)
-
-            # Build chunk objects with metadata for Qdrant
-            chunk_objects = []
-            for text, embedding in zip(chunks, embeddings):
-                chunk_objects.append({
-                    "text": text,
-                    "embedding": embedding,
-                    "url": page["url"],
-                    "title": page["title"],
-                    "source_type": "web",
-                })
-
-            # Store in Qdrant
-            index_chunks(chatbot_name, chatbot_id, chunk_objects)
-            total_chunks_indexed += len(chunk_objects)
-
-            # Send progress update after each page
+            # Step 4: Send progress update after each page, including which page
+            # was just crawled so the dashboard can show them appear live.
             await send_callback(callback_url, {
                 "status": "in_progress",
-                "pages_crawled": i + 1,
-                "total_pages": len(pages),
+                "pages_crawled": pages_done,
+                "total_pages": len(urls),
+                "page": {"url": page["url"], "title": page.get("title", page["url"])},
             })
+
+        if pages_done == 0:
+            await send_callback(callback_url, {
+                "status": "failed",
+                "error": "No pages could be crawled from the website",
+            })
+            return
 
         # Step 5: Done -- notify API
         print(
             f"Crawl complete for chatbot {chatbot_id}: "
-            f"{len(pages)} pages, {total_chunks_indexed} chunks indexed"
+            f"{pages_done} pages, {total_chunks_indexed} chunks indexed"
         )
         await send_callback(callback_url, {
             "status": "completed",
-            "pages_crawled": len(pages),
+            "pages_crawled": pages_done,
             "chunks_indexed": total_chunks_indexed,
         })
 
     except Exception as e:
-        # Step 6: On any error, report failure
         print(f"Crawl failed for chatbot {chatbot_id}: {e}")
         await send_callback(callback_url, {
             "status": "failed",
