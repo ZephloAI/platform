@@ -1,0 +1,78 @@
+# Crawler BASE image — built once and pushed to Docker Hub as flunkie/crawler-base.
+#
+# It bakes in everything heavy and slow to set up:
+#   - CPU-only PyTorch
+#   - the Playwright Chromium browser (for the JS/SPA fallback) + its system libs
+#   - the pre-downloaded embedding model
+#   - the non-root appuser
+#
+# The application's Python dependencies are NOT installed here — the runtime
+# Dockerfile runs `pip install -r requirements.txt`, so you can change deps
+# without rebuilding this heavy image. Only the two packages the base's OWN setup
+# steps need are installed here: playwright (to fetch Chromium) and
+# sentence-transformers (to pre-cache the model). Keep their versions in sync
+# with requirements.txt so the baked browser/model match what the app uses.
+#
+# Rebuild & re-push this image when the browser, the model, torch, or those two
+# pinned versions change:
+#   docker build --platform linux/amd64 -f Dockerfile.base \
+#       -t flunkie/crawler-base:latest -t flunkie/crawler-base:1.0 .
+#   docker push flunkie/crawler-base:latest && docker push flunkie/crawler-base:1.0
+
+# Stage 1: Build dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade pip wheel
+
+# Install system deps needed for building some packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg2 build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# CPU-only PyTorch (no CUDA libs ~1.5GB saved)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Only the packages the base's own setup steps need (browser + model). Versions
+# kept in sync with requirements.txt so the baked artifacts match the runtime.
+RUN pip install --no-cache-dir playwright==1.60.0 sentence-transformers==3.4.1
+
+# Install the Chromium browser used by scrapy-playwright for JS/SPA fallback
+RUN playwright install chromium
+
+# Pre-download the embedding model so it's cached in the image
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Stage 2: Final slim base (no app code, no app deps)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only runtime system deps (Chromium needs these)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg2 \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 libatspi2.0-0 \
+    fonts-liberation && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages, Playwright browsers, and cached HF model from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
+COPY --from=builder /root/.cache/huggingface /home/appuser/.cache/huggingface
+
+# Create non-root user and move the browser cache into its home
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
+    mkdir -p /home/appuser/.cache && \
+    mv /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright && \
+    chown -R appuser:appuser /home/appuser
+
+ENV HF_HOME=/home/appuser/.cache/huggingface
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+
+EXPOSE 8001
+
+# No app code, no app deps, no CMD here — the runtime image (Dockerfile) adds those.

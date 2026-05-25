@@ -1,0 +1,54 @@
+# Agent BASE image — built once and pushed to Docker Hub as flunkie/agent-base.
+#
+# It bakes in the heavy, slow-to-set-up parts:
+#   - CPU-only PyTorch
+#   - the pre-downloaded embedding model
+#   - the non-root appuser
+#
+# The application's Python dependencies are NOT installed here — the runtime
+# Dockerfile runs `pip install -r requirements.txt`, so you can change deps
+# without rebuilding this heavy image. Only sentence-transformers (needed to
+# pre-cache the model) is installed here.
+#
+# Rebuild & re-push this image when torch, the model, or the sentence-transformers
+# version change:
+#   docker build --platform linux/amd64 -f Dockerfile.base \
+#       -t flunkie/agent-base:latest -t flunkie/agent-base:1.0 .
+#   docker push flunkie/agent-base:latest && docker push flunkie/agent-base:1.0
+
+# Stage 1: Build dependencies
+FROM python:3.13-slim AS builder
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade pip wheel
+
+# CPU-only PyTorch (no CUDA libs ~1.5GB saved)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Only what the model pre-download needs (kept in sync with requirements.txt)
+RUN pip install --no-cache-dir sentence-transformers
+
+# Pre-download the embedding model so it's cached in the image
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Stage 2: Final slim base (no app code, no app deps)
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Copy installed packages and cached HF model from builder
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /root/.cache/huggingface /home/appuser/.cache/huggingface
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
+    mkdir -p /home/appuser/.cache && \
+    chown -R appuser:appuser /home/appuser
+
+ENV HF_HOME=/home/appuser/.cache/huggingface
+
+EXPOSE 8002
+
+# No app code, no app deps, no CMD here — the runtime image (Dockerfile) adds those.
