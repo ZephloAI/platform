@@ -50,14 +50,63 @@ export async function deleteChatbot(chatbotId: string): Promise<void> {
 
 // --- Knowledge / Crawling ---
 
-export async function discoverUrls(
+/**
+ * Discover all pages on a website.
+ *
+ * Discovery is a live stream (Server-Sent Events). The dashboard renders pages
+ * incrementally via the useDiscoverStream hook; this helper instead collects the
+ * whole stream and resolves once with the full list, for callers that just need
+ * the final result (e.g. the dashboard AI assistant's tools).
+ */
+export function discoverUrls(
   chatbotId: string,
   websiteUrl: string,
 ): Promise<{ urls: DiscoveredUrl[] }> {
-  const response = await apiClient.post(`/api/agents/${chatbotId}/discover`, {
-    website_url: websiteUrl,
+  return new Promise((resolve, reject) => {
+    const base = import.meta.env.VITE_API_URL || '';
+    const token = localStorage.getItem('token') ?? '';
+    const url =
+      `${base}/api/agents/${chatbotId}/discover/stream` +
+      `?website_url=${encodeURIComponent(websiteUrl)}&token=${encodeURIComponent(token)}`;
+
+    const es = new EventSource(url);
+    const urls: DiscoveredUrl[] = [];
+    const seen = new Set<string>();
+    let done = false;
+
+    es.onmessage = (event) => {
+      try {
+        const page = JSON.parse(event.data) as DiscoveredUrl;
+        if (!seen.has(page.url)) {
+          seen.add(page.url);
+          urls.push(page);
+        }
+      } catch {
+        /* ignore a malformed line */
+      }
+    };
+
+    es.addEventListener('complete', () => {
+      done = true;
+      es.close();
+      resolve({ urls });
+    });
+
+    es.addEventListener('error', (event) => {
+      if (done) return; // the close that follows a clean complete
+      es.close();
+      const data = (event as MessageEvent).data;
+      if (data) {
+        try {
+          reject(new Error(JSON.parse(data).message || 'Discovery failed.'));
+        } catch {
+          reject(new Error('Discovery failed.'));
+        }
+      } else {
+        reject(new Error('Lost connection while discovering pages.'));
+      }
+    });
   });
-  return response.data;
 }
 
 export async function startCrawl(

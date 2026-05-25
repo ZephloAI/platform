@@ -126,6 +126,8 @@ export interface Chatbot {
   is_active: boolean;
   created_at: string;
   crawl_jobs?: CrawlJob[];
+  // Previously crawled URLs (detail response only); used to seed re-discovery on re-crawl.
+  crawled_urls?: string[] | null;
   widget_icon: string | null;
   widget_welcome: string | null;
   widget_position: string | null;
@@ -234,6 +236,10 @@ export interface CrawlJob {
   pages_crawled: number;
   started_at: string;
   completed_at?: string;
+  // Present only on the single-job detail endpoint (GET /crawl-jobs/{id}),
+  // used for the live per-page view while a crawl is in progress.
+  total_pages?: number | null;
+  crawled_pages?: DiscoveredUrl[] | null;
 }
 
 /** A URL discovered during site discovery */

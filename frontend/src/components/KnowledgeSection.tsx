@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useStartCrawl, useDiscoverUrls, useUploadDocument, useDeleteDocument, useReplaceDocument, useUpdateChatbot, useRecrawl, useCreateText, useUpdateText, useDeleteText } from '../hooks/useChatbots';
+import { useState, useEffect } from 'react';
+import { useStartCrawl, useUploadDocument, useDeleteDocument, useReplaceDocument, useUpdateChatbot, useCreateText, useUpdateText, useDeleteText, useCrawlJob } from '../hooks/useChatbots';
+import { useDiscoverStream } from '../hooks/useDiscoverStream';
 import CrawlStatus from './CrawlStatus';
 import UrlSelector from './UrlSelector';
 import { formatRelativeTime } from '../lib/format';
@@ -57,7 +58,7 @@ interface KnowledgeSectionProps {
 
 function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   const startCrawlMutation = useStartCrawl();
-  const discoverMutation = useDiscoverUrls();
+  const discover = useDiscoverStream(chatbot.public_id);
   const uploadDocMutation = useUploadDocument();
   const deleteDocMutation = useDeleteDocument();
   const replaceDocMutation = useReplaceDocument();
@@ -65,7 +66,6 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   const updateTextMutation = useUpdateText();
   const deleteTextMutation = useDeleteText();
   const updateChatbotMutation = useUpdateChatbot();
-  const recrawlMutation = useRecrawl();
 
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [dragOver, setDragOver] = useState(false);
@@ -87,6 +87,17 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   const textsReady = texts.filter((t) => t.status === 'ready').length;
   const isCrawling = chatbot.status === 'crawling';
   const status = statusInfo(chatbot.status);
+
+  // While a crawl is running, poll the active job (~3s) for the live list of
+  // pages crawled so far. When the crawl finishes this collapses automatically
+  // (isCrawling becomes false) and the job shows as a summary in Crawl History.
+  const activeJob =
+    chatbot.crawl_jobs?.find((j) => j.status === 'in_progress' || j.status === 'pending') ?? null;
+  const { data: liveJob } = useCrawlJob(activeJob?.id ?? null);
+  const crawledPages = liveJob?.crawled_pages ?? [];
+  const crawledCount = liveJob?.pages_crawled ?? activeJob?.pages_crawled ?? 0;
+  const crawlTotal = liveJob?.total_pages ?? 0;
+  const crawlPct = crawlTotal > 0 ? Math.min(100, Math.round((crawledCount / crawlTotal) * 100)) : 0;
 
   // -- Texts tab: open inline edit form for an existing snippet --
   const handleStartEditText = (textId: number, title: string, content: string) => {
@@ -145,36 +156,75 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
     );
   };
 
+  // As pages stream in from discovery, merge them into the selectable list
+  // (all selected by default). Coexists with manually added URLs.
+  useEffect(() => {
+    if (discover.pages.length === 0) return;
+    setDiscoveredUrls((prev) => {
+      const seen = new Set(prev.map((u) => u.url));
+      const additions = discover.pages.filter((p) => !seen.has(p.url));
+      return additions.length ? [...prev, ...additions] : prev;
+    });
+    setSelectedUrls((prev) => {
+      const seen = new Set(prev);
+      const additions = discover.pages.filter((p) => !seen.has(p.url)).map((p) => p.url);
+      return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, [discover.pages]);
+
   const handleDiscover = () => {
     if (!websiteUrl.trim()) return;
-    discoverMutation.mutate(
-      { chatbotId: chatbot.public_id, websiteUrl: websiteUrl.trim() },
-      {
-        onSuccess: (data) => {
-          setDiscoveredUrls(data.urls);
-          setSelectedUrls(data.urls.map((u) => u.url));
-        },
-      },
-    );
+    discover.start(websiteUrl.trim());
+  };
+
+  const clearDiscovery = () => {
+    setDiscoveredUrls([]);
+    setSelectedUrls([]);
+    setWebsiteUrl('');
+    discover.reset();
+  };
+
+  // Seed for "Re-crawl": re-discover the agent's existing site so the user can
+  // re-pick pages (and drop any they no longer want). Prefer a saved
+  // website_url, else fall back to the root of a previously crawled URL.
+  const recrawlSeed = (() => {
+    if (chatbot.website_url) return chatbot.website_url;
+    const first = chatbot.crawled_urls?.[0];
+    if (!first) return '';
+    try {
+      return new URL(first).origin + '/';
+    } catch {
+      return '';
+    }
+  })();
+
+  // Re-crawl = re-run discovery on the existing site, then let the user select
+  // pages and crawl normally (instead of silently re-crawling the old list).
+  const handleRecrawl = () => {
+    if (!recrawlSeed) return;
+    setActiveTab('website');
+    setDiscoveredUrls([]);
+    setSelectedUrls([]);
+    setWebsiteUrl(recrawlSeed);
+    discover.start(recrawlSeed);
   };
 
   const handleCrawlSelected = () => {
     startCrawlMutation.mutate(
       { chatbotId: chatbot.public_id, selectedUrls },
-      {
-        onSuccess: () => {
-          setDiscoveredUrls([]);
-          setSelectedUrls([]);
-          setWebsiteUrl('');
-        },
-      },
+      { onSuccess: clearDiscovery },
     );
   };
 
   const canDiscover =
-    websiteUrl.trim().length > 0 && !discoverMutation.isPending && discoveredUrls.length === 0;
+    websiteUrl.trim().length > 0 && !discover.isDiscovering && discoveredUrls.length === 0;
+  // Crawling is blocked while discovery is still streaming pages in -- the user
+  // can only crawl once discovery has finished.
   const canCrawl =
-    selectedUrls.length > 0 && !startCrawlMutation.isPending && chatbot.status !== 'crawling';
+    selectedUrls.length > 0 &&
+    !startCrawlMutation.isPending &&
+    chatbot.status !== 'crawling' &&
+    !discover.isDiscovering;
 
   const handleAddManualUrl = (url: DiscoveredUrl) => {
     setDiscoveredUrls((prev) => [...prev, url]);
@@ -273,23 +323,49 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
-      {/* Crawl status banner */}
+      {/* Crawl status banner with the live list of pages as they're crawled */}
       {isCrawling && (
-        <div className="bg-accent-light border border-accent/20 rounded-xl p-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center text-accent shrink-0">
-              <span className="material-symbols-outlined animate-spin" style={{ fontSize: 22 }}>sync</span>
+        <div className="bg-accent-light border border-accent/20 rounded-xl p-4 animate-fade-in">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center text-accent shrink-0">
+                <span className="material-symbols-outlined animate-spin" style={{ fontSize: 22 }}>sync</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[14px] font-semibold text-label-primary">Crawling website…</p>
+                <p className="text-[13px] text-label-tertiary truncate">
+                  {crawledCount > 0
+                    ? `${crawledCount.toLocaleString()}${crawlTotal ? ` / ${crawlTotal.toLocaleString()}` : ''} pages crawled`
+                    : 'Starting…'}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-label-primary">Crawl in progress…</p>
-              <p className="text-[13px] text-label-tertiary truncate">
-                {pagesIndexed > 0 ? `${pagesIndexed.toLocaleString()} pages indexed so far` : 'Discovering and indexing pages'}
-              </p>
+            {crawlTotal > 0 && (
+              <div className="w-32 h-1.5 bg-white/60 rounded-full overflow-hidden shrink-0 hidden sm:block">
+                <div
+                  className="h-full bg-accent rounded-full transition-all duration-500"
+                  style={{ width: `${crawlPct}%` }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Pages appear here one by one as they're indexed */}
+          {crawledPages.length > 0 && (
+            <div className="mt-4 max-h-56 overflow-y-auto rounded-lg border border-black/[0.05] bg-white/70 divide-y divide-black/[0.04]">
+              {crawledPages.map((p) => (
+                <div key={p.url} className="flex items-center gap-2.5 px-3 py-2 animate-fade-in">
+                  <span className="material-symbols-outlined text-sage-600 shrink-0" style={{ fontSize: 16 }}>
+                    check_circle
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-label-primary truncate">{p.title || p.url}</p>
+                    <p className="text-[11px] text-label-quaternary truncate">{p.url}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="w-32 h-1.5 bg-white/60 rounded-full overflow-hidden shrink-0 hidden sm:block">
-            <div className="h-full bg-accent rounded-full animate-pulse w-2/3" />
-          </div>
+          )}
         </div>
       )}
 
@@ -416,7 +492,8 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
       {activeTab === 'website' && (
         <div className={`${cardClass} p-5 animate-fade-in`}>
           <p className="text-[13px] text-label-secondary mb-3">
-            Enter a website URL to discover all its pages. You can then select which ones to crawl.
+            Enter a website URL to discover its pages. They stream in live below as they're
+            found; once discovery finishes you can pick which ones to crawl.
           </p>
           <div className="flex gap-2">
             <input
@@ -425,7 +502,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
               onChange={(e) => setWebsiteUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && canDiscover && handleDiscover()}
               placeholder="https://example.com"
-              disabled={discoverMutation.isPending || discoveredUrls.length > 0}
+              disabled={discover.isDiscovering || discoveredUrls.length > 0}
               className="input-field flex-1 disabled:opacity-50"
             />
             {canDiscover && (
@@ -434,16 +511,24 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
               </button>
             )}
           </div>
-          {discoverMutation.isPending && (
+          {discover.isDiscovering && (
             <div className="flex items-center gap-2.5 mt-4">
               <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-              <span className="text-[13px] font-medium text-label-secondary">Discovering pages...</span>
+              <span className="text-[13px] font-medium text-label-secondary">
+                Discovering pages… {discover.pages.length} found
+              </span>
             </div>
           )}
-          {discoverMutation.isError && (
-            <p className="mt-3 text-[13px] text-red-500">
-              Failed to discover pages. Please check the URL and try again.
-            </p>
+          {discover.isComplete && (
+            <div className="flex items-center gap-2 mt-4 text-sage-600">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
+              <span className="text-[13px] font-medium">
+                Discovery complete — {discover.pages.length} page{discover.pages.length !== 1 ? 's' : ''} found. Select the ones to crawl below.
+              </span>
+            </div>
+          )}
+          {discover.error && (
+            <p className="mt-3 text-[13px] text-red-500">{discover.error}</p>
           )}
         </div>
       )}
@@ -664,19 +749,28 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
         </div>
       )}
 
-      {/* Shared: selected pages → crawl (website/pages flow) */}
-      {discoveredUrls.length > 0 && !discoverMutation.isPending && (
+      {/* Shared: pages stream in here during discovery, then get selected → crawled */}
+      {discoveredUrls.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-display font-semibold text-label-primary">Selected Pages</h2>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <h2 className="text-[14px] font-display font-semibold text-label-primary">
+              {discover.isDiscovering
+                ? `Discovering… ${discoveredUrls.length} found`
+                : `Selected Pages (${selectedUrls.length}/${discoveredUrls.length})`}
+            </h2>
             <div className="flex items-center gap-2">
-              <button onClick={handleCrawlSelected} disabled={!canCrawl} className="btn-accent">
-                {startCrawlMutation.isPending ? 'Starting...' : `Crawl ${selectedUrls.length} Pages`}
-              </button>
               <button
-                onClick={() => { setDiscoveredUrls([]); setSelectedUrls([]); setWebsiteUrl(''); }}
-                className="btn-secondary"
+                onClick={handleCrawlSelected}
+                disabled={!canCrawl}
+                className="btn-accent disabled:opacity-40 disabled:cursor-not-allowed"
               >
+                {startCrawlMutation.isPending
+                  ? 'Starting...'
+                  : discover.isDiscovering
+                    ? 'Waiting for discovery…'
+                    : `Crawl ${selectedUrls.length} Pages`}
+              </button>
+              <button onClick={clearDiscovery} className="btn-secondary">
                 Clear
               </button>
             </div>
@@ -695,23 +789,15 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[14px] font-display font-semibold text-label-primary">Crawl History</h2>
-            {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && !isCrawling && (
+            {chatbot.crawl_jobs && chatbot.crawl_jobs.length > 0 && !isCrawling && recrawlSeed && (
               <button
-                onClick={() => recrawlMutation.mutate(chatbot.public_id)}
-                disabled={recrawlMutation.isPending}
+                onClick={handleRecrawl}
+                disabled={discover.isDiscovering}
+                title="Re-discover the site so you can re-pick which pages to crawl"
                 className="btn-secondary text-[12px] flex items-center gap-1.5"
               >
-                {recrawlMutation.isPending ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-label-quaternary/20 border-t-label-quaternary rounded-full animate-spin" />
-                    Re-crawling...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
-                    Re-crawl
-                  </>
-                )}
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
+                Re-crawl
               </button>
             )}
           </div>
@@ -721,9 +807,11 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {chatbot.crawl_jobs.map((job) => (
-                <CrawlStatus key={job.id} crawlJob={job} />
-              ))}
+              {[...chatbot.crawl_jobs]
+                .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+                .map((job) => (
+                  <CrawlStatus key={job.id} crawlJob={job} />
+                ))}
             </div>
           )}
         </div>

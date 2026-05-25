@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     # Crawling limits
     MAX_PAGES: int = 50  # Max pages to crawl per website
 
+    # Scrapy concurrency (speed). Higher = faster but heavier on the target site.
+    CONCURRENT_REQUESTS: int = 32  # total requests in flight
+    CONCURRENT_REQUESTS_PER_DOMAIN: int = 16  # per-domain cap (the real limit, single site)
+
+    # A page with fewer than this many characters of text is treated as a
+    # JavaScript shell and retried through a headless browser (Playwright).
+    EMPTY_CONTENT_THRESHOLD: int = 200
+
     # Text chunking settings
     CHUNK_SIZE: int = 500  # Characters per chunk
     CHUNK_OVERLAP: int = 50  # Overlap between chunks
