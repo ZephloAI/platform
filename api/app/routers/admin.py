@@ -20,12 +20,14 @@ from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.user import User
 from app.schemas.admin import (
+    AdminAgentSummary,
     AuditLogEntry,
     OrgAdminSummary,
     PlatformMetricsResponse,
     PlatformTokenTimeseries,
     SuspendRequest,
     TokenUsagePoint,
+    UpdateAgentModelRequest,
     UpdateLimitsRequest,
 )
 from app.services.audit_service import AuditLogService
@@ -171,6 +173,63 @@ async def get_audit_log(
 ):
     rows = await AuditLogService(db).list_for_org(org_id, limit=limit)
     return [AuditLogEntry.model_validate(r) for r in rows]
+
+
+# ---------------------------------------------------------------------
+# Per-agent model
+# ---------------------------------------------------------------------
+
+
+@router.get(
+    "/organizations/{org_id}/agents", response_model=list[AdminAgentSummary]
+)
+async def list_org_agents(org_id: int, db: AsyncSession = Depends(get_db)):
+    """List an org's agents with the model each one uses."""
+    agents = (
+        await db.execute(
+            select(Chatbot)
+            .where(Chatbot.organization_id == org_id)
+            .order_by(Chatbot.name)
+        )
+    ).scalars().all()
+    return [AdminAgentSummary.model_validate(a) for a in agents]
+
+
+@router.put("/agents/{agent_id}/model", response_model=AdminAgentSummary)
+async def update_agent_model(
+    agent_id: str,
+    body: UpdateAgentModelRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_platform_admin),
+):
+    """Set an agent's LLM model. Blank resets it to the global default.
+
+    agent_id is the public UUID. The new model applies to the agent's
+    next chat session.
+    """
+    chatbot = (
+        await db.execute(
+            select(Chatbot).where(Chatbot.public_id == agent_id)
+        )
+    ).scalar_one_or_none()
+    if chatbot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+
+    # Treat blank input as "use the default" (NULL).
+    model = (body.llm_model or "").strip() or None
+    chatbot.llm_model = model
+    await db.commit()
+    await db.refresh(chatbot)
+
+    await AuditLogService(db).record(
+        action="agent.model_updated",
+        organization_id=chatbot.organization_id,
+        actor_user_id=admin.id,
+        target_type="chatbot",
+        target_id=agent_id,
+        extra={"llm_model": model},
+    )
+    return AdminAgentSummary.model_validate(chatbot)
 
 
 # ---------------------------------------------------------------------

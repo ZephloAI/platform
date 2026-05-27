@@ -96,6 +96,14 @@ export interface TokenUsagePoint {
   total_tokens: number;
 }
 
+/** One agent row in the admin per-org agents list */
+export interface AdminAgent {
+  public_id: string;
+  name: string;
+  /** Null means the agent uses the global LLM_MODEL default */
+  llm_model: string | null;
+}
+
 /** Zustand auth store shape - manages user session state */
 export interface AuthState {
   user: User | null;
@@ -121,6 +129,8 @@ export interface Chatbot {
   name: string;
   description: string | null;
   instructions: string | null;
+  /** Per-agent LLM model override; null means the global LLM_MODEL default */
+  llm_model?: string | null;
   website_url: string | null;
   status: 'pending' | 'crawling' | 'ready' | 'error' | 'active';
   is_active: boolean;

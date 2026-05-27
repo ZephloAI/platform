@@ -167,7 +167,7 @@ async def ws_chat(ws: WebSocket):
     conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
     try:
         chatbot_row = await conn.fetchrow(
-            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled, navigation_enabled FROM chatbots WHERE public_id = $1",
+            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled, navigation_enabled, llm_model FROM chatbots WHERE public_id = $1",
             chatbot_id_str,
         )
 
@@ -193,6 +193,10 @@ async def ws_chat(ws: WebSocket):
     custom_instructions = chatbot_row["instructions"] or None
     person_mode_enabled = chatbot_row["person_mode_enabled"] if chatbot_row["person_mode_enabled"] is not None else True
     navigation_enabled = bool(chatbot_row["navigation_enabled"])
+    # The agent's configured model (NULL ⇒ global default). Read here at
+    # connect time so the next session picks up an admin's model change.
+    agent_model = chatbot_row["llm_model"]
+    resolved_model = agent_model or settings.LLM_MODEL
 
     await ws.accept()
     active_connections[session_id] = ws
@@ -239,6 +243,7 @@ async def ws_chat(ws: WebSocket):
         has_rag_data=has_rag_data,
         navigation_enabled=navigation_enabled,
         dispatcher=dispatcher,
+        llm_model=agent_model,
     )
 
     try:
@@ -391,7 +396,7 @@ async def ws_chat(ws: WebSocket):
             await record_usage(
                 chatbot_id=chatbot_id,
                 session_id=session_id,
-                model=settings.LLM_MODEL,
+                model=resolved_model,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,

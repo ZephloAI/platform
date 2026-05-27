@@ -63,6 +63,23 @@ class SuspendRequest(BaseModel):
     suspended: bool
 
 
+class AdminAgentSummary(BaseModel):
+    """One agent row in the admin per-org agents list."""
+
+    public_id: str
+    name: str
+    llm_model: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UpdateAgentModelRequest(BaseModel):
+    """Admin: set an agent's LLM model. Blank/null resets it to the
+    global LLM_MODEL default."""
+
+    llm_model: str | None = None
+
+
 class AuditLogEntry(BaseModel):
     id: int
     organization_id: int | None

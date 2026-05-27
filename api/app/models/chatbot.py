@@ -22,6 +22,7 @@ class Chatbot(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     instructions = Column(String, nullable=True)
+    llm_model = Column(String, nullable=True)  # NULL = use global LLM_MODEL default
     website_url = Column(String, nullable=True)
     status = Column(String, default="pending")  # pending, crawling, ready, error
     is_active = Column(Boolean, default=True, server_default="true")
