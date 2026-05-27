@@ -18,6 +18,7 @@ import logging
 import re
 from urllib.parse import urlparse
 
+import asyncpg
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from agno.db.postgres import PostgresDb
@@ -277,12 +278,16 @@ def create_agent(
     has_rag_data: bool = True,
     navigation_enabled: bool = False,
     dispatcher=None,
+    llm_model: str | None = None,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
 
     When follow_up_pool is provided, a FollowUpTools toolkit is attached
     so the agent can suggest a contextual follow-up button via tool use.
+
+    llm_model is the agent's configured model; when None, the global
+    LLM_MODEL default is used.
 
     Returns:
         (agent, follow_up_toolkit) — toolkit is None when pool is empty.
@@ -367,7 +372,7 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
 
     agent = Agent(
         model=OpenRouter(
-            id=settings.LLM_MODEL,
+            id=llm_model or settings.LLM_MODEL,
             api_key=settings.OPENROUTER_API_KEY,
         ),
         description="You are a friendly and knowledgeable team member.",
@@ -435,6 +440,20 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
 
 Respond naturally and confidently as a team member."""
 
+        # Resolve the agent's configured model (NULL ⇒ global default).
+        agent_model = None
+        try:
+            conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
+            try:
+                agent_model = await conn.fetchval(
+                    "SELECT llm_model FROM chatbots WHERE id = $1", chatbot_id
+                )
+            finally:
+                await conn.close()
+        except Exception:
+            pass  # Fall back to the global default if the lookup fails.
+        resolved_model = agent_model or settings.LLM_MODEL
+
         # Step 3: Create agent with follow-up tool and MCP tools attached
         agent, follow_up_toolkit = create_agent(
             chatbot_name=chatbot_name or "Assistant",
@@ -443,6 +462,7 @@ Respond naturally and confidently as a team member."""
             mcp_tools=mcp_tools if mcp_tools else None,
             custom_instructions=custom_instructions,
             has_rag_data=has_rag_data,
+            llm_model=agent_model,
         )
 
         # Step 5: Run async — required when MCP tools are attached
@@ -458,7 +478,7 @@ Respond naturally and confidently as a team member."""
         await record_usage(
             chatbot_id=chatbot_id,
             session_id=session_id or response.session_id,
-            model=settings.LLM_MODEL,
+            model=resolved_model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,

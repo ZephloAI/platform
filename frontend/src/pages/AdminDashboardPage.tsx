@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  useAdminOrgAgents,
   useAdminOrganization,
   useAdminOrganizations,
   useOrgAuditLog,
   usePlatformMetrics,
   useSuspendOrg,
   useTokenTimeseries,
+  useUpdateAgentModel,
   useUpdateLimits,
 } from '../hooks/useAdmin';
 import { useAuth } from '../hooks/useAuth';
-import type { OrgAdminSummary } from '../types';
+import type { AdminAgent, OrgAdminSummary } from '../types';
 
 // ============================================================
 // Admin Dashboard — platform-admin only surface.
@@ -378,6 +380,9 @@ function OrgDetail({ orgId }: { orgId: number }) {
         </div>
       </div>
 
+      {/* Per-agent model */}
+      <AgentsModelCard orgId={orgId} />
+
       {/* Audit log */}
       <div className="card p-5">
         <p className="text-[13px] font-semibold text-label-primary mb-3">
@@ -407,6 +412,84 @@ function OrgDetail({ orgId }: { orgId: number }) {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+
+function AgentsModelCard({ orgId }: { orgId: number }) {
+  const { data: agents = [], isLoading } = useAdminOrgAgents(orgId);
+  const updateModel = useUpdateAgentModel(orgId);
+
+  return (
+    <div className="card p-5 space-y-3">
+      <p className="text-[13px] font-semibold text-label-primary">Agent models</p>
+      <p className="text-[11px] text-label-quaternary -mt-1">
+        OpenRouter model ID per agent. Leave blank to use the platform default.
+        Applies to the agent's next session.
+      </p>
+      {isLoading ? (
+        <p className="text-[12px] text-label-quaternary py-2">Loading agents...</p>
+      ) : agents.length === 0 ? (
+        <p className="text-[12px] text-label-quaternary py-2">
+          This organization has no agents yet.
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          {agents.map((agent) => (
+            <AgentModelRow
+              key={agent.public_id}
+              agent={agent}
+              onSave={(llm_model) =>
+                updateModel.mutate({ publicId: agent.public_id, llm_model })
+              }
+              saving={updateModel.isPending}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgentModelRow({
+  agent,
+  onSave,
+  saving,
+}: {
+  agent: AdminAgent;
+  onSave: (llm_model: string | null) => void;
+  saving: boolean;
+}) {
+  const [model, setModel] = useState(agent.llm_model ?? '');
+
+  // Re-sync when the saved value changes (e.g. after a successful save).
+  useEffect(() => {
+    setModel(agent.llm_model ?? '');
+  }, [agent.llm_model]);
+
+  const dirty = model.trim() !== (agent.llm_model ?? '');
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[13px] text-label-primary w-32 shrink-0 truncate">
+        {agent.name}
+      </span>
+      <input
+        type="text"
+        value={model}
+        onChange={(e) => setModel(e.target.value)}
+        placeholder="Platform default"
+        className="input-field flex-1 text-[13px]"
+      />
+      <button
+        onClick={() => onSave(model.trim() || null)}
+        disabled={saving || !dirty}
+        className="btn-accent px-3 py-1.5 text-[12px] shrink-0 disabled:opacity-40"
+      >
+        Save
+      </button>
     </div>
   );
 }

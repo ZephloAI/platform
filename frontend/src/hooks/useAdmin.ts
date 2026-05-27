@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import type {
+  AdminAgent,
   AuditLogEntry,
   OrgAdminSummary,
   PlatformMetrics,
@@ -16,6 +17,7 @@ const KEYS = {
   orgs: ['admin', 'organizations'] as const,
   org: (id: number) => ['admin', 'organizations', id] as const,
   audit: (id: number) => ['admin', 'organizations', id, 'audit'] as const,
+  agents: (id: number) => ['admin', 'organizations', id, 'agents'] as const,
   metrics: ['admin', 'metrics'] as const,
   tokens: (days: number) => ['admin', 'metrics', 'tokens', days] as const,
 };
@@ -51,6 +53,41 @@ export function useOrgAuditLog(orgId: number | null) {
       return response.data;
     },
     enabled: !!orgId,
+  });
+}
+
+export function useAdminOrgAgents(orgId: number | null) {
+  return useQuery({
+    queryKey: orgId ? KEYS.agents(orgId) : ['admin', 'organizations', 'none', 'agents'],
+    queryFn: async (): Promise<AdminAgent[]> => {
+      const response = await apiClient.get(
+        `/api/admin/organizations/${orgId}/agents`
+      );
+      return response.data;
+    },
+    enabled: !!orgId,
+  });
+}
+
+export function useUpdateAgentModel(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      publicId,
+      llm_model,
+    }: {
+      publicId: string;
+      llm_model: string | null;
+    }): Promise<AdminAgent> => {
+      const response = await apiClient.put(
+        `/api/admin/agents/${publicId}/model`,
+        { llm_model }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.agents(orgId) });
+    },
   });
 }
 
