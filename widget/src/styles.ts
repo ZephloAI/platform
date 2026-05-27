@@ -523,7 +523,10 @@ export const WIDGET_STYLES = /* css */ `
     animation: cb-msg-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
-  .cb-typing span {
+  /* Only the plain typing dots — scoped so this does NOT match the spans
+     inside a status line (.cb-status-text would otherwise be clipped to a
+     7px dot and the label would vanish). */
+  .cb-typing:not(.cb-typing--status) span {
     width: 7px;
     height: 7px;
     border-radius: 50%;
@@ -531,9 +534,9 @@ export const WIDGET_STYLES = /* css */ `
     animation: cb-bounce 1.2s infinite ease-in-out;
   }
 
-  .cb-typing span:nth-child(1) { animation-delay: 0s; }
-  .cb-typing span:nth-child(2) { animation-delay: 0.15s; }
-  .cb-typing span:nth-child(3) { animation-delay: 0.3s; }
+  .cb-typing:not(.cb-typing--status) span:nth-child(1) { animation-delay: 0s; }
+  .cb-typing:not(.cb-typing--status) span:nth-child(2) { animation-delay: 0.15s; }
+  .cb-typing:not(.cb-typing--status) span:nth-child(3) { animation-delay: 0.3s; }
 
   @keyframes cb-bounce {
     0%, 60%, 100% {
@@ -543,6 +546,70 @@ export const WIDGET_STYLES = /* css */ `
     30% {
       transform: translateY(-4px);
       opacity: 1;
+    }
+  }
+
+  /* Live status line — the typing bubble morphs into this while the agent
+     works (e.g. "Searching the site…", "Thinking…"). Shares .cb-typing's
+     bubble styling and adds smaller dots + a transitioning text label. */
+  .cb-typing--status {
+    align-items: center;
+    gap: 8px;
+    max-width: 85%;
+  }
+
+  .cb-status-dots {
+    display: inline-flex;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .cb-status-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cb-text-tertiary);
+    animation: cb-bounce 1.2s infinite ease-in-out;
+  }
+
+  .cb-status-dots span:nth-child(1) { animation-delay: 0s; }
+  .cb-status-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .cb-status-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+  .cb-status-text {
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--cb-text-secondary);
+    /* Allow a short sentence (the model's lead-in) to wrap, capped at 3 lines. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    /* Gentle breathing to convey "live / working". */
+    animation: cb-status-pulse 1.8s ease-in-out infinite;
+  }
+
+  /* Replay a fade + slide-up each time the label text changes. */
+  .cb-status-text--in {
+    animation: cb-status-pulse 1.8s ease-in-out infinite,
+               cb-status-in 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  @keyframes cb-status-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes cb-status-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cb-status-dots span,
+    .cb-status-text,
+    .cb-status-text--in {
+      animation: none;
     }
   }
 
