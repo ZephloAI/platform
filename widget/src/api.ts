@@ -118,6 +118,8 @@ export class ChatSocket {
   private modeChangedHandler: ((mode: string) => void) | null = null;
   private waitingHandler: (() => void) | null = null;
   private navigateHandler: ((url?: string) => void) | null = null;
+  private statusHandler: ((label: string) => void) | null = null;
+  private agentMessageHandler: ((content: string) => void) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -173,6 +175,14 @@ export class ChatSocket {
     this.navigateHandler = handler;
   }
 
+  onStatus(handler: (label: string) => void): void {
+    this.statusHandler = handler;
+  }
+
+  onAgentMessage(handler: (content: string) => void): void {
+    this.agentMessageHandler = handler;
+  }
+
   private getZephloToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
     if (this.zephloToolGetter) {
       return this.zephloToolGetter();
@@ -203,6 +213,20 @@ export class ChatSocket {
     // Agent-driven navigation: server tells the widget to take the user to a page.
     if (data.message_type === "navigate") {
       this.navigateHandler?.(data.url);
+      return;
+    }
+
+    // Live progress status (e.g. "Searching the site…", "Thinking…"). Transient:
+    // these update the loading indicator and must NOT resolve the pending promise.
+    if (data.message_type === "status") {
+      this.statusHandler?.(data.label);
+      return;
+    }
+
+    // The agent's mid-run lead-in (e.g. "Let me search…") — a real message
+    // bubble shown before the final answer. Does NOT resolve the pending promise.
+    if (data.message_type === "agent_message") {
+      this.agentMessageHandler?.(data.content);
       return;
     }
 

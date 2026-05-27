@@ -249,6 +249,9 @@ export class ChatbotWidget extends HTMLElement {
       case "loading":
         this.updateLoadingUi(ev.loading);
         break;
+      case "status":
+        this.updateStatusLine(ev.label);
+        break;
       case "statusChanged":
         this.updateStatusDot(ev.status);
         break;
@@ -391,7 +394,7 @@ export class ChatbotWidget extends HTMLElement {
           ${this.state.voiceEnabled && this.hasSpeechRecognition() ? `<button class="cb-mic-btn" aria-label="Voice mode">${ICON_MIC}</button>` : ''}
         </div>
         <div class="cb-footer">
-          Powered by <a href="#" target="_blank">Zephlo</a>
+          Powered by <a href="https://zephlo.ai" target="_blank" rel="noopener noreferrer">Zephlo</a>
         </div>
       </div>
     `;
@@ -1321,12 +1324,21 @@ export class ChatbotWidget extends HTMLElement {
       (el as HTMLElement).style.display = 'none'
     );
 
-    // Append message to all message containers
+    // Add the message to all message containers. If the typing/status bubble
+    // is showing (e.g. the agent's mid-run lead-in arriving before the final
+    // answer), insert the message ABOVE it so the status stays at the bottom.
     const containers = this.getMessageContainers();
     for (const container of containers) {
-      container.appendChild(this.buildMessageEl(msg));
+      const typing = container.querySelector(".cb-typing");
+      const msgEl = this.buildMessageEl(msg);
       const followUps = this.buildFollowUpsEl(msg);
-      if (followUps) container.appendChild(followUps);
+      if (typing) {
+        container.insertBefore(msgEl, typing);
+        if (followUps) container.insertBefore(followUps, typing);
+      } else {
+        container.appendChild(msgEl);
+        if (followUps) container.appendChild(followUps);
+      }
     }
 
     this.scrollToBottom();
@@ -1351,6 +1363,44 @@ export class ChatbotWidget extends HTMLElement {
       this.shadow.querySelectorAll('.cb-typing').forEach(el => el.remove());
     };
     return div;
+  }
+
+  /**
+   * Show a live status sentence (e.g. "Searching the site…", "Thinking…") in
+   * place of the bouncing dots while the agent works. Reuses the existing
+   * typing bubble so the dots morph into a status line without a layout jump,
+   * and fades each new label in. Cleared by updateLoadingUi(false) when the
+   * final answer arrives, exactly like the dots.
+   */
+  private updateStatusLine(label: string) {
+    if (!label) return;
+    for (const container of this.getMessageContainers()) {
+      let el = container.querySelector(".cb-typing") as HTMLElement | null;
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "cb-typing";
+        container.appendChild(el);
+      }
+      el.classList.add("cb-typing--status");
+
+      let textEl = el.querySelector(".cb-status-text") as HTMLElement | null;
+      if (!textEl) {
+        // First status: swap the plain dots for smaller dots + a text label.
+        el.innerHTML =
+          '<span class="cb-status-dots"><span></span><span></span><span></span></span>' +
+          '<span class="cb-status-text"></span>';
+        textEl = el.querySelector(".cb-status-text") as HTMLElement;
+      }
+
+      if (textEl && textEl.textContent !== label) {
+        // Re-trigger the fade/slide-in each time the label changes.
+        textEl.classList.remove("cb-status-text--in");
+        void textEl.offsetWidth; // force reflow so the animation restarts
+        textEl.textContent = label;
+        textEl.classList.add("cb-status-text--in");
+      }
+    }
+    this.scrollToBottom();
   }
 
   private showError(message: string) {

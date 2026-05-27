@@ -19,6 +19,7 @@ import uuid
 import asyncpg
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from agno.run.agent import RunOutput, RunEvent
 
 from app.config import settings
 from app.agent import create_agent, clean_response, extract_resolution, connect_mcp_servers
@@ -53,6 +54,49 @@ def _compute_message_id(response_text: str, tools) -> str:
         default=str,
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+# --- Friendly status labels surfaced to the visitor while the agent works ---
+# Known tools get a hand-written phrase. Anything else (dynamic web tools or
+# arbitrary MCP server tools) falls back to a humanized snake_case rendering,
+# e.g. "check_availability" -> "Checking availability…". To refine a specific
+# tool's wording, just add it to _TOOL_STATUS_LABELS.
+_TOOL_STATUS_LABELS: dict[str, str] = {
+    "navigate_to_page": "Taking you there…",
+}
+
+# Tools whose calls are pure plumbing — they should not show a status line.
+_SILENT_TOOLS: frozenset[str] = frozenset({"suggest_follow_ups"})
+
+# Common leading verbs mapped to their "-ing" form so a tool like
+# "check_availability" reads "Checking availability…" instead of the clumsy
+# "Checking check availability…". Anything not listed gets a "Checking …" prefix.
+_VERB_GERUNDS: dict[str, str] = {
+    "check": "Checking", "get": "Getting", "fetch": "Fetching",
+    "search": "Searching", "find": "Finding", "lookup": "Looking up",
+    "look": "Looking up", "list": "Listing", "load": "Loading",
+    "read": "Reading", "query": "Querying", "create": "Creating",
+    "update": "Updating", "book": "Booking", "send": "Sending",
+}
+
+
+def _friendly_tool_label(tool_name: str) -> str | None:
+    """Turn a raw tool name into a short, user-facing status sentence.
+
+    Returns None for internal/plumbing tools that should stay silent.
+    """
+    if not tool_name or tool_name in _SILENT_TOOLS:
+        return None
+    if tool_name in _TOOL_STATUS_LABELS:
+        return _TOOL_STATUS_LABELS[tool_name]
+    words = [w for w in tool_name.replace("-", "_").split("_") if w]
+    if not words:
+        return "Working…"
+    gerund = _VERB_GERUNDS.get(words[0].lower())
+    if gerund:
+        rest = " ".join(words[1:])
+        return f"{gerund} {rest}…" if rest else f"{gerund}…"
+    return f"Checking {' '.join(words)}…"
 
 
 async def store_message(session_id: str, role: str, content: str, is_resolved: bool | None = None):
@@ -329,6 +373,10 @@ async def ws_chat(ws: WebSocket):
             # Step 1: Retrieve relevant context from Qdrant (skip if no collection)
             contexts = []
             if has_rag_data:
+                # Let the visitor know we're looking things up before the run.
+                await dispatcher.send_json(
+                    {"message_type": "status", "label": "Searching the site…"}
+                )
                 contexts = retrieve_context(
                     chatbot_id, message, top_k=settings.TOP_K, chatbot_name=chatbot_name
                 ) or []
@@ -381,14 +429,82 @@ async def ws_chat(ws: WebSocket):
                 })
                 continue
 
-            # Step 4: Run the agent (async for MCP tool support)
+            # Step 4: Run the agent with streaming events so we can surface
+            # live status to the widget as it works. `yield_run_output=True`
+            # makes the final aggregated RunOutput the last item we receive —
+            # identical to the old non-streaming arun() return — so all the
+            # response handling below is unchanged.
             collector = McpMetaCollector()
             set_active_collector(collector)
-            response = await agent.arun(
-                full_prompt,
-                dependencies={"page_context": page_context} if page_context else None,
-            )
-            set_active_collector(None)
+
+            # Initial status while the model gets going.
+            await dispatcher.send_json({"message_type": "status", "label": "Thinking…"})
+
+            response = None
+            preamble = ""          # text before the FIRST tool call → shown as a status
+            final_text = ""        # text after the LAST tool call → the real answer
+            saw_tool_call = False
+            try:
+                async for event in agent.arun(
+                    full_prompt,
+                    dependencies={"page_context": page_context} if page_context else None,
+                    stream=True,
+                    stream_events=True,
+                    yield_run_output=True,
+                ):
+                    if isinstance(event, RunOutput):
+                        response = event  # final aggregated output
+                        continue
+                    event_type = getattr(event, "event", None)
+                    if event_type == RunEvent.run_content:
+                        # run_content events are deltas. Everything before the
+                        # first tool call is the model's lead-in ("Let me
+                        # search…"); everything after the last tool call is the
+                        # real answer.
+                        chunk = getattr(event, "content", None)
+                        if isinstance(chunk, str):
+                            final_text += chunk
+                            if not saw_tool_call:
+                                preamble += chunk
+                    elif event_type == RunEvent.tool_call_started:
+                        # The real answer is whatever the model writes AFTER the
+                        # last tool call, so drop anything buffered so far.
+                        final_text = ""
+                        # On the first tool call, the model's lead-in
+                        # ("I'd love to help… Let me search…") is conversational
+                        # prose, not a status — send it as a real agent message
+                        # so it shows as its own bubble.
+                        lead_in = clean_response(preamble).strip() if not saw_tool_call else ""
+                        saw_tool_call = True
+                        if lead_in:
+                            await dispatcher.send_json(
+                                {"message_type": "agent_message", "content": lead_in}
+                            )
+                        # Keep a short status going until the final answer lands.
+                        tool = getattr(event, "tool", None)
+                        tool_name = getattr(tool, "tool_name", "") if tool else ""
+                        label = _friendly_tool_label(tool_name)
+                        if label:
+                            await dispatcher.send_json(
+                                {"message_type": "status", "label": label}
+                            )
+                    elif event_type in (RunEvent.reasoning_started, RunEvent.reasoning_step):
+                        # Best-effort: not every model emits reasoning events.
+                        await dispatcher.send_json(
+                            {"message_type": "status", "label": "Thinking…"}
+                        )
+            finally:
+                set_active_collector(None)
+
+            # Defensive: yield_run_output should always hand us the final
+            # output, but fall back to a plain run so the code below never
+            # sees None.
+            if response is None:
+                response = await agent.arun(
+                    full_prompt,
+                    dependencies={"page_context": page_context} if page_context else None,
+                )
+
             mcp_results = collector.drain() or None
 
             # Record token usage (best-effort; never blocks the response).
@@ -402,10 +518,15 @@ async def ws_chat(ws: WebSocket):
                 total_tokens=total_tokens,
             )
 
-            # Extract text — content can be empty when the agent made a tool
-            # call and the main response only contains the tool result.
-            # Walk assistant messages to collect any real text the LLM produced.
-            raw_content = response.content if isinstance(response.content, str) else ""
+            # Extract text. Prefer what the model wrote AFTER its last tool call
+            # — that's the real answer. With streaming, response.content
+            # concatenates every turn (the pre-tool lead-in + the answer), and
+            # the lead-in was already shown as a status, so it must not reappear
+            # here. Fall back to response.content, then the last assistant
+            # message, if the streamed answer came back empty.
+            raw_content = final_text if clean_response(final_text).strip() else ""
+            if not raw_content:
+                raw_content = response.content if isinstance(response.content, str) else ""
             if not clean_response(raw_content).strip() and response.messages:
                 parts: list[str] = []
                 for msg in response.messages:

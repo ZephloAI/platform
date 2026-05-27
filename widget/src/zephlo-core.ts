@@ -50,6 +50,7 @@ export type CoreEvent =
   | { type: "messageAdded"; message: Message }
   | { type: "messagesReset" }
   | { type: "loading"; loading: boolean }
+  | { type: "status"; label: string } // live progress while the agent works
   | { type: "waiting" } // "Message sent" indicator
   | { type: "personModeChanged" }
   | { type: "adminMessage"; content: string }
@@ -305,6 +306,19 @@ class ZephloCoreClass {
 
     this.chatSocket.onWaiting(() => {
       this.emit({ type: "waiting" });
+    });
+
+    this.chatSocket.onStatus((label) => {
+      this.emit({ type: "status", label });
+    });
+
+    // The agent's mid-run lead-in ("Let me search…") arrives before the final
+    // answer. Show it as a normal assistant bubble; the status keeps running.
+    this.chatSocket.onAgentMessage((content) => {
+      const msg: Message = { role: "assistant", content };
+      this.messages.push(msg);
+      this.saveMessages();
+      this.emit({ type: "messageAdded", message: msg });
     });
 
     this.chatSocket.onNavigate((url) => {
