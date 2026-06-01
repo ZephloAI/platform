@@ -63,6 +63,9 @@ class Chatbot(Base):
     # Navigation mode (agent can drive the user to pages from the crawled site)
     navigation_enabled = Column(Boolean, default=False, server_default="false")
 
+    # Lead capture (agent collects visitor name/email/phone/company/interest)
+    lead_capture_enabled = Column(Boolean, default=False, server_default="false")
+
     # Organization (nullable initially for migration, then required)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
 
@@ -86,4 +89,7 @@ class Chatbot(Base):
     )
     agent_texts = relationship(
         "AgentText", back_populates="chatbot", cascade="all, delete-orphan"
+    )
+    leads = relationship(
+        "Lead", back_populates="chatbot", cascade="all, delete-orphan"
     )

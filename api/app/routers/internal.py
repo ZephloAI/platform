@@ -18,6 +18,8 @@ from app.models.chat_session import ChatSession
 from app.models.chatbot import Chatbot
 from app.models.message import Message
 from app.schemas.chat import InternalMessageRequest, MessageResponse
+from app.schemas.lead import LeadCreate, LeadResponse
+from app.services.lead_service import LeadService
 from app.routers.ws_admin import notify_admin_ws
 from app.services.usage_service import (
     ERR_ORG_SUSPENDED,
@@ -130,6 +132,23 @@ async def mark_unread(
     await db.commit()
 
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------
+# Lead capture (called by the agent service when lead_capture_enabled)
+# ---------------------------------------------------------------------
+
+
+@router.post("/leads", response_model=LeadResponse)
+async def upsert_lead(
+    body: LeadCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent saves visitor details. Merges into the session's existing row
+    if one already exists; empty fields are ignored.
+    """
+    lead = await LeadService(db).upsert_from_agent(body)
+    return LeadResponse.model_validate(lead)
 
 
 # ---------------------------------------------------------------------

@@ -412,6 +412,13 @@ export const WIDGET_STYLES = /* css */ `
     border-bottom-left-radius: 6px;
   }
 
+  /* Content is rendered as plain text while streaming and swapped to
+     formatted markdown when the stream finishes. pre-wrap preserves the
+     newlines that arrive mid-stream before formatContent() runs. */
+  .cb-message .cb-content {
+    white-space: pre-wrap;
+  }
+
   .cb-message.assistant a {
     color: var(--cb-accent);
     text-decoration: none;

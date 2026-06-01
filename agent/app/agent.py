@@ -19,6 +19,7 @@ import re
 from urllib.parse import urlparse
 
 import asyncpg
+import httpx
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from agno.db.postgres import PostgresDb
@@ -269,6 +270,74 @@ class NavigationTools(Toolkit):
             return "Error: could not navigate"
 
 
+class LeadCaptureTools(Toolkit):
+    """Lets the agent capture a visitor's contact details a piece at a time.
+
+    The tool is intentionally additive: every field is optional and the agent
+    is expected to call it multiple times as it learns more. The api side
+    merges non-empty fields into a single row per (chatbot, session).
+    """
+
+    def __init__(self, chatbot_id: int, session_id: str | None):
+        self.chatbot_id = chatbot_id
+        self.session_id = session_id
+        super().__init__(
+            name="lead_capture_tools",
+            tools=[self.capture_lead],
+            show_result_tools=[],
+        )
+
+    async def capture_lead(
+        self,
+        name: str = "",
+        email: str = "",
+        phone: str = "",
+        company: str = "",
+        interest: str = "",
+    ) -> str:
+        """Save whatever visitor details you have so far.
+
+        Call this multiple times as you learn more (e.g. name first, then
+        email/phone/interest later). Empty fields are ignored — they will
+        not overwrite a value already saved earlier in the chat. Never
+        invent details; only pass values the visitor actually told you.
+        """
+        if not self.session_id:
+            return "Error: no session."
+
+        payload = {
+            "chatbot_id": self.chatbot_id,
+            "session_id": self.session_id,
+            "name": (name or "").strip() or None,
+            "email": (email or "").strip() or None,
+            "phone": (phone or "").strip() or None,
+            "company": (company or "").strip() or None,
+            "interest": (interest or "").strip() or None,
+        }
+
+        if not any(
+            payload[k]
+            for k in ("name", "email", "phone", "company", "interest")
+        ):
+            return "Error: provide at least one field."
+
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(
+                    f"{settings.API_CALLBACK_URL}/api/internal/leads",
+                    json=payload,
+                )
+                if resp.status_code >= 400:
+                    logger.warning(
+                        f"capture_lead got {resp.status_code}: {resp.text[:200]}"
+                    )
+                    return "Error: could not save details right now."
+            return "Saved."
+        except Exception as e:
+            logger.warning(f"capture_lead callback failed: {e}")
+            return "Error: could not save details right now."
+
+
 def create_agent(
     chatbot_name: str = "Assistant",
     session_id: str | None = None,
@@ -279,6 +348,8 @@ def create_agent(
     navigation_enabled: bool = False,
     dispatcher=None,
     llm_model: str | None = None,
+    lead_capture_enabled: bool = False,
+    chatbot_id: int | None = None,
 ) -> tuple[Agent, FollowUpTools | None]:
     """
     Create an Agno agent with PostgreSQL-backed session storage.
@@ -333,6 +404,31 @@ Pass the exact titles comma-separated to the tool. The system handles the rest."
             "navigate for greetings, vague questions, or casual chat. After "
             "calling the tool, also reply with a short confirmation like "
             "'Taking you there now.'"
+        )
+
+    # Lead capture tool: enabled per-agent. The tool merges non-empty fields
+    # into the session's lead row on the api side, so it's safe to call
+    # multiple times as more details surface in the conversation.
+    if lead_capture_enabled and chatbot_id is not None:
+        tools.append(LeadCaptureTools(chatbot_id, session_id))
+        extra_instructions.append(
+            "You have a capture_lead tool. Use it INCREMENTALLY, never as a "
+            "single intake form. Plan:\n"
+            "1. Greet the visitor and ask their first name early on. As soon "
+            "as they give it, call capture_lead(name=...).\n"
+            "2. Keep chatting and helping. When the visitor describes what "
+            "they're trying to do or what they're looking for, capture a "
+            "short summary in capture_lead(interest=...).\n"
+            "3. When they show buying intent (asking pricing, booking, demo, "
+            "follow-up), conversationally ask for an email and optionally a "
+            "phone number so the team can reach out, then call "
+            "capture_lead(email=..., phone=...). Mention company only if the "
+            "visitor brings it up.\n"
+            "You can call capture_lead any number of times — only the "
+            "non-empty fields you pass are saved, and earlier values are "
+            "preserved. Do not call it on greetings or vague questions, and "
+            "NEVER fabricate details — only pass what the visitor actually "
+            "told you."
         )
 
     if mcp_tools:
@@ -440,18 +536,24 @@ Respond naturally and confidently as a team member. Do not mention sources or UR
 
 Respond naturally and confidently as a team member."""
 
-        # Resolve the agent's configured model (NULL ⇒ global default).
+        # Resolve agent-level settings (NULL llm_model ⇒ global default).
         agent_model = None
+        lead_capture_enabled = False
         try:
             conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
             try:
-                agent_model = await conn.fetchval(
-                    "SELECT llm_model FROM chatbots WHERE id = $1", chatbot_id
+                row = await conn.fetchrow(
+                    "SELECT llm_model, lead_capture_enabled "
+                    "FROM chatbots WHERE id = $1",
+                    chatbot_id,
                 )
+                if row:
+                    agent_model = row["llm_model"]
+                    lead_capture_enabled = bool(row["lead_capture_enabled"])
             finally:
                 await conn.close()
         except Exception:
-            pass  # Fall back to the global default if the lookup fails.
+            pass  # Fall back to defaults if the lookup fails.
         resolved_model = agent_model or settings.LLM_MODEL
 
         # Step 3: Create agent with follow-up tool and MCP tools attached
@@ -463,6 +565,8 @@ Respond naturally and confidently as a team member."""
             custom_instructions=custom_instructions,
             has_rag_data=has_rag_data,
             llm_model=agent_model,
+            lead_capture_enabled=lead_capture_enabled,
+            chatbot_id=chatbot_id,
         )
 
         # Step 5: Run async — required when MCP tools are attached
