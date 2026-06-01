@@ -36,12 +36,18 @@ export interface McpToolResult {
 export interface ChatResponse {
   response: string;
   message_id?: string;
+  stream_id?: string | null;
   sources: ChatSource[];
   session_id: string | null;
   follow_up_prompts?: FollowUpPrompt[];
   audio?: string | null;
   mcp_results?: McpToolResult[] | null;
 }
+
+export type StreamEvent =
+  | { kind: "start"; streamId: string }
+  | { kind: "delta"; streamId: string; delta: string }
+  | { kind: "end"; streamId: string };
 
 export interface WidgetConfig {
   chatbot_id: string;
@@ -119,7 +125,7 @@ export class ChatSocket {
   private waitingHandler: (() => void) | null = null;
   private navigateHandler: ((url?: string) => void) | null = null;
   private statusHandler: ((label: string) => void) | null = null;
-  private agentMessageHandler: ((content: string) => void) | null = null;
+  private streamEventHandler: ((event: StreamEvent) => void) | null = null;
 
   public status: ConnectionStatus = 'disconnected';
   public onStatusChange?: (status: ConnectionStatus) => void;
@@ -179,8 +185,14 @@ export class ChatSocket {
     this.statusHandler = handler;
   }
 
-  onAgentMessage(handler: (content: string) => void): void {
-    this.agentMessageHandler = handler;
+  /**
+   * Receive in-flight streaming events for assistant bubbles. The server
+   * opens a stream (`start`), pushes token deltas (`delta`), and closes
+   * the stream (`end`). One open stream at a time per turn; a tool call
+   * closes the lead-in stream and the answer arrives in a new stream.
+   */
+  onStreamEvent(handler: (event: StreamEvent) => void): void {
+    this.streamEventHandler = handler;
   }
 
   private getZephloToolSchemas(): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
@@ -223,10 +235,22 @@ export class ChatSocket {
       return;
     }
 
-    // The agent's mid-run lead-in (e.g. "Let me search…") — a real message
-    // bubble shown before the final answer. Does NOT resolve the pending promise.
-    if (data.message_type === "agent_message") {
-      this.agentMessageHandler?.(data.content);
+    // Live streaming events for assistant bubbles. Lead-in and final answer
+    // arrive token-by-token; each `start`/`end` pair frames one bubble.
+    if (data.message_type === "stream_start") {
+      this.streamEventHandler?.({ kind: "start", streamId: data.stream_id });
+      return;
+    }
+    if (data.message_type === "stream_delta") {
+      this.streamEventHandler?.({
+        kind: "delta",
+        streamId: data.stream_id,
+        delta: data.delta,
+      });
+      return;
+    }
+    if (data.message_type === "stream_end") {
+      this.streamEventHandler?.({ kind: "end", streamId: data.stream_id });
       return;
     }
 

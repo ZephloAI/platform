@@ -27,6 +27,7 @@ class ChatbotUpdate(BaseModel):
     is_active: bool | None = None
     auto_recrawl_enabled: bool | None = None
     recrawl_interval_hours: int | None = None
+    lead_capture_enabled: bool | None = None
 
 
 class MCPServer(BaseModel):
@@ -88,6 +89,7 @@ class ChatbotResponse(BaseModel):
     webmcp_enabled: bool = False
     person_mode_enabled: bool = True
     navigation_enabled: bool = False
+    lead_capture_enabled: bool = False
     auto_recrawl_enabled: bool = True
     recrawl_interval_hours: int = 48
     last_crawled_at: datetime | None = None

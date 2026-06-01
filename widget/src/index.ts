@@ -33,6 +33,8 @@ interface Message {
   followUpPrompts?: FollowUpPrompt[];
   audio?: string | null;
   isAdminMessage?: boolean;
+  /** Present on assistant bubbles that stream in token-by-token. */
+  streamId?: string;
 }
 
 interface WidgetState {
@@ -236,12 +238,25 @@ export class ChatbotWidget extends HTMLElement {
   protected onCoreEvent(ev: CoreEvent) {
     switch (ev.type) {
       case "messageAdded":
-        // Voice mode handles assistant replies specially (TTS playback + mic restart)
-        if (this.voiceMode && ev.message.role === "assistant") {
+        // Voice mode handles assistant replies specially (TTS playback + mic restart).
+        // Streamed bubbles (still in flight) skip the voice path — TTS plays once
+        // on the finalized response envelope, not on the empty start frame.
+        if (this.voiceMode && ev.message.role === "assistant" && !ev.message.streamId) {
           this.handleVoiceAssistantReply(ev.message);
         } else {
           this.appendMessage(ev.message);
         }
+        break;
+      case "messageDelta":
+        this.setStreamedContent(ev.streamId, ev.fullContent);
+        this.scrollToBottom();
+        break;
+      case "messageFinalized":
+        this.finalizeStreamedContent(ev.streamId, ev.message.content);
+        break;
+      case "messageMetadata":
+        this.attachMetadataToStreamedBubble(ev.message);
+        if (this.voiceMode) this.handleVoiceAssistantReply(ev.message);
         break;
       case "messagesReset":
         this.renderEmptyState();
@@ -1255,6 +1270,7 @@ export class ChatbotWidget extends HTMLElement {
   private buildMessageEl(msg: Message): HTMLDivElement {
     const div = document.createElement("div");
     div.className = `cb-message ${msg.role}${msg.isAdminMessage ? ' admin' : ''}`;
+    if (msg.streamId) div.dataset.streamId = msg.streamId;
 
     if (msg.isAdminMessage) {
       const labelDiv = document.createElement("div");
@@ -1264,18 +1280,38 @@ export class ChatbotWidget extends HTMLElement {
     }
 
     const contentDiv = document.createElement("div");
-    contentDiv.innerHTML = this.formatContent(msg.content);
+    contentDiv.className = "cb-content";
+    // Streaming bubbles start empty and grow via setStreamedContent(); render
+    // plain text mid-stream and swap to markdown when streamId is finalized.
+    if (msg.streamId && !msg.content) {
+      contentDiv.textContent = "";
+    } else {
+      contentDiv.innerHTML = this.formatContent(msg.content);
+    }
     div.appendChild(contentDiv);
 
-    if (msg.role === "assistant" && msg.audio) {
-      const msgIndex = this.messages.length - 1;
-      this.audioMap.set(msgIndex, msg.audio);
+    this.attachAssistantMetadata(div, msg);
+    return div;
+  }
+
+  /**
+   * Append audio / sources to an assistant bubble. Idempotent — guards each
+   * block by class so a late `response` envelope can't double-append onto a
+   * streamed bubble that already has its metadata.
+   */
+  private attachAssistantMetadata(div: HTMLDivElement, msg: Message): void {
+    if (msg.role !== "assistant") return;
+
+    if (msg.audio && !div.querySelector(".cb-speaker-btn")) {
+      const msgIndex = this.messages.indexOf(msg);
+      const idx = msgIndex >= 0 ? msgIndex : this.messages.length - 1;
+      this.audioMap.set(idx, msg.audio);
       const speakerDiv = document.createElement("div");
-      speakerDiv.innerHTML = `<button class="cb-speaker-btn" data-audio-index="${msgIndex}" aria-label="Replay audio">${ICON_SPEAKER} Replay</button>`;
+      speakerDiv.innerHTML = `<button class="cb-speaker-btn" data-audio-index="${idx}" aria-label="Replay audio">${ICON_SPEAKER} Replay</button>`;
       div.appendChild(speakerDiv);
     }
 
-    if (msg.sources && msg.sources.length > 0) {
+    if (msg.sources && msg.sources.length > 0 && !div.querySelector(".cb-sources")) {
       const sourcesDiv = document.createElement("div");
       sourcesDiv.className = "cb-sources";
       const linkIcon = `<svg class="cb-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
@@ -1292,8 +1328,53 @@ export class ChatbotWidget extends HTMLElement {
       `;
       div.appendChild(sourcesDiv);
     }
+  }
 
-    return div;
+  /** Write `fullContent` into every bubble for `streamId` as plain text. */
+  private setStreamedContent(streamId: string, fullContent: string): void {
+    for (const container of this.getMessageContainers()) {
+      const wrap = container.querySelector(`[data-stream-id="${streamId}"]`);
+      const contentDiv = wrap?.querySelector(".cb-content") as HTMLElement | null;
+      if (contentDiv) contentDiv.textContent = fullContent;
+    }
+  }
+
+  /** Swap a finalized bubble's plain-text content to formatted markdown. */
+  private finalizeStreamedContent(streamId: string, fullContent: string): void {
+    for (const container of this.getMessageContainers()) {
+      const wrap = container.querySelector(`[data-stream-id="${streamId}"]`);
+      const contentDiv = wrap?.querySelector(".cb-content") as HTMLElement | null;
+      if (contentDiv) contentDiv.innerHTML = this.formatContent(fullContent);
+    }
+  }
+
+  /**
+   * Latch the final response envelope (sources / audio / follow-ups) onto a
+   * streamed bubble. Idempotent — guards every block so a duplicate envelope
+   * never double-appends. Also defensively re-renders markdown in case the
+   * stream_end frame was dropped.
+   */
+  private attachMetadataToStreamedBubble(msg: Message): void {
+    if (!msg.streamId) return;
+    for (const container of this.getMessageContainers()) {
+      const wrap = container.querySelector(
+        `[data-stream-id="${msg.streamId}"]`,
+      ) as HTMLDivElement | null;
+      if (!wrap) continue;
+      const contentDiv = wrap.querySelector(".cb-content") as HTMLElement | null;
+      if (contentDiv) contentDiv.innerHTML = this.formatContent(msg.content);
+      this.attachAssistantMetadata(wrap, msg);
+
+      const followUps = this.buildFollowUpsEl(msg);
+      if (followUps) {
+        // Drop any prior follow-up row for this bubble so we don't stack rows
+        // if the envelope arrives twice (defensive — shouldAccept guards too).
+        const next = wrap.nextElementSibling;
+        if (next?.classList.contains("cb-prompt-row")) next.remove();
+        wrap.after(followUps);
+      }
+    }
+    this.scrollToBottom();
   }
 
   /** Build follow-up prompts DOM element */

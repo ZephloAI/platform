@@ -16,6 +16,7 @@ import {
   fetchConfig,
   createSession,
   setApiKey,
+  type ChatResponse,
   type ChatSource,
   type FollowUpPrompt,
   type McpToolResult,
@@ -42,6 +43,8 @@ export interface Message {
   followUpPrompts?: FollowUpPrompt[];
   audio?: string | null;
   isAdminMessage?: boolean;
+  /** Set on assistant bubbles whose content streams in token-by-token. */
+  streamId?: string;
 }
 
 export type CoreEvent =
@@ -59,6 +62,13 @@ export type CoreEvent =
   | { type: "themeChanged"; colors: ResolvedColors }
   | { type: "triggerOpen" }
   | { type: "triggerToast"; content: string }
+  // Streaming: a token chunk arrived for an in-flight assistant bubble.
+  | { type: "messageDelta"; streamId: string; fullContent: string; message: Message }
+  // Streaming: the bubble finished streaming and content is final.
+  | { type: "messageFinalized"; streamId: string; message: Message }
+  // Final response envelope arrived — sources/follow-ups/audio latched onto
+  // the streamed bubble instead of creating a new one.
+  | { type: "messageMetadata"; message: Message }
   | { type: "error"; message: string };
 
 type Subscriber = (event: CoreEvent) => void;
@@ -98,6 +108,10 @@ class ZephloCoreClass {
   // assistant response; we drop a repeat occurrence so the same turn never
   // renders twice (retries, races between FAB + inline views). Not persisted.
   private seenMessageIds: Set<string> = new Set();
+
+  // The in-flight streamed assistant bubble, if any. Tokens arrive as
+  // `delta` events and append to `msg.content`; cleared on `end`.
+  private currentStream: { streamId: string; msg: Message } | null = null;
 
   // Retry guard
   private sessionRetried = false;
@@ -312,13 +326,32 @@ class ZephloCoreClass {
       this.emit({ type: "status", label });
     });
 
-    // The agent's mid-run lead-in ("Let me search…") arrives before the final
-    // answer. Show it as a normal assistant bubble; the status keeps running.
-    this.chatSocket.onAgentMessage((content) => {
-      const msg: Message = { role: "assistant", content };
-      this.messages.push(msg);
-      this.saveMessages();
-      this.emit({ type: "messageAdded", message: msg });
+    // Streaming: the agent opens a bubble (start), pushes token deltas, and
+    // closes it (end). One bubble per stream; a tool call between deltas
+    // closes the lead-in bubble and the answer arrives in a new stream.
+    this.chatSocket.onStreamEvent((ev) => {
+      if (ev.kind === "start") {
+        const msg: Message = { role: "assistant", content: "", streamId: ev.streamId };
+        this.messages.push(msg);
+        this.currentStream = { streamId: ev.streamId, msg };
+        this.emit({ type: "messageAdded", message: msg });
+      } else if (ev.kind === "delta") {
+        if (!this.currentStream || this.currentStream.streamId !== ev.streamId) return;
+        this.currentStream.msg.content += ev.delta;
+        this.emit({
+          type: "messageDelta",
+          streamId: ev.streamId,
+          fullContent: this.currentStream.msg.content,
+          message: this.currentStream.msg,
+        });
+      } else {
+        // end
+        const finished = this.currentStream;
+        this.currentStream = null;
+        if (!finished || finished.streamId !== ev.streamId) return;
+        this.saveMessages();
+        this.emit({ type: "messageFinalized", streamId: ev.streamId, message: finished.msg });
+      }
     });
 
     this.chatSocket.onNavigate((url) => {
@@ -353,6 +386,36 @@ class ZephloCoreClass {
     return true;
   }
 
+  /**
+   * Finalize an assistant response envelope: if the streamed bubble is still
+   * here (matched by stream_id), latch metadata onto it; otherwise fall back
+   * to pushing a full new bubble (handles dropped streams).
+   */
+  private finalizeAssistantResponse(data: ChatResponse): Message {
+    const existing = data.stream_id
+      ? [...this.messages].reverse().find((m) => m.streamId === data.stream_id)
+      : undefined;
+    if (existing) {
+      existing.sources = data.sources;
+      existing.followUpPrompts = data.follow_up_prompts;
+      existing.audio = data.audio || null;
+      this.saveMessages();
+      this.emit({ type: "messageMetadata", message: existing });
+      return existing;
+    }
+    const msg: Message = {
+      role: "assistant",
+      content: data.response,
+      sources: data.sources,
+      followUpPrompts: data.follow_up_prompts,
+      audio: data.audio || null,
+    };
+    this.messages.push(msg);
+    this.saveMessages();
+    this.emit({ type: "messageAdded", message: msg });
+    return msg;
+  }
+
   /** Send a user message and wait for assistant response. */
   async sendMessage(text: string, options: { voice?: boolean } = {}): Promise<void> {
     if (!text.trim() || this.isLoading) return;
@@ -376,16 +439,7 @@ class ZephloCoreClass {
       this.sessionRetried = false;
 
       if (this.shouldAccept(data.message_id)) {
-        const assistantMsg: Message = {
-          role: "assistant",
-          content: data.response,
-          sources: data.sources,
-          followUpPrompts: data.follow_up_prompts,
-          audio: data.audio || null,
-        };
-        this.messages.push(assistantMsg);
-        this.saveMessages();
-        this.emit({ type: "messageAdded", message: assistantMsg });
+        this.finalizeAssistantResponse(data);
       }
     } catch (err) {
       // Retry once with a fresh session (handles stale sessions)
@@ -396,16 +450,7 @@ class ZephloCoreClass {
             const data = await this.chatSocket!.sendMessage(text, options.voice);
             this.sessionRetried = false;
             if (this.shouldAccept(data.message_id)) {
-              const assistantMsg: Message = {
-                role: "assistant",
-                content: data.response,
-                sources: data.sources,
-                followUpPrompts: data.follow_up_prompts,
-                audio: data.audio || null,
-              };
-              this.messages.push(assistantMsg);
-              this.saveMessages();
-              this.emit({ type: "messageAdded", message: assistantMsg });
+              this.finalizeAssistantResponse(data);
             }
             return;
           } catch {
@@ -447,6 +492,7 @@ class ZephloCoreClass {
     this.sessionId = null;
     this.messages = [];
     this.seenMessageIds.clear();
+    this.currentStream = null;
     this.personMode = false;
     this.pendingNavigateUrl = null;
     if (this.pendingNavigateTimer) {
@@ -537,21 +583,12 @@ class ZephloCoreClass {
 
     try {
       const data = await this.chatSocket.sendTrigger(id, prompt, mode, options.pageContext);
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: data.response,
-        sources: data.sources,
-        followUpPrompts: data.follow_up_prompts,
-        audio: data.audio || null,
-      };
 
       // Trigger replies always join history regardless of mode. The toast is
       // a nudge for prompt-mode but no longer gates whether the message lives
       // in the conversation.
       if (this.shouldAccept(data.message_id)) {
-        this.messages.push(assistantMsg);
-        this.saveMessages();
-        this.emit({ type: "messageAdded", message: assistantMsg });
+        this.finalizeAssistantResponse(data);
       }
 
       if (mode === "open") {

@@ -22,6 +22,7 @@ from app.models.oauth_provider import UserOAuthProvider
 from app.models.agent_token_usage import AgentTokenUsage
 from app.models.audit_log import AuditLog
 from app.models.password_reset_token import PasswordResetToken
+from app.models.lead import Lead
 
 __all__ = [
     "Base",
@@ -41,4 +42,5 @@ __all__ = [
     "AgentTokenUsage",
     "AuditLog",
     "PasswordResetToken",
+    "Lead",
 ]

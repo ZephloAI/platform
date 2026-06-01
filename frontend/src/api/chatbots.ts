@@ -38,7 +38,7 @@ export async function createChatbot(data: { name: string }): Promise<Chatbot> {
 
 export async function updateChatbot(
   chatbotId: string,
-  data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number },
+  data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number; lead_capture_enabled?: boolean },
 ): Promise<Chatbot> {
   const response = await apiClient.put(`/api/agents/${chatbotId}`, data);
   return response.data;

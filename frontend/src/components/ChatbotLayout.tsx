@@ -5,13 +5,14 @@ import { useChatbot, useChatbots } from '../hooks/useChatbots';
 import { useConversations } from '../hooks/useConversations';
 import { useOrgStore } from '../stores/orgStore';
 
-type Section = 'general' | 'knowledge' | 'config' | 'tools' | 'conversations';
+type Section = 'general' | 'knowledge' | 'config' | 'tools' | 'conversations' | 'leads';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
 type ToolsTab = 'mcp-servers';
 
 const NAV_ITEMS: { key: Section; label: string; icon: string }[] = [
   { key: 'general', label: 'General', icon: 'dashboard' },
   { key: 'conversations', label: 'Conversations', icon: 'chat_bubble' },
+  { key: 'leads', label: 'Leads', icon: 'contact_mail' },
   { key: 'knowledge', label: 'Knowledge', icon: 'book' },
   { key: 'config', label: 'Config', icon: 'tune' },
   { key: 'tools', label: 'Tools', icon: 'construction' },

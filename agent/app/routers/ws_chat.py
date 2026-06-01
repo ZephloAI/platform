@@ -14,6 +14,8 @@ Endpoint:
 import hashlib
 import json
 import logging
+import re
+import secrets
 import uuid
 
 import asyncpg
@@ -78,6 +80,43 @@ _VERB_GERUNDS: dict[str, str] = {
     "read": "Reading", "query": "Querying", "create": "Creating",
     "update": "Updating", "book": "Booking", "send": "Sending",
 }
+
+
+# Agent is prompted to append `[RESOLVED]` / `[UNRESOLVED]` at the end of its
+# answer so the server can record whether the turn resolved the visitor's
+# question. Without filtering, those tags stream through to the widget and
+# appear at the end of the bubble. `_StreamMarkerStripper` holds back the
+# last ~12 chars of every chunk so a marker split across token boundaries is
+# caught before it reaches the client.
+_RESOLUTION_RE = re.compile(r"\[(?:UN)?RESOLVED\]")
+_RESOLUTION_TAIL_HOLD = len("[UNRESOLVED]")
+
+
+class _StreamMarkerStripper:
+    """Filter resolution markers out of a token stream without breaking when
+    a marker is split across multiple chunks."""
+
+    __slots__ = ("_buf",)
+
+    def __init__(self) -> None:
+        self._buf = ""
+
+    def push(self, chunk: str) -> str:
+        """Append `chunk` and return text that's safe to forward right now."""
+        self._buf = _RESOLUTION_RE.sub("", self._buf + chunk)
+        if len(self._buf) <= _RESOLUTION_TAIL_HOLD:
+            return ""
+        out = self._buf[:-_RESOLUTION_TAIL_HOLD]
+        self._buf = self._buf[-_RESOLUTION_TAIL_HOLD:]
+        return out
+
+    def flush(self) -> str:
+        """Drain the buffer at end-of-stream and strip a trailing marker +
+        the newline it usually sits on (the prompt asks for it on its own
+        line, so a hanging "\\n" left behind would render as a blank line)."""
+        out = _RESOLUTION_RE.sub("", self._buf)
+        self._buf = ""
+        return out.rstrip() if out and out != out.strip() else out
 
 
 def _friendly_tool_label(tool_name: str) -> str | None:
@@ -211,7 +250,7 @@ async def ws_chat(ws: WebSocket):
     conn = await asyncpg.connect(settings.DATABASE_URL_ASYNCPG)
     try:
         chatbot_row = await conn.fetchrow(
-            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled, navigation_enabled, llm_model FROM chatbots WHERE public_id = $1",
+            "SELECT id, name, follow_up_prompts, mcp_servers, webmcp_enabled, instructions, person_mode_enabled, navigation_enabled, llm_model, lead_capture_enabled FROM chatbots WHERE public_id = $1",
             chatbot_id_str,
         )
 
@@ -241,6 +280,7 @@ async def ws_chat(ws: WebSocket):
     # connect time so the next session picks up an admin's model change.
     agent_model = chatbot_row["llm_model"]
     resolved_model = agent_model or settings.LLM_MODEL
+    lead_capture_enabled = bool(chatbot_row["lead_capture_enabled"])
 
     await ws.accept()
     active_connections[session_id] = ws
@@ -260,10 +300,21 @@ async def ws_chat(ws: WebSocket):
     page_context = {}
 
     # --- Add "Talk to a real person" to the follow-up pool so the agent can suggest it ---
+    # Only surfaced when the visitor *explicitly* asks for a human ("can I
+    # talk to a person?", "I want a real agent"). The strict description
+    # below is what gates the LLM — without it, the model tends to offer
+    # this proactively, which feels like the AI is giving up on the visitor.
     if person_mode_enabled:
         follow_up_prompts.append({
             "title": "Talk to a real person",
-            "description": "The visitor wants to speak with a human team member instead of the AI",
+            "description": (
+                "Suggest this ONLY when the visitor has explicitly asked to "
+                "speak with a human, a real person, or a live agent (e.g. "
+                "\"can I talk to a person?\", \"I want a human\", \"connect "
+                "me with someone\"). NEVER suggest it proactively, on "
+                "greetings, when the AI can answer, or when the visitor is "
+                "merely frustrated — only on a direct request for a human."
+            ),
             "prompt": "__switch_to_person__",
         })
 
@@ -288,6 +339,8 @@ async def ws_chat(ws: WebSocket):
         navigation_enabled=navigation_enabled,
         dispatcher=dispatcher,
         llm_model=agent_model,
+        lead_capture_enabled=lead_capture_enabled,
+        chatbot_id=chatbot_id,
     )
 
     try:
@@ -441,9 +494,42 @@ async def ws_chat(ws: WebSocket):
             await dispatcher.send_json({"message_type": "status", "label": "Thinking…"})
 
             response = None
-            preamble = ""          # text before the FIRST tool call → shown as a status
             final_text = ""        # text after the LAST tool call → the real answer
-            saw_tool_call = False
+            stream_id: str | None = None  # open stream's id, or None if none open
+            last_stream_id: str | None = None  # most recent stream — matched by response envelope
+            stripper = _StreamMarkerStripper()
+
+            async def send_delta(text: str) -> None:
+                """Open a stream lazily and forward a chunk to the widget."""
+                nonlocal stream_id, last_stream_id
+                if not text:
+                    return
+                if stream_id is None:
+                    stream_id = secrets.token_hex(4)
+                    last_stream_id = stream_id
+                    await dispatcher.send_json(
+                        {"message_type": "stream_start", "stream_id": stream_id}
+                    )
+                await dispatcher.send_json(
+                    {
+                        "message_type": "stream_delta",
+                        "stream_id": stream_id,
+                        "delta": text,
+                    }
+                )
+
+            async def close_stream() -> None:
+                """Flush the marker stripper and close the in-flight bubble."""
+                nonlocal stream_id
+                tail = stripper.flush()
+                if tail:
+                    await send_delta(tail)
+                if stream_id is not None:
+                    await dispatcher.send_json(
+                        {"message_type": "stream_end", "stream_id": stream_id}
+                    )
+                    stream_id = None
+
             try:
                 async for event in agent.arun(
                     full_prompt,
@@ -457,29 +543,21 @@ async def ws_chat(ws: WebSocket):
                         continue
                     event_type = getattr(event, "event", None)
                     if event_type == RunEvent.run_content:
-                        # run_content events are deltas. Everything before the
-                        # first tool call is the model's lead-in ("Let me
-                        # search…"); everything after the last tool call is the
-                        # real answer.
+                        # run_content events are deltas. Stream them straight
+                        # through; the widget grows the in-flight bubble live.
+                        # Resolution markers are filtered out here so they
+                        # never appear in the user-visible bubble.
                         chunk = getattr(event, "content", None)
-                        if isinstance(chunk, str):
-                            final_text += chunk
-                            if not saw_tool_call:
-                                preamble += chunk
+                        if not isinstance(chunk, str) or not chunk:
+                            continue
+                        final_text += chunk
+                        await send_delta(stripper.push(chunk))
                     elif event_type == RunEvent.tool_call_started:
-                        # The real answer is whatever the model writes AFTER the
-                        # last tool call, so drop anything buffered so far.
+                        # Close the current bubble (lead-in) and reset the
+                        # buffer — the real answer is whatever the model writes
+                        # AFTER the last tool call.
+                        await close_stream()
                         final_text = ""
-                        # On the first tool call, the model's lead-in
-                        # ("I'd love to help… Let me search…") is conversational
-                        # prose, not a status — send it as a real agent message
-                        # so it shows as its own bubble.
-                        lead_in = clean_response(preamble).strip() if not saw_tool_call else ""
-                        saw_tool_call = True
-                        if lead_in:
-                            await dispatcher.send_json(
-                                {"message_type": "agent_message", "content": lead_in}
-                            )
                         # Keep a short status going until the final answer lands.
                         tool = getattr(event, "tool", None)
                         tool_name = getattr(tool, "tool_name", "") if tool else ""
@@ -495,6 +573,7 @@ async def ws_chat(ws: WebSocket):
                         )
             finally:
                 set_active_collector(None)
+                await close_stream()
 
             # Defensive: yield_run_output should always hand us the final
             # output, but fall back to a plain run so the code below never
@@ -589,6 +668,7 @@ async def ws_chat(ws: WebSocket):
                 {
                     "message_type": "response",
                     "message_id": message_id,
+                    "stream_id": last_stream_id,
                     "response": response_text,
                     "sources": sources,
                     "session_id": session_id,
