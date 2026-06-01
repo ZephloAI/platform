@@ -155,11 +155,30 @@ export interface Chatbot {
   mcp_servers?: MCPServer[] | null;
   person_mode_enabled?: boolean;
   navigation_enabled?: boolean;
+  lead_capture_enabled?: boolean;
   documents?: Document[];
   agent_texts?: AgentText[];
   auto_recrawl_enabled?: boolean;
   recrawl_interval_hours?: number;
   last_crawled_at?: string | null;
+}
+
+/** A lead captured during a chat session. Fields are filled in over time —
+ *  the agent calls capture_lead multiple times as it learns more, so each
+ *  capture field may be null. A lead is "complete" when name and email
+ *  are both set. */
+export interface Lead {
+  id: number;
+  public_id: string;
+  chatbot_id: number;
+  session_id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  interest: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /** A quick prompt button shown in the widget */

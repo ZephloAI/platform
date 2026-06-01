@@ -71,7 +71,7 @@ export function useUpdateChatbot() {
       data,
     }: {
       chatbotId: string;
-      data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number };
+      data: { name: string; description: string | null; instructions: string | null; auto_recrawl_enabled?: boolean; recrawl_interval_hours?: number; lead_capture_enabled?: boolean };
     }): Promise<Chatbot> => chatbotApi.updateChatbot(chatbotId, data),
     onSuccess: (_data, { chatbotId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chatbot(chatbotId) });

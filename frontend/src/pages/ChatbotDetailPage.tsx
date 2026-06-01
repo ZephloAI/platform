@@ -6,6 +6,7 @@ import KnowledgeSection from '../components/KnowledgeSection';
 import ConfigSection from '../components/ConfigSection';
 import ToolsSection from '../components/ToolsSection';
 import ConversationsSection from '../components/ConversationsSection';
+import LeadsSection from '../components/LeadsSection';
 
 interface ChatbotContext {
   activeSection: string;
@@ -44,6 +45,14 @@ function ChatbotDetailPage() {
     return (
       <div className="animate-fade-in h-full">
         <ConversationsSection />
+      </div>
+    );
+  }
+
+  if (activeSection === 'leads') {
+    return (
+      <div className="animate-fade-in">
+        <LeadsSection chatbot={chatbot} />
       </div>
     );
   }
