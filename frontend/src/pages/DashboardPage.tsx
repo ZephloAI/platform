@@ -11,6 +11,7 @@ import RecentConversationsCard from '../components/RecentConversationsCard';
 import { useOrgStore } from '../stores/orgStore';
 import { useAuth } from '../hooks/useAuth';
 import { formatCompactNumber, trendFromSeries } from '../lib/format';
+import { useSetAssistantContext } from '../assistant/context';
 import type { OrgAnalytics, DailyDataPoint } from '../types';
 
 /** Turn the org analytics series into the four headline metric tiles. */
@@ -72,6 +73,12 @@ function DashboardPage() {
   const metrics = analytics ? buildMetrics(analytics) : [];
   const atAgentLimit =
     !!usage && usage.max_agents !== null && usage.agents_count >= usage.max_agents;
+
+  // Tell the assistant we're on the home dashboard so it can ground replies.
+  useSetAssistantContext(
+    { page: 'dashboard_home', section: undefined, tab: undefined, agent: null },
+    [activeOrg?.id],
+  );
 
   return (
     <div className="animate-fade-in">

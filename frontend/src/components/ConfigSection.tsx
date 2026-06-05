@@ -39,6 +39,7 @@ interface ConfigSectionProps {
 
 function ConfigSection({ chatbot, activeTab }: ConfigSectionProps) {
   const [, setSearchParams] = useSearchParams();
+
   const [previewState, setPreviewState] = useState<PreviewState>({
     icon: chatbot.widget_icon || '🤖',
     welcome: chatbot.widget_welcome || 'Hi! How can I help you today?',

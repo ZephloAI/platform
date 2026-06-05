@@ -15,6 +15,7 @@ import {
   useOrgUsage,
 } from '../hooks/useOrganization';
 import { useOrgStore } from '../stores/orgStore';
+import { useSetAssistantContext } from '../assistant/context';
 import type { ApiKeyCreated, UsageSnapshot } from '../types';
 
 // ============================================================
@@ -43,6 +44,12 @@ function OrganizationSettingsPage() {
     setSearchParams({ section });
     setSidebarOpen(false);
   };
+
+  // Surface the current org-settings tab to the assistant.
+  useSetAssistantContext(
+    { page: 'organization_settings', section: activeSection, tab: undefined, agent: null },
+    [activeSection, orgId],
+  );
 
   const [accountOpen, setAccountOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
