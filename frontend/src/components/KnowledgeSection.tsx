@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStartCrawl, useUploadDocument, useDeleteDocument, useReplaceDocument, useUpdateChatbot, useCreateText, useUpdateText, useDeleteText, useCrawlJob } from '../hooks/useChatbots';
 import { useDiscoverStream } from '../hooks/useDiscoverStream';
 import CrawlStatus from './CrawlStatus';
@@ -66,6 +67,7 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
   const updateTextMutation = useUpdateText();
   const deleteTextMutation = useDeleteText();
   const updateChatbotMutation = useUpdateChatbot();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [dragOver, setDragOver] = useState(false);
@@ -176,6 +178,31 @@ function KnowledgeSection({ chatbot }: KnowledgeSectionProps) {
     if (!websiteUrl.trim()) return;
     discover.start(websiteUrl.trim());
   };
+
+  // The dashboard assistant routes "add this website" requests here: it navigates
+  // with `knowledgeTab=website` and a `discoverUrl`. Land on the Website tab and
+  // auto-start discovery, then strip the params so a refresh doesn't re-trigger.
+  useEffect(() => {
+    if (searchParams.get('knowledgeTab') === 'website') setActiveTab('website');
+    const discoverUrl = searchParams.get('discoverUrl');
+    if (discoverUrl) {
+      setActiveTab('website');
+      setWebsiteUrl(discoverUrl);
+      discover.start(discoverUrl);
+    }
+    if (searchParams.get('knowledgeTab') || discoverUrl) {
+      setSearchParams(
+        (prev) => {
+          prev.delete('knowledgeTab');
+          prev.delete('discoverUrl');
+          return prev;
+        },
+        { replace: true },
+      );
+    }
+    // Run once per incoming request; clearing the params above prevents re-fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const clearDiscovery = () => {
     setDiscoveredUrls([]);
