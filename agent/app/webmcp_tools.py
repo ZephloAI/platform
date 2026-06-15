@@ -16,7 +16,10 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
-MAX_TOOLS = 20
+# Upper bound on browser-side tools we expose to the LLM in a single turn.
+# The dashboard assistant alone registers ~50 tools, so a low cap silently hides
+# whole feature areas from the agent. Keep this comfortably above the real count.
+MAX_TOOLS = 60
 TOOL_TIMEOUT = 30
 
 
@@ -176,6 +179,13 @@ def create_web_tools(tool_schemas: list[dict], dispatcher: WebSocketDispatcher) 
     Each returned function has a proper signature built from inputSchema,
     and forwards calls to the browser widget via the WebSocketDispatcher.
     """
+    if len(tool_schemas) > MAX_TOOLS:
+        dropped = [s.get("name") for s in tool_schemas[MAX_TOOLS:]]
+        logger.warning(
+            f"Tool list exceeds MAX_TOOLS={MAX_TOOLS}; dropping {len(dropped)} "
+            f"tools the agent won't see: {dropped}"
+        )
+
     tools = []
     for schema in tool_schemas[:MAX_TOOLS]:
         tool_name = schema["name"]

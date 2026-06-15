@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChatbot, useChatbots } from '../hooks/useChatbots';
 import { useConversations } from '../hooks/useConversations';
 import { useOrgStore } from '../stores/orgStore';
+import { useSetAssistantContext } from '../assistant/context';
 
 type Section = 'general' | 'knowledge' | 'config' | 'tools' | 'conversations' | 'leads';
 type ConfigTab = 'appearance' | 'quick-prompts' | 'follow-up-prompts' | 'greeting-prompts';
@@ -33,6 +34,18 @@ function ChatbotLayout() {
   const activeSection = (searchParams.get('section') as Section) || 'general';
   const activeConfigTab = (searchParams.get('configTab') as ConfigTab) || 'appearance';
   const activeToolsTab = (searchParams.get('toolsTab') as ToolsTab) || 'mcp-servers';
+
+  // Keep the dashboard assistant informed of where the user is. This drives
+  // the page_context the agent receives on every message.
+  useSetAssistantContext(
+    {
+      page: 'agent_detail',
+      section: activeSection,
+      tab: activeSection === 'config' ? activeConfigTab : activeSection === 'tools' ? activeToolsTab : undefined,
+      agent: chatbot ?? null,
+    },
+    [activeSection, activeConfigTab, activeToolsTab, chatbot?.public_id, chatbot?.status],
+  );
 
   const setActiveSection = (section: Section) => {
     const params: Record<string, string> = { section };

@@ -4,6 +4,7 @@ import ChatbotLayout from './components/ChatbotLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import DashboardAssistant from './components/DashboardAssistant';
+import { AssistantContextProvider } from './assistant/context';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -19,7 +20,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   return (
-    <>
+    <AssistantContextProvider>
     <DashboardAssistant />
     <Routes>
       {/* Public routes */}
@@ -86,7 +87,7 @@ function App() {
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-    </>
+    </AssistantContextProvider>
   );
 }
 
