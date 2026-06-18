@@ -27,12 +27,17 @@ from scrapy.http import TextResponse
 from scrapy.linkextractors import LinkExtractor
 
 
+def _emit(obj: dict) -> None:
+    """Write one JSON line to stdout -- the channel the parent process reads."""
+    sys.stdout.write(json.dumps(obj) + "\n")
+    sys.stdout.flush()
+
+
 class StdoutWriterPipeline:
     """Write each scraped page to stdout as a single JSON line, then flush."""
 
     def process_item(self, item, spider):
-        sys.stdout.write(json.dumps(dict(item)) + "\n")
-        sys.stdout.flush()
+        _emit(dict(item))
         return item
 
 
@@ -65,25 +70,46 @@ class SiteSpider(scrapy.Spider):
         self.max_pages = int(max_pages)
         self.empty_threshold = int(empty_threshold)
 
-        # Restrict the crawl to the starting domain (subdomains allowed).
+        # Restrict the crawl to the starting domain (subdomains allowed). Strip a
+        # leading "www." so the apex and www host count as the same site -- e.g.
+        # entering www.site.com still follows links to site.com after a redirect.
         seed = start_url or (self.url_list[0] if self.url_list else "")
-        domain = urlparse(seed).netloc
+        domain = urlparse(seed).netloc.removeprefix("www.")
         self.allowed_domains = [domain] if domain else []
         self.link_extractor = LinkExtractor(allow_domains=self.allowed_domains)
 
     def start_requests(self):
+        # Tag the starting requests as "seed" and attach an errback so a page we
+        # can't even reach is reported, not silently dropped.
         if self.mode == "discover":
             if self.start_url:
-                yield scrapy.Request(self.start_url, callback=self.parse_discover)
+                yield scrapy.Request(
+                    self.start_url,
+                    callback=self.parse_discover,
+                    errback=self.on_request_error,
+                    meta={"is_seed": True},
+                )
         else:
             for url in self.url_list:
-                yield scrapy.Request(url, callback=self.parse_crawl)
+                yield scrapy.Request(
+                    url,
+                    callback=self.parse_crawl,
+                    errback=self.on_request_error,
+                    meta={"is_seed": True},
+                )
 
     # -- Discovery: emit url + title, then follow same-domain links --
 
     def parse_discover(self, response):
         if not isinstance(response, TextResponse):
             return  # skip PDFs, images, and other non-HTML responses
+
+        if response.status >= 400:
+            # The seed page failing is fatal (report it); a broken sub-page deep
+            # in the site is just skipped so one 404 doesn't sink the whole run.
+            if response.meta.get("is_seed"):
+                yield {"error": f"{response.url} returned HTTP {response.status}"}
+            return
 
         text = self._extract_text(response)
         if self._needs_render(response, text):
@@ -101,6 +127,12 @@ class SiteSpider(scrapy.Spider):
         if not isinstance(response, TextResponse):
             return
 
+        if response.status >= 400:
+            # Report the failed page; the orchestrator collects these and only
+            # fails the job if no page at all could be crawled.
+            yield {"error": f"{response.url} returned HTTP {response.status}"}
+            return
+
         text = self._extract_text(response)
         if self._needs_render(response, text):
             yield self._render_retry(response, self.parse_crawl)
@@ -113,6 +145,11 @@ class SiteSpider(scrapy.Spider):
         }
 
     # -- Helpers --
+
+    def on_request_error(self, failure):
+        """Report a request that never produced a response (DNS, timeout, refused)."""
+        url = failure.request.url
+        _emit({"error": f"Could not reach {url}: {failure.getErrorMessage()}"})
 
     def _needs_render(self, response, text: str) -> bool:
         """A near-empty page that wasn't already rendered is likely a JS shell."""

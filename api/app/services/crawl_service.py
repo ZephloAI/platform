@@ -39,7 +39,7 @@ class CrawlService:
         async with client.stream(
             "GET",
             f"{settings.CRAWLER_SERVICE_URL}/discover",
-            params={"website_url": website_url, "max_pages": 50},
+            params={"website_url": website_url, "max_pages": 100},
             timeout=None,
         ) as response:
             async for chunk in response.aiter_bytes():

@@ -4,21 +4,32 @@ AI chatbot widget for your website. Add a fully-featured chat assistant with a s
 
 ## Quick Start
 
-### Script Tag
+### Script Tag (zero config)
 
-The fastest way to get started. Add this to your HTML:
+The fastest way to get started — the floating button is injected for you:
 
 ```html
-<script src="https://unpkg.com/zephlo"></script>
+<script
+  src="https://unpkg.com/zephlo/dist/zephlo.js"
+  data-chatbot-id="YOUR_AGENT_ID"
+></script>
+```
+
+### SDK (script tag or npm)
+
+With the SDK you call `Zephlo.initialize()` and place a `<zephlo-fab>` (floating button)
+or `<zephlo-chat>` (inline) element yourself.
+
+```html
+<script src="https://unpkg.com/zephlo/dist/zephlo.js"></script>
+<zephlo-fab></zephlo-fab>
 <script>
-  Zephlo.initialize({
-    key: "YOUR_API_KEY",
-    chatbotId: 1
+  const widget = Zephlo.initialize({
+    key: "flk_your_api_key",
+    chatbotId: "YOUR_AGENT_ID"
   });
 </script>
 ```
-
-### npm
 
 ```bash
 npm install zephlo
@@ -28,8 +39,8 @@ npm install zephlo
 import Zephlo from "zephlo";
 
 const widget = Zephlo.initialize({
-  key: "YOUR_API_KEY",
-  chatbotId: "unid-id"
+  key: "flk_your_api_key",
+  chatbotId: "YOUR_AGENT_ID"
 });
 ```
 
@@ -37,9 +48,10 @@ const widget = Zephlo.initialize({
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
-| `key` | `string` | Yes | Your Zephlo API key |
-| `chatbotId` | `number` | Yes | The ID of your chatbot agent |
-| `apiUrl` | `string` | No | Custom API URL (defaults to your Zephlo instance) |
+| `key` | `string` | Yes | Your Zephlo API key (starts with `flk_`) |
+| `chatbotId` | `string` | Yes | Your agent's UUID |
+| `apiUrl` | `string` | No | Custom API URL (defaults to `https://app.zephlo.ai`) |
+| `theme` | `object` | No | Colors and light/dark mode (`mode`, `light`, `dark`) |
 
 ## Features
 
@@ -96,6 +108,28 @@ widget.sendContextUpdate({
   plan: "pro"
 }, true); // true = include current page URL and title
 ```
+
+### `trigger(id, prompt, options?)`
+
+Fire a proactive message from the agent. `prompt` is an instruction the agent turns
+into a reply. Supports display `mode` (`"open"` | `"prompt"`), a `cooldown` policy
+(`"session"` | `"once"` | `{ minutes }` | `null`), and `pageContext`.
+
+```js
+widget.trigger("pricing_help", "Offer to answer questions about our pricing", {
+  mode: "prompt",
+  cooldown: "session"
+});
+```
+
+### `scanForms()`
+
+Force an immediate re-scan for `zephlo-tool-name` forms (they're auto-detected otherwise).
+
+### Theme controls
+
+Read/write the live theme: `widget.theme = "dark"`, `widget.headerColor = "#ff3b30"`,
+and `widget.setColors("dark", { bgColor: "#000" })`.
 
 ### `destroy()`
 
