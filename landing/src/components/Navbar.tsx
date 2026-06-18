@@ -111,6 +111,14 @@ export default function Navbar() {
             </AnimatePresence>
           </button>
 
+          <a
+            href={links.docs}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]"
+          >
+            Docs
+          </a>
           <a href={links.signIn} className="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">
             Sign in
           </a>
@@ -175,11 +183,23 @@ export default function Navbar() {
               })}
               <div className="divider my-2 border-t border-[var(--subtle-white-04)]" />
               <motion.a
-                href={links.signIn}
+                href={links.docs}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMobileOpen(false)}
                 initial={{ x: -12, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: navLinks.length * 0.04, duration: 0.25 }}
+                className="rounded-lg px-3 py-3 text-[15px] text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]"
+              >
+                Docs
+              </motion.a>
+              <motion.a
+                href={links.signIn}
+                onClick={() => setMobileOpen(false)}
+                initial={{ x: -12, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: (navLinks.length + 1) * 0.04, duration: 0.25 }}
                 className="rounded-lg px-3 py-3 text-[15px] text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]"
               >
                 Sign in
@@ -189,7 +209,7 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 initial={{ x: -12, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: (navLinks.length + 1) * 0.04, duration: 0.25 }}
+                transition={{ delay: (navLinks.length + 2) * 0.04, duration: 0.25 }}
                 className="mt-2 flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium text-white bg-[#1275CA]"
               >
                 Start free
