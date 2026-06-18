@@ -43,7 +43,7 @@ class CrawlResponse(BaseModel):
 # -- Endpoints --
 
 @router.get("/discover")
-async def discover(website_url: str, max_pages: int = 50):
+async def discover(website_url: str, max_pages: int = 100):
     """
     Stream discovered URLs on a website as Server-Sent Events.
 
@@ -59,6 +59,11 @@ async def discover(website_url: str, max_pages: int = 50):
         count = 0
         try:
             async for page in stream_discovery(website_url, max_pages):
+                # The spider reports an unreachable/blocked site as an error entry;
+                # surface the real reason instead of finishing with zero pages.
+                if "error" in page:
+                    yield f"event: error\ndata: {json.dumps({'message': page['error']})}\n\n"
+                    return
                 count += 1
                 yield f"data: {json.dumps(page)}\n\n"
             yield f"event: complete\ndata: {json.dumps({'count': count})}\n\n"

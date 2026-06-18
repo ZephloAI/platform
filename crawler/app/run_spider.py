@@ -33,6 +33,19 @@ def build_settings(max_pages: int, is_discover: bool) -> dict:
         },
         "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "PLAYWRIGHT_LAUNCH_OPTIONS": {"headless": True},
+        # Render with the same browser User-Agent as plain fetches; the default
+        # headless Chromium UA ("HeadlessChrome") is also blocked by some sites.
+        "PLAYWRIGHT_CONTEXTS": {"default": {"user_agent": settings.USER_AGENT}},
+        # Look like a real browser so sites/WAFs don't block us (the #1 cause of
+        # discovery and crawling silently returning nothing).
+        "USER_AGENT": settings.USER_AGENT,
+        "DEFAULT_REQUEST_HEADERS": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        # Let 4xx/5xx responses reach the spider so we can report the real reason
+        # (e.g. "returned HTTP 403") instead of dropping them and looking empty.
+        "HTTPERROR_ALLOW_ALL": True,
         # Speed: many requests in flight. We crawl the customer's own site, so we
         # skip the politeness throttle and robots.txt to fetch every page quickly.
         "CONCURRENT_REQUESTS": settings.CONCURRENT_REQUESTS,
@@ -44,7 +57,7 @@ def build_settings(max_pages: int, is_discover: bool) -> dict:
         # Reliability: retry transient failures so pages stop getting dropped.
         "RETRY_ENABLED": True,
         "RETRY_TIMES": 2,
-        "DOWNLOAD_TIMEOUT": 30,
+        "DOWNLOAD_TIMEOUT": 45,
         # Keep stdout clean: only items go there, logs go to stderr.
         "LOG_LEVEL": "ERROR",
         "TELNETCONSOLE_ENABLED": False,

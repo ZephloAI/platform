@@ -73,10 +73,17 @@ async def run_crawl_job(
             # Re-crawl: re-discover the site first so pages added or removed since
             # the last crawl are picked up, then crawl whatever we find.
             print(f"Re-discovering {website_url} for chatbot {chatbot_id}")
-            urls = [
-                page["url"]
-                async for page in stream_discovery(website_url, settings.MAX_PAGES)
-            ]
+            urls = []
+            async for page in stream_discovery(website_url, settings.MAX_PAGES):
+                if "error" in page:
+                    # Re-discovery failed before we touched Qdrant. Keep the
+                    # existing website data intact and report the real reason.
+                    await send_callback(callback_url, {
+                        "status": "failed",
+                        "error": page["error"],
+                    })
+                    return
+                urls.append(page["url"])
             print(f"Re-discovery found {len(urls)} pages")
         else:
             urls = []
@@ -88,10 +95,11 @@ async def run_crawl_job(
             })
             return
 
-        # Step 3: Ensure collection exists, then delete only web points
-        # (this preserves any uploaded document content)
+        # Step 3: Ensure the collection exists. We deliberately do NOT delete the
+        # old web content yet -- that happens only once we actually have new
+        # content to replace it with (see the loop below), so a crawl that fails
+        # or finds nothing leaves the existing website data untouched.
         ensure_collection(chatbot_name, chatbot_id)
-        delete_web_points(chatbot_name, chatbot_id)
 
         # Now that we know the real page count, tell the API (a re-crawl's total
         # can differ from the original since we just re-discovered).
@@ -104,7 +112,14 @@ async def run_crawl_job(
         # Step 4: Stream pages from Scrapy and index each as it arrives
         total_chunks_indexed = 0
         pages_done = 0
+        cleared = False  # have we removed the old web content yet?
+        errors = []  # reasons individual pages failed (for the all-failed case)
         async for page in stream_crawl(urls):
+            # A failed page comes back as an error entry, not real content.
+            if "error" in page:
+                errors.append(page["error"])
+                continue
+
             pages_done += 1
             content = page.get("content") or ""
 
@@ -118,6 +133,13 @@ async def run_crawl_job(
                     # Embed + index off the event loop so Scrapy can keep
                     # fetching the next pages while this one is processed.
                     embeddings = await asyncio.to_thread(generate_embeddings, chunks)
+                    # Clear the old web content only now that we have new content
+                    # to put in its place -- a failed crawl never wipes existing data.
+                    if not cleared:
+                        await asyncio.to_thread(
+                            delete_web_points, chatbot_name, chatbot_id
+                        )
+                        cleared = True
                     chunk_objects = [
                         {
                             "text": text,
@@ -143,9 +165,11 @@ async def run_crawl_job(
             })
 
         if pages_done == 0:
+            # Nothing crawled -- report the website's own error if we have one,
+            # so the dashboard shows why. Existing data was never deleted.
             await send_callback(callback_url, {
                 "status": "failed",
-                "error": "No pages could be crawled from the website",
+                "error": errors[0] if errors else "No pages could be crawled from the website",
             })
             return
 
