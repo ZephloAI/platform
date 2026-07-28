@@ -13,7 +13,7 @@
  * settings from the dashboard.
  */
 
-import { ChatSocket, fetchConfig, createSession, setApiKey, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus } from "./api";
+import { ChatSocket, fetchConfig, createSession, setApiKey, type ChatSource, type FollowUpPrompt, type McpToolResult, type ConnectionStatus, type WidgetConfig } from "./api";
 import { toolRegistry, type ToolDefinition } from "./webmcp";
 import { FormScanner } from "./form-scanner";
 import { WIDGET_STYLES } from "./styles";
@@ -88,6 +88,9 @@ export class ChatbotWidget extends HTMLElement {
   protected greetingsEl: HTMLDivElement | null = null;
   private greetingsDismissed = false;
   private greetingsTimer: ReturnType<typeof setTimeout> | null = null;
+  // bindEvents() runs once per render (twice when the config re-render kicks
+  // in); the shadow-root delegated click listener must only attach once.
+  private shadowClickBound = false;
   private triggerToastEl: HTMLDivElement | null = null;
   private triggerToastTimer: ReturnType<typeof setTimeout> | null = null;
   private static TRIGGER_TOAST_DURATION_MS = 15000;
@@ -170,42 +173,13 @@ export class ChatbotWidget extends HTMLElement {
       isActive: true,
     };
 
-    // Fetch widget config via core (cached for all views)
-    const config = await zephloCore.loadConfig();
-    if (config) {
-      this.state.title = config.name || this.state.title;
-      this.state.icon = config.widget_icon || "";
-      this.state.welcome = config.widget_welcome || this.state.welcome;
-      const pos = config.widget_position;
-      this.state.position =
-        (pos === "left" || pos === "left-sidebar" || pos === "right-sidebar") ? pos : "right";
-      this.state.quickPrompts = config.quick_prompts || [];
-      this.state.logoUrl = config.widget_logo_url || null;
-      this.state.width = config.widget_width || 380;
-      this.state.height = config.widget_height || 520;
-      this.state.fontFamily = config.widget_font_family || "";
-      this.state.fontSize = config.widget_font_size || 14;
-      this.state.greetingPrompts = config.greeting_prompts || [];
-      this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
-      this.state.voiceEnabled = config.voice_enabled || false;
-      this.state.isActive = (config as any).is_active !== false;
-    }
-
-    // Hide widget entirely if inactive
-    if (!this.state.isActive) {
-      this.style.display = 'none';
-      return;
-    }
-
-    // Reconnect WS only for returning visitors with an existing session.
-    // New visitors stay session-less until they send their first message,
-    // so empty conversations don't appear on the operator dashboard.
-    zephloCore.resumeSessionIfExists();
-
     // Subscribe to core events so this view stays in sync with state changes
     // from other views sharing the same core.
     this.coreUnsubscribe = zephloCore.subscribe((ev) => this.onCoreEvent(ev));
 
+    // Paint immediately with defaults so the widget appears instantly — the
+    // config fetch below is kept OFF the critical rendering path. Without this
+    // the panel would stay blank for the whole config round-trip.
     this.render();
     this.bindEvents();
     this.restoreMessages();
@@ -214,6 +188,30 @@ export class ChatbotWidget extends HTMLElement {
     const formScanner = new FormScanner();
     formScanner.scan();
     formScanner.observe();
+
+    // Fetch widget config via core (cached for all views), then re-render with
+    // the real settings. Bounded by a timeout in fetchConfig(), so a slow or
+    // misconfigured API host can never stall this.
+    const config = await zephloCore.loadConfig();
+    if (config) {
+      this.applyConfig(config);
+
+      // Hide widget entirely if inactive.
+      if (!this.state.isActive) {
+        this.style.display = 'none';
+        return;
+      }
+
+      // Re-render with the loaded config (title, prompts, dimensions, theme…).
+      this.render();
+      this.bindEvents();
+      this.restoreMessages();
+    }
+
+    // Reconnect WS only for returning visitors with an existing session.
+    // New visitors stay session-less until they send their first message,
+    // so empty conversations don't appear on the operator dashboard.
+    zephloCore.resumeSessionIfExists();
 
     if (!this.isInline && this.state.position.includes('sidebar')) {
       this.injectHostTransition();
@@ -232,6 +230,26 @@ export class ChatbotWidget extends HTMLElement {
         }
       } catch { /* ignore */ }
     }
+  }
+
+  /** Map server widget config onto this view's render state. */
+  private applyConfig(config: WidgetConfig) {
+    this.state.title = config.name || this.state.title;
+    this.state.icon = config.widget_icon || "";
+    this.state.welcome = config.widget_welcome || this.state.welcome;
+    const pos = config.widget_position;
+    this.state.position =
+      (pos === "left" || pos === "left-sidebar" || pos === "right-sidebar") ? pos : "right";
+    this.state.quickPrompts = config.quick_prompts || [];
+    this.state.logoUrl = config.widget_logo_url || null;
+    this.state.width = config.widget_width || 380;
+    this.state.height = config.widget_height || 520;
+    this.state.fontFamily = config.widget_font_family || "";
+    this.state.fontSize = config.widget_font_size || 14;
+    this.state.greetingPrompts = config.greeting_prompts || [];
+    this.state.greetingPromptDuration = config.greeting_prompt_duration || 0;
+    this.state.voiceEnabled = config.voice_enabled || false;
+    this.state.isActive = (config as any).is_active !== false;
   }
 
   /** React to core state changes coming from other views or the server. */
@@ -455,6 +473,13 @@ export class ChatbotWidget extends HTMLElement {
   protected render() {
     const { position, logoUrl } = this.state;
 
+    // render() can run twice (defaults first, then real config) — clear any
+    // pending greeting timer so we don't leak one on the second pass.
+    if (this.greetingsTimer) {
+      clearTimeout(this.greetingsTimer);
+      this.greetingsTimer = null;
+    }
+
     this.loadCustomFont();
 
     // Position override (left-side placement)
@@ -607,7 +632,12 @@ export class ChatbotWidget extends HTMLElement {
       });
     });
 
-    // Button clicks (event delegation on shadow root)
+    // Button clicks (event delegation on shadow root). The shadow root
+    // SURVIVES re-renders — bindEvents() runs again after the config loads,
+    // so guard against attaching this listener twice (a duplicate would
+    // double-fire every delegated action, including prompt sends).
+    if (this.shadowClickBound) return;
+    this.shadowClickBound = true;
     this.shadow.addEventListener("click", (e) => {
       // Speaker button clicks (audio replay)
       const speakerBtn = (e.target as HTMLElement).closest(".cb-speaker-btn") as HTMLElement | null;
