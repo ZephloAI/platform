@@ -396,6 +396,13 @@ class ZephloCoreClass {
       ? [...this.messages].reverse().find((m) => m.streamId === data.stream_id)
       : undefined;
     if (existing) {
+      // Backfill content if the stream's deltas never landed (dropped frames,
+      // a competing stream stomping currentStream). The envelope carries the
+      // full text, so the bubble must never stay empty when we have it.
+      if (!existing.content && data.response) {
+        existing.content = data.response;
+        this.emit({ type: "messageFinalized", streamId: existing.streamId!, message: existing });
+      }
       existing.sources = data.sources;
       existing.followUpPrompts = data.follow_up_prompts;
       existing.audio = data.audio || null;
@@ -420,21 +427,24 @@ class ZephloCoreClass {
   async sendMessage(text: string, options: { voice?: boolean } = {}): Promise<void> {
     if (!text.trim() || this.isLoading) return;
 
-    await this.ensureSession();
-    if (!this.chatSocket) {
-      this.emit({ type: "error", message: "Unable to connect. Please try again." });
-      return;
-    }
-
-    const userMsg: Message = { role: "user", content: text };
-    this.messages.push(userMsg);
-    this.saveMessages();
-    this.emit({ type: "messageAdded", message: userMsg });
-
+    // Claim the loading lock BEFORE the first await: two same-tick calls
+    // (double-bound listener, rapid double-click) would otherwise both pass
+    // the guard above and send the message twice.
     this.isLoading = true;
     this.emit({ type: "loading", loading: true });
 
     try {
+      await this.ensureSession();
+      if (!this.chatSocket) {
+        this.emit({ type: "error", message: "Unable to connect. Please try again." });
+        return;
+      }
+
+      const userMsg: Message = { role: "user", content: text };
+      this.messages.push(userMsg);
+      this.saveMessages();
+      this.emit({ type: "messageAdded", message: userMsg });
+
       const data = await this.chatSocket.sendMessage(text, options.voice);
       this.sessionRetried = false;
 

@@ -69,21 +69,33 @@ export interface WidgetConfig {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
+/** Max time to wait for the widget config before falling back to defaults. */
+const CONFIG_TIMEOUT_MS = 4000;
+
 /**
  * Fetch widget configuration from the API.
+ *
+ * Bounded by a timeout so a slow or misconfigured API host can never stall
+ * the widget: on timeout (or any error) we return null and the view renders
+ * with sensible defaults instead of hanging.
  */
 export async function fetchConfig(
   apiUrl: string,
   chatbotId: string,
 ): Promise<WidgetConfig | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CONFIG_TIMEOUT_MS);
   try {
     const res = await fetch(`${apiUrl}/api/public/agents/${chatbotId}/config`, {
       headers: authHeaders(),
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     return res.json();
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -360,11 +372,22 @@ export class ChatSocket {
 
       try {
         await new Promise<void>((resolve, reject) => {
-          this.ws = new WebSocket(wsUrl);
+          // Capture the socket locally — handlers must NEVER go through
+          // `this.ws`. If a competing path replaced `this.ws` while this
+          // handshake was in flight, sending through `this.ws` here would
+          // inject a stray `init` frame into the OTHER socket mid-session,
+          // which the backend would process as a blank chat message.
+          const ws = new WebSocket(wsUrl);
+          this.ws = ws;
 
-          this.ws.onopen = () => {
+          ws.onopen = () => {
+            if (this.ws !== ws) {
+              // A newer socket superseded this one — abandon quietly.
+              ws.close();
+              return resolve();
+            }
             this.setStatus('connected');
-            this.ws!.send(JSON.stringify({
+            ws.send(JSON.stringify({
               message_type: "init",
               zephlo_tools: this.getZephloToolSchemas(),
             }));
@@ -372,12 +395,14 @@ export class ChatSocket {
             resolve();
           };
 
-          this.ws.onerror = () => {
+          ws.onerror = () => {
+            if (this.ws !== ws) return;
             this.setStatus('disconnected');
             reject(new Error("WebSocket connection error"));
           };
 
-          this.ws.onclose = () => {
+          ws.onclose = () => {
+            if (this.ws !== ws) return;
             this.setStatus('disconnected');
             this.ws = null;
           };
@@ -399,35 +424,19 @@ export class ChatSocket {
       ...(voice ? { voice: true } : {}),
     });
 
-    // Reuse open connection
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      return new Promise((resolve, reject) => {
-        this.pending = resolve;
-        this.pendingReject = reject;
-        this.ws!.send(payload);
-      });
+    // Join the shared handshake instead of racing it. Opening a second
+    // WebSocket while connect() is mid-flight orphans the first socket,
+    // whose onopen then leaks an `init` frame into this one — the backend
+    // reads that as an empty chat message and runs the agent twice.
+    await this.connect();
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket connection failed");
     }
-
-    // Connect with session_id
-    this.setStatus('connecting');
-    const wsUrl = this.buildWsUrl();
 
     return new Promise((resolve, reject) => {
       this.pending = resolve;
       this.pendingReject = reject;
-
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        this.setStatus('connected');
-        this.ws!.send(JSON.stringify({
-            message_type: "init",
-            zephlo_tools: this.getZephloToolSchemas(),
-        }));
-        this.ws!.send(payload);
-      };
-
-      this.setupWsHandlers();
+      this.ws!.send(payload);
     });
   }
 
@@ -450,33 +459,17 @@ export class ChatSocket {
       page_context: pageContext || {},
     });
 
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      return new Promise((resolve, reject) => {
-        this.pending = resolve;
-        this.pendingReject = reject;
-        this.ws!.send(payload);
-      });
+    // Same as sendMessage: join the shared handshake, never open a
+    // duplicate socket while one is already connecting.
+    await this.connect();
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket connection failed");
     }
-
-    this.setStatus('connecting');
-    const wsUrl = this.buildWsUrl();
 
     return new Promise((resolve, reject) => {
       this.pending = resolve;
       this.pendingReject = reject;
-
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        this.setStatus('connected');
-        this.ws!.send(JSON.stringify({
-          message_type: "init",
-          zephlo_tools: this.getZephloToolSchemas(),
-        }));
-        this.ws!.send(payload);
-      };
-
-      this.setupWsHandlers();
+      this.ws!.send(payload);
     });
   }
 

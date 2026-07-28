@@ -398,7 +398,16 @@ async def ws_chat(ws: WebSocket):
             else:
                 message = data.get("message", "")
                 voice = data.get("voice", False)
-                logger.info(f"Processing message: session={session_id}, msg_type={data.get('message_type')}, message={message[:100] if message else ''}")
+                # Guard: only genuine chat frames with content may reach the
+                # agent. A stray frame (e.g. a duplicate "init" from an old
+                # widget racing its sockets) would otherwise fall through here
+                # as an empty message and trigger a phantom agent run.
+                if data.get("message_type") not in (None, "chat") or not message.strip():
+                    logger.warning(
+                        f"Ignoring non-chat/empty frame: session={session_id}, msg_type={data.get('message_type')}"
+                    )
+                    continue
+                logger.info(f"Processing message: session={session_id}, msg_type={data.get('message_type')}, message={message[:100]}")
 
             # Check session mode
             session_mode = await check_session_mode(session_id, chatbot_id)
