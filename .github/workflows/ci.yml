@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [api, agent, crawler, frontend, landing]
+        service: [api, agent, crawler, frontend]
     steps:
       - uses: actions/checkout@v4
 
@@ -27,22 +27,7 @@ jobs:
         run: |
           IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}"
 
-          if [ "${{ matrix.service }}" = "landing" ]; then
-            # Context = repo root: Dockerfile copies both widget/ and landing/
-            # so the local widget can be built and aliased into the Next bundle.
-            # NEXT_PUBLIC_* are baked into the bundle at build time, so they
-            # must be passed as build args (not k8s env).
-            docker build --platform linux/amd64 \
-              -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \
-              --build-arg NEXT_PUBLIC_ZEPHLO_API_KEY="${{ secrets.LANDING_ZEPHLO_API_KEY }}" \
-              --build-arg NEXT_PUBLIC_ZEPHLO_CHATBOT_ID="${{ secrets.LANDING_ZEPHLO_CHATBOT_ID }}" \
-              --build-arg NEXT_PUBLIC_ZEPHLO_API_URL="${{ secrets.LANDING_ZEPHLO_API_URL }}" \
-              --build-arg NEXT_PUBLIC_DASHBOARD_URL="${{ secrets.LANDING_DASHBOARD_URL }}" \
-              --build-arg NEXT_PUBLIC_DOCS_URL="${{ secrets.LANDING_DOCS_URL }}" \
-              --build-arg NEXT_PUBLIC_SALES_EMAIL="${{ secrets.LANDING_SALES_EMAIL }}" \
-              --build-arg NEXT_PUBLIC_SITE_URL="${{ secrets.LANDING_SITE_URL }}" \
-              -f landing/Dockerfile .
-          elif [ "${{ matrix.service }}" = "frontend" ]; then
+          if [ "${{ matrix.service }}" = "frontend" ]; then
             docker build --platform linux/amd64 \
               -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" \
               -f frontend/Dockerfile \
@@ -77,7 +62,7 @@ jobs:
           python3 -c "
           import re
           content = open('$FILE').read()
-          for svc in ['api', 'crawler', 'agent', 'frontend', 'landing']:
+          for svc in ['api', 'crawler', 'agent', 'frontend']:
             pattern = rf'(name: docker\.io/$ORG/{svc}\n\s+newTag:) .+'
             content = re.sub(pattern, rf'\1 $SHA', content)
           open('$FILE', 'w').write(content)
