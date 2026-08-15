@@ -1,0 +1,36 @@
+{{define "content"}}
+<main id="main">
+
+  <!-- Exported as 404.html. Without it a static host falls back to index.html,
+       so every unknown URL answers 200 with the home page — a soft 404. -->
+  <section class="relative overflow-hidden px-6 pt-32 pb-28 sm:pt-40">
+    <div class="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+      <div class="absolute left-[-10%] top-[-20%] h-[60%] w-[55%] rounded-full bg-[var(--accent)]/[0.08] blur-[80px] md:blur-[160px]"></div>
+    </div>
+    <div class="absolute inset-0 grid-pattern opacity-50" aria-hidden="true"></div>
+
+    <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
+      <div class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--accent)]">
+        404
+      </div>
+      <h1 class="font-serif text-4xl leading-[1.05] text-[var(--foreground)] sm:text-5xl">
+        We can&rsquo;t find that page.
+      </h1>
+      <p class="max-w-[46ch] text-lg leading-relaxed text-[var(--muted)]">
+        The link may be out of date, or the page may have moved.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3.5 pt-2">
+        <a href="/"
+           class="rounded-[10px] bg-[var(--accent)] px-7 py-3.5 font-bold text-white transition-[filter] duration-300 hover:brightness-110">
+          Back to home
+        </a>
+        <a href="/examples"
+           class="rounded-[10px] border border-[var(--border)] px-7 py-3.5 font-semibold text-[var(--foreground)] transition-colors duration-300 hover:border-[var(--foreground)]">
+          See the examples
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+{{end}}

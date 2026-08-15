@@ -51,10 +51,16 @@ type widgetConfig struct {
 	APIURL    string
 }
 
+// legalUpdated is shown on the privacy and terms pages. Bump it whenever
+// either page changes in a way that matters to a reader.
+const legalUpdated = "15 August 2026"
+
 type site struct {
 	URL    string
 	Links  links
 	Widget widgetConfig
+	// LegalUpdated dates the privacy policy and terms of service.
+	LegalUpdated string
 	// AssetVer is appended to static asset URLs (?v=...) so browsers drop
 	// their cached CSS/JS whenever a new binary is deployed.
 	AssetVer string
@@ -121,8 +127,9 @@ func newSite(dev bool) (*site, error) {
 	salesEmail := env("SALES_EMAIL", "sales@zephlo.ai")
 
 	s := &site{
-		AssetVer: time.Now().Format("20060102150405"),
-		URL:      env("SITE_URL", "https://zephlo.ai"),
+		AssetVer:     time.Now().Format("20060102150405"),
+		URL:          env("SITE_URL", "https://zephlo.ai"),
+		LegalUpdated: legalUpdated,
 		Links: links{
 			SignUp:      dashboard + "/register",
 			SignIn:      dashboard + "/login",
@@ -203,7 +210,7 @@ func (s *site) renderPartial(w http.ResponseWriter, name string) {
 
 func (s *site) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		s.notFound(w, r)
 		return
 	}
 	s.render(w, r, "home", pageData{
@@ -245,6 +252,30 @@ func (s *site) thanks(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *site) privacy(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "privacy", pageData{
+		Title:       "Privacy Policy — Zephlo",
+		Description: "How Zephlo handles personal data: what we store from Agent conversations, who processes it, how long we keep it, and the rights you have over it.",
+	})
+}
+
+func (s *site) terms(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "terms", pageData{
+		Title:       "Terms of Service — Zephlo",
+		Description: "The terms governing use of Zephlo, including your responsibilities for the tools an Agent runs and the limits of reliance on AI-generated output.",
+	})
+}
+
+// notFound is exported as 404.html so a static host answers unknown URLs with
+// a real 404 instead of falling back to the home page.
+func (s *site) notFound(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	s.render(w, r, "notfound", pageData{
+		Title:       "Page not found — Zephlo",
+		Description: "The page you were looking for could not be found.",
+	})
+}
+
 func (s *site) exampleDetail(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	for i := range exampleList {
@@ -257,7 +288,7 @@ func (s *site) exampleDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.NotFound(w, r)
+	s.notFound(w, r)
 }
 
 func (s *site) onboarding(w http.ResponseWriter, r *http.Request) {
@@ -323,7 +354,7 @@ type sitemapURL struct {
 // pagePaths lists every rendered HTML page, home first (as ""). Both the
 // sitemap and the static export walk this, so they can never drift apart.
 func pagePaths() []string {
-	paths := []string{"", "/customer-success", "/onboarding", "/lead-generation", "/examples", "/security"}
+	paths := []string{"", "/customer-success", "/onboarding", "/lead-generation", "/examples", "/security", "/privacy", "/terms"}
 	for _, ex := range exampleList {
 		paths = append(paths, "/examples/"+ex.Slug)
 	}
@@ -440,6 +471,8 @@ func (s *site) routes() *http.ServeMux {
 	mux.HandleFunc("GET /lead-generation", s.leadGeneration)
 	mux.HandleFunc("GET /examples", s.examples)
 	mux.HandleFunc("GET /thanks", s.thanks)
+	mux.HandleFunc("GET /privacy", s.privacy)
+	mux.HandleFunc("GET /terms", s.terms)
 	mux.HandleFunc("GET /examples/{slug}", s.exampleDetail)
 	mux.HandleFunc("POST /api/pricing-lead", s.lead("pricing-success", "pricing"))
 	mux.HandleFunc("POST /api/contact", s.lead("contact-success", "contact"))
@@ -482,11 +515,13 @@ func (s *site) export(dir string) error {
 	}
 
 	mux := s.routes()
-	write := func(route, dest string) error {
+	// want is the status the route is expected to answer with — 200 for real
+	// pages, 404 for the not-found page, which is a valid page to export.
+	write := func(route, dest string, want int) error {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, route, nil))
-		if rec.Code != http.StatusOK {
-			return fmt.Errorf("%s returned %d", route, rec.Code)
+		if rec.Code != want {
+			return fmt.Errorf("%s returned %d, wanted %d", route, rec.Code, want)
 		}
 		full := filepath.Join(dir, dest)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
@@ -500,17 +535,23 @@ func (s *site) export(dir string) error {
 		if route == "" {
 			route = "/" // home
 		}
-		if err := write(route, pageFile(page)); err != nil {
+		if err := write(route, pageFile(page), http.StatusOK); err != nil {
 			return err
 		}
 	}
 	// Deliberately not in pagePaths: /thanks is a post-submission landing
 	// page, so it ships but stays out of the sitemap.
-	if err := write("/thanks", pageFile("/thanks")); err != nil {
+	if err := write("/thanks", pageFile("/thanks"), http.StatusOK); err != nil {
+		return err
+	}
+	// 404.html is what a static host serves for an unknown URL. Requesting a
+	// path no route matches makes the mux fall through to the home handler,
+	// which answers 404 with the not-found page.
+	if err := write("/_not-found", "404.html", http.StatusNotFound); err != nil {
 		return err
 	}
 	for _, file := range []string{"/sitemap.xml", "/robots.txt", "/llms.txt"} {
-		if err := write(file, file); err != nil {
+		if err := write(file, file, http.StatusOK); err != nil {
 			return err
 		}
 	}

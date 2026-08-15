@@ -1,0 +1,101 @@
+{{define "content"}}
+<main id="main">
+
+  <!-- ── HEADER ───────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden px-6 pt-28 pb-12 sm:pt-36">
+    <div class="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+      <div class="absolute left-[-10%] top-[-20%] h-[60%] w-[55%] rounded-full bg-[var(--accent)]/[0.08] blur-[80px] md:blur-[160px]"></div>
+    </div>
+    <div class="absolute inset-0 grid-pattern opacity-50" aria-hidden="true"></div>
+
+    <div class="relative z-10 mx-auto flex max-w-3xl flex-col gap-5">
+      <div class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--accent)]">
+        Legal
+      </div>
+      <h1 class="font-serif text-4xl leading-[1.02] text-[var(--foreground)] sm:text-5xl">
+        Privacy Policy
+      </h1>
+      <p class="font-[family-name:var(--font-geist-mono)] text-[12.5px] text-[var(--muted)]">
+        Last updated {{.Site.LegalUpdated}}
+      </p>
+    </div>
+  </section>
+
+  <!-- ── BODY ─────────────────────────────────────────────────────────── -->
+  <section class="px-6 pb-24">
+    <div class="legal mx-auto flex max-w-3xl flex-col gap-10">
+
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+        <p class="text-[15px] leading-relaxed text-[var(--muted)]">
+          <strong class="text-[var(--foreground)]">In short.</strong> We store the conversations
+          people have with Agents built on Zephlo, because that is what makes the product work and
+          what lets our customers review and improve their Agents. Conversation content is sent to
+          third-party model providers to generate replies. We do not sell personal data, and we
+          never see the passwords or session tokens of the people using your site.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">1. Who this covers</h2>
+        <p>
+          Zephlo (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a platform that lets organisations
+          (&ldquo;customers&rdquo;) add an AI Agent to their website. This policy explains how we
+          handle personal data in two different roles:
+        </p>
+        <ul class="flex flex-col gap-3">
+          <li class="flex gap-3"><span class="text-[var(--accent)] font-bold">—</span><span><strong class="text-[var(--foreground)]">As a controller</strong>, for the account data of our own customers &mdash; the people who sign up for Zephlo.</span></li>
+          <li class="flex gap-3"><span class="text-[var(--accent)] font-bold">—</span><span><strong class="text-[var(--foreground)]">As a processor</strong>, for data about visitors to our customers&rsquo; websites. There, the customer decides what is collected and why; we process it on their instructions. If you spoke to an Agent on someone else&rsquo;s site, that organisation is your first point of contact.</span></li>
+        </ul>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">2. What we collect</h2>
+        <p><strong class="text-[var(--foreground)]">Conversations.</strong> We store the messages exchanged with an Agent &mdash; the text of each message, whether it came from the visitor, the Agent, or a human operator, and when it was sent. Conversations are grouped into sessions, which may include a visitor name if one is given or collected.</p>
+        <p><strong class="text-[var(--foreground)]">Details a visitor provides.</strong> If an Agent or form collects contact details, we store what is submitted &mdash; typically name, email address, phone number, company, and a description of what the person is looking for.</p>
+        <p><strong class="text-[var(--foreground)]">Content we crawl.</strong> To ground an Agent in a customer&rsquo;s content, we fetch pages from the website they point us at and store the extracted text and its embeddings. Only publicly reachable pages are crawled.</p>
+        <p><strong class="text-[var(--foreground)]">Account and operational data.</strong> Names, email addresses and organisation membership for customer accounts; API keys; audit records of privileged actions; and usage counters used for metering and billing.</p>
+        <p><strong class="text-[var(--foreground)]">What we do not collect.</strong> We do not log visitors&rsquo; IP addresses or browser user-agent strings against their conversations. Because Agent tools run inside the visitor&rsquo;s own browser session, we never receive the passwords, tokens or session cookies they use on our customers&rsquo; sites.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">3. How we use it</h2>
+        <p>We use this data to generate Agent replies, to show customers the conversations their Agent has had, to pass on the leads it captures, to meter usage for billing, to keep the service secure, and to diagnose problems. We do not sell personal data, and we do not use customer conversations to train our own models.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">4. Who else processes it</h2>
+        <p>To produce a reply, the relevant part of a conversation is sent to third-party large language model providers, which we reach through OpenRouter. They process it to return a response. We also rely on cloud hosting and infrastructure providers to run and store the service. Search embeddings are computed on our own infrastructure.</p>
+        <p>A current list of sub-processors is available on request, and Data Processing Agreements are available to customers who need one.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">5. How it is protected</h2>
+        <p>Traffic between visitors, Agents and the dashboard is encrypted in transit with TLS. Conversation data is encrypted at rest. Each organisation&rsquo;s data sits in a logically isolated tenant, so conversations, embeddings and tool definitions do not cross customer boundaries. Access inside the product is role-based, and privileged actions are logged.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">6. How long we keep it</h2>
+        <p>Conversations are retained until the customer&rsquo;s configured retention window expires or they delete them. Customers can purge conversations on demand and export their data in a portable format. Account data is kept while the account is open, and for a limited period afterwards where we need it for legal or accounting reasons.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">7. Your rights</h2>
+        <p>Depending on where you live, you may have the right to access, correct, export or delete your personal data, and to object to or restrict certain processing.</p>
+        <p>If you are a Zephlo customer, you can exercise most of these directly in the dashboard, or by contacting us. If you spoke to an Agent on another organisation&rsquo;s website, please contact that organisation &mdash; they decide what happens to that data, and we will support them in responding to you.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">8. Changes</h2>
+        <p>We may update this policy as the product changes. When we do, we will revise the date at the top of this page, and we will tell customers directly if a change materially affects them.</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="font-serif text-2xl text-[var(--foreground)]">9. Contact</h2>
+        <p>Questions about this policy, or about data we hold, can go to <a href="mailto:{{.Site.Links.SalesEmail}}" class="font-semibold text-[var(--accent)] hover:underline">{{.Site.Links.SalesEmail}}</a>.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+{{end}}
