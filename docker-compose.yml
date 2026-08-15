@@ -168,16 +168,17 @@ services:
       - api
     restart: unless-stopped
 
+  # Go landing site. Production is served from Cloudflare Pages (a static
+  # export of these same templates); this container is for running it locally.
+  # Unlike the old Next build, config is read at runtime, not baked in.
   landing:
     build:
-      context: .
-      dockerfile: landing/Dockerfile
-      args:
-        NEXT_PUBLIC_ZEPHLO_API_KEY: flk_3493a85b9bbe1651bd6750e5aeb46f68
-        NEXT_PUBLIC_ZEPHLO_CHATBOT_ID: de9451c2-dc58-4af7-8ddf-be696eead2ba
-        NEXT_PUBLIC_ZEPHLO_API_URL: http://localhost
+      context: ./landing
     ports:
       - "3000:3000"
+    environment:
+      - ZEPHLO_CHATBOT_ID=de9451c2-dc58-4af7-8ddf-be696eead2ba
+      - ZEPHLO_API_URL=http://localhost
     restart: unless-stopped
 
 volumes:
