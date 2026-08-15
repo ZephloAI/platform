@@ -1,0 +1,295 @@
+{{define "content"}}
+<main id="main" class="{{.MainClass}}">
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden px-6 pt-28 pb-24 sm:pt-36">
+    <div class="pointer-events-none absolute inset-0 aurora opacity-50" aria-hidden="true"></div>
+    <div class="absolute inset-0 grid-pattern opacity-30" aria-hidden="true"></div>
+
+    <div class="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+      <div data-reveal>
+        <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--page-accent)">
+          Zephlo for Lead Generation
+        </span>
+        <h1 class="mt-5 font-serif text-5xl leading-[0.98] lg:text-[4.5rem]">
+          Capture every lead.
+          <span class="gradient-text">Even the ones at midnight.</span>
+        </h1>
+        <p class="mt-6 max-w-[46ch] text-lg text-[var(--muted)]">
+          Most websites lose leads while their team is asleep, in meetings, or just slow to
+          reply. Zephlo Agents respond in seconds, qualify with context, and book the meeting
+          before the visitor moves on.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a href="{{.Site.Links.SignUp}}"
+             class="rounded-[10px] bg-[var(--foreground)] px-7 py-3.5 font-bold text-[var(--background)] transition-colors duration-300 hover:bg-[var(--accent)] hover:text-white">
+            Start capturing leads
+          </a>
+          <a href="#how"
+             class="rounded-[10px] border border-[var(--border)] px-7 py-3.5 font-semibold text-[var(--foreground)] transition-colors duration-300 hover:border-[var(--foreground)]">
+            See how it works
+          </a>
+        </div>
+      </div>
+
+      <!-- Right — scripted demo: a 3 AM visitor on the pricing page asks for
+           a demo; the agent books it and the lead lands in the CRM.
+           site.js plays any [data-demo] panel through phases 0→6 on a loop. -->
+      <div data-reveal data-reveal-delay="100">
+        <div data-demo aria-label="Zephlo Agent booking a demo for a website visitor">
+          <div class="rounded-[20px] bg-[#0B1120] p-3.5 shadow-[0_24px_64px_rgba(11,17,32,0.28)]">
+            <!-- Browser chrome -->
+            <div class="flex items-center gap-2 px-1.5 pb-3 pt-1">
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="ml-2.5 font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[#6B7590]">acme.com/pricing</span>
+              <span class="ml-auto flex items-center gap-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6FA5FF]"></span>
+                03:12 AM
+              </span>
+            </div>
+
+            <div class="grid h-[424px] grid-cols-[1fr_210px] gap-2.5 sm:grid-cols-[1fr_228px]">
+              <!-- Mock marketing page -->
+              <div class="flex flex-col gap-3 overflow-hidden rounded-[10px] bg-white px-4 py-4">
+                <div class="text-[14px] font-bold text-[#101114]">Simple pricing</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="flex flex-col gap-1 rounded-[9px] border border-[#ECEDF1] px-2.5 py-3">
+                    <div class="text-[12px] font-bold text-[#101114]">Starter</div>
+                    <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">$0 /mo</div>
+                  </div>
+                  <div class="flex flex-col gap-1 rounded-[9px] border border-[#ECEDF1] px-2.5 py-3">
+                    <div class="text-[12px] font-bold text-[#101114]">Team</div>
+                    <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">$49 /mo</div>
+                  </div>
+                  <div class="flex flex-col gap-1 rounded-[9px] border border-[#ECEDF1] px-2.5 py-3">
+                    <div class="text-[12px] font-bold text-[#101114]">Scale</div>
+                    <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">Custom</div>
+                  </div>
+                </div>
+
+                <!-- Booking panel appears when the agent opens the calendar -->
+                <div class="demo-item flex-col gap-2.5" data-show-from="3">
+                  <div class="text-[12.5px] font-semibold text-[#101114]">Book a demo — this week</div>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col gap-0.5 rounded-[9px] border border-[#ECEDF1] px-2.5 py-2.5">
+                      <div class="text-[11.5px] font-bold text-[#101114]">Wed</div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#878B99]">2:00 PM</div>
+                    </div>
+                    <div class="demo-select flex flex-col gap-0.5 rounded-[9px] px-2.5 py-2.5" data-active-from="4">
+                      <div class="flex items-center gap-1 text-[11.5px] font-bold text-[#101114]">
+                        Thu
+                        <span class="demo-check text-[11px] text-[#2563EB]">✓</span>
+                      </div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#878B99]">10:00 AM</div>
+                    </div>
+                    <div class="flex flex-col gap-0.5 rounded-[9px] border border-[#ECEDF1] px-2.5 py-2.5">
+                      <div class="text-[11.5px] font-bold text-[#101114]">Fri</div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#878B99]">4:30 PM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between rounded-[9px] border border-[#ECEDF1] px-3 py-2.5">
+                    <div class="text-[12px] font-semibold text-[#101114]">Attendee</div>
+                    <div class="demo-swap rounded-md px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[13px]" data-active-from="5" data-done="jordan@brightco.com">—</div>
+                  </div>
+                  <div class="flex justify-end">
+                    <div class="demo-save rounded-[7px] px-4 py-2 text-[12px] font-bold text-white" data-active-from="6" data-done="Booked ✓">Confirm booking</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Agent chat -->
+              <div class="flex flex-col overflow-hidden rounded-[10px] border border-[#202A44] bg-[#0E1526]">
+                <div class="flex items-center gap-1.5 border-b border-[#202A44] px-3.5 py-3">
+                  <span class="h-2 w-2 rounded-full bg-[#6FA5FF]"></span>
+                  <span class="font-[family-name:var(--font-geist-mono)] text-[11px] tracking-[0.06em] text-[#C6CFE2]">ZEPHLO AGENT</span>
+                </div>
+                <div class="flex flex-1 flex-col gap-2.5 overflow-hidden p-3">
+                  <div data-show-from="1" class="demo-item max-w-[92%] self-end rounded-[10px_10px_3px_10px] bg-[#24304D] px-2.5 py-2 text-[12px] leading-snug text-[#E9EEF9]">
+                    Can I see a demo this week?
+                  </div>
+                  <div data-show-only="2" class="demo-item flex gap-1 self-start rounded-[10px] border border-[#202A44] px-3 py-2.5">
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]"></span>
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.2s"></span>
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.4s"></span>
+                  </div>
+                  <div data-show-from="3" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#202A44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                    Of course — here are this week&rsquo;s open slots. Thursday 10:00 works well.
+                  </div>
+                  <div data-show-from="3" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> check_calendar()
+                  </div>
+                  <div data-show-from="4" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> select_slot("Thu 10:00")
+                  </div>
+                  <div data-show-from="5" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> crm.create_lead()
+                  </div>
+                  <div data-show-from="6" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#6FA5FF44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                    Booked — Thursday 10:00 AM. Invite sent, and your sales team has the full conversation.
+                  </div>
+                </div>
+                <div class="m-2.5 rounded-lg border border-[#202A44] px-3 py-2 text-[11.5px] text-[#5C6680]">
+                  Ask anything, or ask for anything…
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-center pb-1 pt-3 font-[family-name:var(--font-geist-mono)] text-[11px] text-[#6B7590]">
+              Captured at 3 AM · Demo booked in 40 seconds · Lead routed to sales
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 01 CAPABILITIES ──────────────────────────────────────────────── -->
+  <section class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        01 — WHAT IT DOES
+      </div>
+      <h2 data-reveal class="mb-14 max-w-[20ch] font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]">
+        A revenue teammate <span class="gradient-text">that never clocks out.</span>
+      </h2>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-reveal class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Reply in seconds, not hours</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Visitors get answers the moment they land. No waiting on email, no losing them to a competitor while your team sleeps.</p>
+        </div>
+        <div data-reveal data-reveal-delay="60" class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Always on, even at 3 AM</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Your Agent works through nights, weekends, and holidays. Every late-night visitor gets a real response — and a captured contact.</p>
+        </div>
+        <div data-reveal data-reveal-delay="120" class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Qualifies as it converses</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">The Agent asks the right questions, scores intent, and routes hot leads to your team — cold ones nurture themselves.</p>
+        </div>
+        <div data-reveal class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Books meetings without you</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Tools run client-side to check calendars, schedule demos, and confirm bookings — all inside the chat.</p>
+        </div>
+        <div data-reveal data-reveal-delay="60" class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Speaks every visitor&rsquo;s language</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Greet leads in their native language automatically. No localization project, no translation bottleneck.</p>
+        </div>
+        <div data-reveal data-reveal-delay="120" class="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background: var(--page-accent-soft); color: var(--page-accent)">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
+          <h3 class="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Learns from every conversation</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Patterns surface in your dashboard — what visitors ask, where they drop off, what closes them. Your funnel gets sharper every week.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 02 FLOW ──────────────────────────────────────────────────────── -->
+  <section id="how" class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        02 — HOW IT WORKS
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <h2 data-reveal class="font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]">
+          From visitor to qualified lead in one conversation.
+        </h2>
+
+        <ol>
+          <li data-reveal class="grid grid-cols-[56px_1fr] gap-5 py-7 border-b border-[var(--border)]">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: var(--page-accent)">01</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Visitor lands on your site</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">A new prospect arrives — a paid ad click, an organic search, a referral. Your Agent greets them within a second.</p>
+            </div>
+          </li>
+          <li data-reveal data-reveal-delay="80" class="grid grid-cols-[56px_1fr] gap-5 py-7 border-b border-[var(--border)]">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: #7C3AED">02</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Agent listens and qualifies</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">Plain-language conversation. The Agent learns their goal, their company size, their timeline, and any objections.</p>
+            </div>
+          </li>
+          <li data-reveal data-reveal-delay="160" class="grid grid-cols-[56px_1fr] gap-5 py-7 border-b border-[var(--border)]">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: #DB2777">03</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Action happens in-browser</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">Schedule a demo, fill the contact form, send a brochure, or hand off to live chat — all without the visitor leaving the page.</p>
+            </div>
+          </li>
+          <li data-reveal data-reveal-delay="240" class="grid grid-cols-[56px_1fr] gap-5 py-7">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: var(--tint-teal-fg)">04</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Lead lands in your CRM</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">Captured with full conversation context, qualification signals, and next steps. Your sales team picks up where the Agent left off.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 03 OUTCOME (ink) ─────────────────────────────────────────────── -->
+  <section class="bg-[var(--ink-bg)] px-6 py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-muted)">
+        03 — THE OUTCOME
+      </div>
+      <div class="grid grid-cols-1 gap-16 lg:grid-cols-2">
+        <div data-reveal class="flex flex-col gap-6">
+          <h2 class="font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]" style="color: var(--ink-fg)">
+            More leads. Better leads. <span style="color: var(--ink-accent)">Without more reps.</span>
+          </h2>
+          <p class="max-w-[46ch] text-lg leading-relaxed" style="color: var(--ink-muted)">
+            Zephlo handles the first touch — instantly, in any timezone, in any language. Your
+            team starts every day with a queue of warm, pre-qualified conversations instead of
+            a graveyard of missed visitors.
+          </p>
+        </div>
+
+        <ul data-reveal data-reveal-delay="100" class="flex flex-col">
+          <li class="flex items-start gap-3.5 border-b py-4 text-[15px] leading-relaxed" style="color: var(--ink-fg); border-color: var(--ink-border)">{{template "check-dot"}}Zero-second response time, around the clock</li>
+          <li class="flex items-start gap-3.5 border-b py-4 text-[15px] leading-relaxed" style="color: var(--ink-fg); border-color: var(--ink-border)">{{template "check-dot"}}Higher form completion — chat is easier than a wall of fields</li>
+          <li class="flex items-start gap-3.5 border-b py-4 text-[15px] leading-relaxed" style="color: var(--ink-fg); border-color: var(--ink-border)">{{template "check-dot"}}Cleaner CRM data with full conversation context</li>
+          <li class="flex items-start gap-3.5 border-b py-4 text-[15px] leading-relaxed" style="color: var(--ink-fg); border-color: var(--ink-border)">{{template "check-dot"}}Built-in escalation to live agents when intent is hot</li>
+          <li class="flex items-start gap-3.5 py-4 text-[15px] leading-relaxed" style="color: var(--ink-fg)">{{template "check-dot"}}Deploy in under a day with one script tag</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ────────────────────────────────────────────────────── -->
+  <section class="px-6 pb-28">
+    <div data-reveal class="mx-auto flex max-w-6xl flex-col items-center gap-7 rounded-[28px] bg-[var(--ink-bg)] px-8 py-24 text-center sm:px-14">
+      <h2 class="max-w-[20ch] font-serif text-4xl leading-[1.05] sm:text-5xl" style="color: var(--ink-fg)">
+        Stop losing leads after hours.
+      </h2>
+      <p class="max-w-[52ch] text-lg leading-relaxed" style="color: var(--ink-muted)">
+        Drop in the widget. Connect your CRM. Watch every visitor turn into a captured,
+        qualified conversation.
+      </p>
+      {{template "cta-form-card" .}}
+    </div>
+  </section>
+
+</main>
+{{end}}

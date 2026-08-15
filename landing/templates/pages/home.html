@@ -1,0 +1,382 @@
+{{define "content"}}
+<main id="main">
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden px-6 pt-28 pb-20 sm:pt-36 sm:pb-28">
+    <div class="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+      <div class="absolute left-[-10%] top-[-20%] h-[60%] w-[55%] rounded-full bg-[var(--accent)]/[0.08] blur-[80px] md:blur-[160px]"></div>
+      <div class="absolute right-[-10%] top-[20%] h-[50%] w-[45%] rounded-full bg-[#7C3AED]/[0.06] blur-[80px] md:blur-[160px]"></div>
+    </div>
+    <div class="absolute inset-0 grid-pattern opacity-50" aria-hidden="true"></div>
+
+    <div class="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 lg:grid-cols-[1fr_1.25fr] xl:gap-16">
+      <div class="flex flex-col gap-7 hero-stagger">
+        <div class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--accent)]">
+          The agent platform for any website
+        </div>
+
+        <h1 class="font-serif text-[3.25rem] leading-[0.98] tracking-[-0.035em] text-[var(--foreground)] sm:text-6xl lg:text-[5rem]">
+          Chatbots answer.
+          <br />
+          Zephlo <span class="text-[var(--accent)]">acts</span>.
+        </h1>
+
+        <p class="max-w-[46ch] text-lg leading-relaxed text-[var(--muted)] sm:text-xl">
+          Ground an Agent in your site&rsquo;s content and give it tools that run in your
+          visitor&rsquo;s browser. It changes settings, files requests, and completes
+          workflows &mdash; instead of explaining how to.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3.5 pt-1">
+          <a href="{{.Site.Links.Sales}}"
+             class="btn-lift inline-flex items-center justify-center rounded-[10px] bg-[var(--foreground)] px-7 py-3.5 text-[15px] font-bold text-[var(--background)] transition-colors duration-300 hover:bg-[var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+            Talk to sales
+          </a>
+        </div>
+
+        <p class="font-[family-name:var(--font-geist-mono)] text-[12.5px] text-[var(--muted)]/80">
+          Free to start · No credit card · Live in under 5 minutes
+        </p>
+      </div>
+
+      <!-- Scripted hero demo — the agent moves a workspace to the Team plan
+           and adds seats. site.js plays any [data-demo] panel through phases
+           0→6 on a loop (see the data-* attribute docs there).
+           The panel is a product screenshot, so it stays dark in both themes. -->
+      <div data-demo class="w-full hero-panel-enter" aria-label="Zephlo Agent completing a billing task">
+        <div class="rounded-[20px] bg-[#0B1120] p-3.5 shadow-[0_24px_64px_rgba(11,17,32,0.28)]">
+          <!-- Browser chrome -->
+          <div class="flex items-center gap-2 px-1.5 pb-3 pt-1">
+            <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+            <span class="ml-2.5 font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[#6B7590]">app.acme.com/settings</span>
+            <span class="ml-auto flex items-center gap-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+              <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6FA5FF]"></span>
+              LIVE
+            </span>
+          </div>
+
+          <div class="grid h-[424px] grid-cols-[1fr_210px] gap-2.5 sm:grid-cols-[1fr_228px]">
+            <!-- Mock app -->
+            <div class="grid grid-cols-[104px_1fr] overflow-hidden rounded-[10px] bg-white">
+              <div class="flex flex-col gap-1 border-r border-[#ECEDF1] bg-[#FAFAFA] px-2.5 py-4">
+                <div class="px-2 pb-3 text-[12.5px] font-bold tracking-tight text-[#101114]">Acme</div>
+                <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">General</div>
+                <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">Members</div>
+                <div class="demo-nav rounded-md px-2 py-1.5 text-[12px]" data-active-from="3">Billing</div>
+                <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">API keys</div>
+              </div>
+
+              <div class="flex flex-col gap-3 px-4 py-4">
+                <!-- General screen (phases 0–2) -->
+                <div class="demo-hide flex flex-col gap-3" data-hide-from="3">
+                  <div class="text-[14px] font-bold text-[#101114]">General</div>
+                  <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">Workspace name — Acme Inc.</div>
+                  <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">Region — us-east-1</div>
+                  <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">Default locale — en-US</div>
+                </div>
+
+                <!-- Billing screen (phases 3+) -->
+                <div class="demo-item flex-col gap-3" data-show-from="3">
+                  <div class="text-[14px] font-bold text-[#101114]">Billing &amp; plan</div>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col gap-1 rounded-[9px] border border-[#ECEDF1] px-2.5 py-3">
+                      <div class="text-[12px] font-bold text-[#101114]">Starter</div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">$0 /seat</div>
+                    </div>
+                    <div class="demo-select flex flex-col gap-1 rounded-[9px] px-2.5 py-3" data-active-from="4">
+                      <div class="flex items-center gap-1.5 text-[12px] font-bold text-[#101114]">
+                        Team
+                        <span class="demo-check text-[12px] text-[#2563EB]">✓</span>
+                      </div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">$28 /seat</div>
+                    </div>
+                    <div class="flex flex-col gap-1 rounded-[9px] border border-[#ECEDF1] px-2.5 py-3">
+                      <div class="text-[12px] font-bold text-[#101114]">Scale</div>
+                      <div class="font-[family-name:var(--font-geist-mono)] text-[11px] text-[#878B99]">Custom</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between rounded-[9px] border border-[#ECEDF1] px-3 py-3">
+                    <div class="text-[12.5px] font-semibold text-[#101114]">Seats</div>
+                    <div class="demo-swap rounded-md px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[13px]" data-active-from="5" data-done="8">5</div>
+                  </div>
+                  <div class="flex justify-end">
+                    <div class="demo-save rounded-[7px] px-4 py-2 text-[12px] font-bold text-white" data-active-from="6" data-done="Saved ✓">Save changes</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent chat -->
+            <div class="flex flex-col overflow-hidden rounded-[10px] border border-[#202A44] bg-[#0E1526]">
+              <div class="flex items-center gap-1.5 border-b border-[#202A44] px-3.5 py-3">
+                <span class="h-2 w-2 rounded-full bg-[#6FA5FF]"></span>
+                <span class="font-[family-name:var(--font-geist-mono)] text-[11px] tracking-[0.06em] text-[#C6CFE2]">ZEPHLO AGENT</span>
+              </div>
+              <div class="flex flex-1 flex-col gap-2.5 overflow-hidden p-3">
+                <div data-show-from="1" class="demo-item max-w-[92%] self-end rounded-[10px_10px_3px_10px] bg-[#24304D] px-2.5 py-2 text-[12px] leading-snug text-[#E9EEF9]">
+                  Move us to the Team plan and add 3 seats.
+                </div>
+                <div data-show-only="2" class="demo-item flex gap-1 self-start rounded-[10px] border border-[#202A44] px-3 py-2.5">
+                  <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]"></span>
+                  <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.2s"></span>
+                  <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.4s"></span>
+                </div>
+                <div data-show-from="3" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#202A44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                  Confirming: Team plan, 5 → 8 seats. Executing now.
+                </div>
+                <div data-show-from="3" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                  <span aria-hidden="true">▸</span> navigate("/settings/billing")
+                </div>
+                <div data-show-from="4" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                  <span aria-hidden="true">▸</span> set_plan("team")
+                </div>
+                <div data-show-from="5" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                  <span aria-hidden="true">▸</span> add_seats(3)
+                </div>
+                <div data-show-from="6" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#6FA5FF44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                  Done — Team plan active, 8 seats. Your next invoice is prorated from today.
+                </div>
+              </div>
+              <div class="m-2.5 rounded-lg border border-[#202A44] px-3 py-2 text-[11.5px] text-[#5C6680]">
+                Ask anything, or ask for anything…
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center pb-1 pt-3 font-[family-name:var(--font-geist-mono)] text-[11px] text-[#6B7590]">
+            Tools run client-side, in the visitor&rsquo;s session · Answers cite sources
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 01 FEATURES ──────────────────────────────────────────────────── -->
+  <section id="features" class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        01 — WHAT AN AGENT DOES
+      </div>
+
+      <h2 data-reveal class="mb-14 max-w-[20ch] font-serif text-4xl leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.25rem]">
+        Answering is the floor.
+        <span class="text-[var(--accent)]">Acting</span> is the product.
+      </h2>
+
+      <div class="grid grid-cols-1 overflow-hidden rounded-2xl border border-[var(--border)] md:grid-cols-3">
+        <div data-reveal class="border-b border-[var(--border)] p-9 md:border-b-0 md:border-r" style="background: var(--tint-teal-bg)">
+          <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--tint-teal-fg)">L1</span>
+          <h3 class="mt-6 text-[22px] font-bold tracking-tight">Answers</h3>
+          <p class="mt-3 leading-relaxed text-[var(--muted)]">
+            Grounded in a vector index of your actual site. Every answer cites its source page — no hallucinated URLs, no stale docs.
+          </p>
+        </div>
+        <div data-reveal data-reveal-delay="80" class="border-b border-[var(--border)] p-9 md:border-b-0 md:border-r" style="background: var(--tint-amber-bg)">
+          <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--tint-amber-fg)">L2</span>
+          <h3 class="mt-6 text-[22px] font-bold tracking-tight">Navigates</h3>
+          <p class="mt-3 leading-relaxed text-[var(--muted)]">
+            Takes the visitor to the right page instead of pasting a link. Deep-links into your app, scrolls to the setting, opens the panel.
+          </p>
+        </div>
+        <div data-reveal data-reveal-delay="160" class="p-9 border-[var(--ink-border)]" style="background: var(--ink-bg)">
+          <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-accent)">L3</span>
+          <h3 class="mt-6 text-[22px] font-bold tracking-tight" style="color: var(--ink-fg)">Executes</h3>
+          <p class="mt-3 leading-relaxed" style="color: var(--ink-muted)">
+            Fills forms, changes settings, files requests, completes multi-step workflows — via tools you register, running client-side in the visitor&rsquo;s session.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 02 HOW IT WORKS ──────────────────────────────────────────────── -->
+  <section id="how" class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        02 — HOW IT WORKS
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <h2 data-reveal class="font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]">
+          Live in minutes, not months.
+        </h2>
+
+        <ol>
+          <li data-reveal class="grid grid-cols-[56px_1fr] gap-5 py-7 border-b border-[var(--border)]">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: var(--accent)">01</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Point us at your URL</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">
+                Our crawler discovers every page, chunks it, and embeds it into a per-Agent vector index. Re-crawl on a schedule or on demand.
+              </p>
+            </div>
+          </li>
+          <li data-reveal data-reveal-delay="80" class="grid grid-cols-[56px_1fr] gap-5 py-7 border-b border-[var(--border)]">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: #7C3AED">02</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Drop in the widget</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">
+                One script tag and your Agent is live. Use the inline element for embedded surfaces — any framework.
+              </p>
+              <div class="relative mt-4 rounded-[9px] px-4 py-3.5 overflow-x-auto" style="background: var(--code-bg)">
+                <button type="button" data-copy-target="snippet-widget" aria-label="Copy code"
+                        class="copy-btn absolute right-2.5 top-2.5 z-10 flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-[var(--ink-muted)] transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink-accent)]">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+                <pre class="font-[family-name:var(--font-geist-mono)] text-[12px] leading-relaxed text-[var(--ink-muted)] whitespace-pre-wrap break-all sm:whitespace-nowrap sm:break-normal sm:pr-16"><code id="snippet-widget">&lt;script src="https://unpkg.com/zephlo" data-agent-id="YOUR_AGENT_UUID"&gt;&lt;/script&gt;</code></pre>
+              </div>
+            </div>
+          </li>
+          <li data-reveal data-reveal-delay="160" class="grid grid-cols-[56px_1fr] gap-5 py-7">
+            <div class="font-[family-name:var(--font-geist-mono)] text-sm" style="color: #DB2777">03</div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-[var(--foreground)]">Register tools</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">
+                Declare browser-side tools with the SDK — fill forms, navigate, mutate state. The agent composes them to finish real tasks. WebMCP-ready.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 03 USE CASES ─────────────────────────────────────────────────── -->
+  <section id="use-cases" class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        03 — WHERE TEAMS RUN IT
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <!-- Featured ink card — spans two rows -->
+        <a data-reveal href="/customer-success"
+           class="card-lift lg:row-span-2 flex h-full flex-col justify-between rounded-2xl p-10"
+           style="background: var(--ink-bg)">
+          <div>
+            <div class="mb-6 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-accent)">FEATURED</div>
+            <h3 class="text-3xl font-extrabold tracking-tight" style="color: var(--ink-fg)">Customer Success</h3>
+            <p class="mt-5 leading-relaxed" style="color: var(--ink-muted)">
+              Stop deflecting tickets and start resolving them. The agent performs the fix — updates the setting, files the request, walks the user through your product by using it.
+            </p>
+          </div>
+          <span class="mt-10 font-bold" style="color: var(--ink-accent)">See how it works →</span>
+        </a>
+
+        <div data-reveal data-reveal-delay="100" class="flex flex-col gap-2.5 rounded-2xl border p-7" style="background: var(--tint-purple-bg); border-color: var(--tint-purple-br)">
+          <h3 class="text-lg font-bold tracking-tight text-[var(--foreground)]">Lead generation</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Qualifies in conversation, fills your CRM, books the meeting — inside the visitor&rsquo;s session, 24/7.</p>
+        </div>
+        <div data-reveal data-reveal-delay="180" class="flex flex-col gap-2.5 rounded-2xl border p-7" style="background: var(--tint-teal-bg); border-color: var(--tint-teal-br)">
+          <h3 class="text-lg font-bold tracking-tight text-[var(--foreground)]">SaaS onboarding</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">New users say what they want to accomplish; the agent configures it in their browser as they talk.</p>
+        </div>
+        <div data-reveal data-reveal-delay="260" class="flex flex-col gap-2.5 rounded-2xl border p-7" style="background: var(--tint-amber-bg); border-color: var(--tint-amber-br)">
+          <h3 class="text-lg font-bold tracking-tight text-[var(--foreground)]">Workflow automation</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Multi-step processes become one request. Forms, navigation, data entry — executed client-side.</p>
+        </div>
+        <div data-reveal data-reveal-delay="340" class="flex flex-col gap-2.5 rounded-2xl border p-7" style="background: var(--tint-pink-bg); border-color: var(--tint-pink-br)">
+          <h3 class="text-lg font-bold tracking-tight text-[var(--foreground)]">In-app training</h3>
+          <p class="text-sm leading-relaxed text-[var(--muted)]">Instead of docs nobody reads, the agent teaches your product by operating it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 04 SECURITY (ink) ────────────────────────────────────────────── -->
+  <section id="security" class="bg-[var(--ink-bg)] px-6 py-28">
+    <div class="mx-auto max-w-7xl">
+      <div data-reveal class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-muted)">
+        04 — FOR YOUR CTO
+      </div>
+
+      <h2 data-reveal data-reveal-delay="80" class="max-w-[24ch] font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]" style="color: var(--ink-fg)">
+        Agentic doesn&rsquo;t have to mean handing over the <span style="color: var(--ink-accent)">keys</span>.
+      </h2>
+
+      <div class="mt-16 grid grid-cols-1 gap-12 md:grid-cols-3">
+        <div data-reveal data-reveal-delay="160" class="border-t pt-6" style="border-color: var(--ink-border)">
+          <h3 class="text-lg font-bold" style="color: var(--ink-fg)">Client-side execution</h3>
+          <p class="mt-3" style="color: var(--ink-muted)">Tools run in the visitor&rsquo;s browser session, under their existing auth. Zephlo never holds server-side credentials to your app.</p>
+        </div>
+        <div data-reveal data-reveal-delay="240" class="border-t pt-6" style="border-color: var(--ink-border)">
+          <h3 class="text-lg font-bold" style="color: var(--ink-fg)">Grounded, with citations</h3>
+          <p class="mt-3" style="color: var(--ink-muted)">Retrieval over your own indexed content. Every answer links its source, so responses are auditable — not improvised.</p>
+        </div>
+        <div data-reveal data-reveal-delay="320" class="border-t pt-6" style="border-color: var(--ink-border)">
+          <h3 class="text-lg font-bold" style="color: var(--ink-fg)">Compliance paths</h3>
+          <p class="mt-3" style="color: var(--ink-muted)">SOC 2, GDPR, and HIPAA paths for regulated teams. You define which tools exist — the agent can only do what you declared.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 05 PRICING ───────────────────────────────────────────────────── -->
+  <section id="pricing" class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        05 — PRICING
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+        <!-- Left — copy. The form itself lives in the call to action at the
+             foot of the page, so this points there rather than repeating it. -->
+        <div data-reveal class="flex flex-col gap-6">
+          <h2 class="font-serif text-4xl sm:text-5xl lg:text-[3.25rem]">Pricing built around your business.</h2>
+          <p class="text-[17px] text-[var(--muted)] max-w-[46ch]">
+            Every team has different volumes, channels, and integrations. Tell us about yours and we&rsquo;ll send a plan that fits.
+          </p>
+          <a href="#contact"
+             class="inline-flex w-fit items-center gap-2 text-[15px] font-bold text-[var(--accent)] transition-transform duration-300 hover:translate-x-1">
+            Tell us about yours
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+
+        <!-- Right — what a tailored plan includes -->
+        <div data-reveal data-reveal-delay="100">
+          <ul class="list-none flex flex-col gap-3">
+            <li class="flex items-start gap-3"><span class="text-[var(--accent)] font-bold">—</span><span class="text-[15px] text-[var(--foreground)]">Pricing tailored to your scale and channels</span></li>
+            <li class="flex items-start gap-3"><span class="text-[var(--accent)] font-bold">—</span><span class="text-[15px] text-[var(--foreground)]">Hands-on onboarding with a dedicated engineer</span></li>
+            <li class="flex items-start gap-3"><span class="text-[var(--accent)] font-bold">—</span><span class="text-[15px] text-[var(--foreground)]">Volume discounts and flexible billing</span></li>
+            <li class="flex items-start gap-3"><span class="text-[var(--accent)] font-bold">—</span><span class="text-[15px] text-[var(--foreground)]">SOC 2 / GDPR / HIPAA paths for regulated teams</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ──────────────────────────────────────────────────────────── -->
+  <section class="px-6 pb-28 pt-12">
+    <div data-reveal class="relative mx-auto max-w-6xl overflow-hidden rounded-[28px] bg-[var(--ink-bg)] px-8 py-24 text-center sm:px-14">
+      <!-- Decorative blurred gradient blobs (behind the content). -->
+      <div class="pointer-events-none absolute inset-0 -z-0">
+        <div class="absolute -bottom-24 -left-24 h-[380px] w-[380px] rounded-full"
+             style="background: radial-gradient(circle at center, rgba(37,99,235,0.35), rgba(124,58,237,0.18) 55%, transparent 72%); filter: blur(34px)"></div>
+        <div class="absolute -right-24 -top-24 h-[380px] w-[380px] rounded-full"
+             style="background: radial-gradient(circle at center, rgba(219,39,119,0.28), rgba(13,148,136,0.16) 50%, rgba(217,119,6,0.12) 70%, transparent 78%); filter: blur(34px)"></div>
+      </div>
+
+      <div class="relative z-10 flex flex-col items-center gap-7">
+        <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-accent)">READY WHEN YOU ARE</span>
+
+        <h2 class="max-w-[18ch] font-serif text-5xl leading-[1.0] lg:text-[4rem]" style="color: var(--ink-fg)">
+          Build your first Agent today.
+        </h2>
+
+        <p class="max-w-[52ch] text-lg" style="color: var(--ink-muted)">
+          Sign up, point us at your URL, and watch a grounded, agentic experience come together in under five minutes.
+        </p>
+
+        {{template "cta-form-card" .}}
+
+        <code class="rounded-[9px] border bg-black/20 px-5 py-3.5 text-[12.5px] font-[family-name:var(--font-geist-mono)]" style="border-color: var(--ink-border); color: var(--ink-muted)">&lt;script src="https://unpkg.com/zephlo" data-key="your-key"&gt;&lt;/script&gt;</code>
+      </div>
+    </div>
+  </section>
+
+</main>
+{{end}}

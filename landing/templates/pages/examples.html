@@ -1,0 +1,182 @@
+{{define "content"}}
+<main id="main">
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden px-6 pt-28 pb-16 sm:pt-36 sm:pb-20">
+    <div class="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+      <div class="absolute left-[-10%] top-[-20%] h-[60%] w-[55%] rounded-full bg-[var(--accent)]/[0.08] blur-[80px] md:blur-[160px]"></div>
+    </div>
+    <div class="absolute inset-0 grid-pattern opacity-50" aria-hidden="true"></div>
+
+    <div class="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-7 text-center">
+      <div class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--accent)]">
+        Examples
+      </div>
+      <h1 class="max-w-[16ch] font-serif text-5xl leading-[0.98] text-[var(--foreground)] sm:text-6xl lg:text-[4.5rem]">
+        See the Agent <span class="text-[var(--accent)]">act</span>.
+      </h1>
+      <p class="max-w-[52ch] text-lg leading-relaxed text-[var(--muted)]">
+        Every example is a real, one-page site with a Zephlo Agent embedded in one script tag.
+        It doesn&rsquo;t just answer — it fills the form, queries the data, and runs the board,
+        client-side.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-[family-name:var(--font-geist-mono)] text-[12.5px] text-[var(--muted)]">
+        <span>One script tag</span><span>·</span><span>Tools run in the browser</span><span>·</span><span>Open source</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EXAMPLES GRID ────────────────────────────────────────────────── -->
+  <section class="px-6 pb-24 sm:pb-28">
+    <div class="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+
+      <!-- Conversational Form -->
+      <a data-reveal href="/examples/conversational-form"
+         class="card-lift group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        <!-- Preview: an application form filling itself in -->
+        <div class="relative flex h-48 items-center justify-center border-b p-6" style="background: var(--tint-purple-bg); border-color: var(--tint-purple-br)" aria-hidden="true">
+          <span class="absolute left-4 top-4 rounded-full px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[11px]" style="background: var(--card); color: var(--tint-purple-fg)">● Live demo</span>
+          <div class="w-56 rounded-[10px] bg-white p-3 shadow-[0_12px_32px_rgba(11,17,32,0.14)]">
+            <div class="mb-2 text-[11px] font-bold text-[#101114]">Application — step 2 of 4</div>
+            <div class="flex flex-col gap-1.5">
+              <div class="flex h-[24px] items-center rounded-[6px] border border-[#ECEDF1] px-2 text-[10px] text-[#101114]">Jane Smith</div>
+              <div class="flex h-[24px] items-center rounded-[6px] border border-[#ECEDF1] px-2 text-[10px] text-[#101114]">jane@brightco.com</div>
+              <div class="flex h-[24px] items-center rounded-[6px] border-[1.5px] border-[#7C3AED] bg-[#F3EFFD] px-2 text-[10px] text-[#7C3AED]">Typing for you…</div>
+            </div>
+            <div class="mt-2 flex justify-end">
+              <div class="rounded-[5px] bg-[#101114] px-2.5 py-1 text-[9.5px] font-bold text-white">Continue</div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col gap-3 p-6">
+          <h3 class="text-[19px] font-bold tracking-tight text-[var(--foreground)]">Conversational Form</h3>
+          <p class="flex-1 text-sm leading-relaxed text-[var(--muted)]">
+            The Agent interviews the visitor and fills a multi-step application for them — no typing into fields, no drop-off.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Forms</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Lead capture</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Tools</span>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-[13px] font-bold text-[var(--accent)] transition-transform duration-300 group-hover:translate-x-1">Open demo →</span>
+            <span class="font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[var(--muted)]">/form</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Chat with your Data -->
+      <a data-reveal data-reveal-delay="80" href="/examples/chat-with-your-data"
+         class="card-lift group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        <!-- Preview: a chart answering a question -->
+        <div class="relative flex h-48 items-center justify-center border-b p-6" style="background: var(--tint-teal-bg); border-color: var(--tint-teal-br)" aria-hidden="true">
+          <span class="absolute left-4 top-4 rounded-full px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[11px]" style="background: var(--card); color: var(--tint-teal-fg)">● Live demo</span>
+          <div class="w-56 rounded-[10px] bg-white p-3 shadow-[0_12px_32px_rgba(11,17,32,0.14)]">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-[11px] font-bold text-[#101114]">Revenue by quarter</span>
+              <span class="font-[family-name:var(--font-geist-mono)] text-[9.5px] text-[#0D9488]">updated ✓</span>
+            </div>
+            <div class="flex h-20 items-end gap-1.5">
+              <div class="flex-1 rounded-t-[3px] bg-[#CDEBE4]" style="height: 40%"></div>
+              <div class="flex-1 rounded-t-[3px] bg-[#CDEBE4]" style="height: 55%"></div>
+              <div class="flex-1 rounded-t-[3px] bg-[#CDEBE4]" style="height: 48%"></div>
+              <div class="flex-1 rounded-t-[3px] bg-[#0D9488]" style="height: 78%"></div>
+              <div class="flex-1 rounded-t-[3px] bg-[#0D9488]" style="height: 100%"></div>
+            </div>
+            <div class="mt-2 font-[family-name:var(--font-geist-mono)] text-[9.5px] text-[#878B99]">"Which quarters grew fastest?"</div>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col gap-3 p-6">
+          <h3 class="text-[19px] font-bold tracking-tight text-[var(--foreground)]">Chat with your Data</h3>
+          <p class="flex-1 text-sm leading-relaxed text-[var(--muted)]">
+            Ask questions in plain English. The Agent queries a live dataset with tools and updates the charts and table in front of you.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Analytics</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Dashboards</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Tools</span>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-[13px] font-bold text-[var(--accent)] transition-transform duration-300 group-hover:translate-x-1">Open demo →</span>
+            <span class="font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[var(--muted)]">/data</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Project Management Copilot -->
+      <a data-reveal data-reveal-delay="160" href="/examples/project-management-copilot"
+         class="card-lift group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        <!-- Preview: a kanban board with a card on the move -->
+        <div class="relative flex h-48 items-center justify-center border-b p-6" style="background: var(--tint-amber-bg); border-color: var(--tint-amber-br)" aria-hidden="true">
+          <span class="absolute left-4 top-4 rounded-full px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[11px]" style="background: var(--card); color: var(--tint-amber-fg)">● Live demo</span>
+          <div class="w-56 rounded-[10px] bg-white p-3 shadow-[0_12px_32px_rgba(11,17,32,0.14)]">
+            <div class="grid grid-cols-3 gap-1.5">
+              <div class="flex flex-col gap-1">
+                <div class="text-[9px] font-bold uppercase tracking-wide text-[#878B99]">To do</div>
+                <div class="rounded-[5px] border border-[#ECEDF1] bg-[#FAFAFA] px-1.5 py-1.5 text-[9px] text-[#5A5E6B]">Design review</div>
+                <div class="rounded-[5px] border border-[#ECEDF1] bg-[#FAFAFA] px-1.5 py-1.5 text-[9px] text-[#5A5E6B]">Write docs</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-[9px] font-bold uppercase tracking-wide text-[#878B99]">Doing</div>
+                <div class="rounded-[5px] border-[1.5px] border-[#D97706] bg-[#FDF3E3] px-1.5 py-1.5 text-[9px] font-semibold text-[#D97706]">Ship widget ↗</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-[9px] font-bold uppercase tracking-wide text-[#878B99]">Done</div>
+                <div class="rounded-[5px] border border-[#ECEDF1] bg-[#FAFAFA] px-1.5 py-1.5 text-[9px] text-[#5A5E6B]">Crawl site</div>
+                <div class="rounded-[5px] border border-[#ECEDF1] bg-[#FAFAFA] px-1.5 py-1.5 text-[9px] text-[#5A5E6B]">Add tools</div>
+              </div>
+            </div>
+            <div class="mt-2 font-[family-name:var(--font-geist-mono)] text-[9.5px] text-[#878B99]">"Move the widget task to doing"</div>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col gap-3 p-6">
+          <h3 class="text-[19px] font-bold tracking-tight text-[var(--foreground)]">Project Management Copilot</h3>
+          <p class="flex-1 text-sm leading-relaxed text-[var(--muted)]">
+            Create, move, assign, and prioritise tasks on a kanban board by asking — the Agent runs the workflow client-side.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Productivity</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Workflow</span>
+            <span class="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] text-[var(--muted)]">Tools</span>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-[13px] font-bold text-[var(--accent)] transition-transform duration-300 group-hover:translate-x-1">Open demo →</span>
+            <span class="font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[var(--muted)]">/projects</span>
+          </div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Source strip -->
+    <div data-reveal class="mx-auto mt-10 flex max-w-7xl flex-col items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-8 py-6 sm:flex-row">
+      <p class="text-[15px] text-[var(--muted)]">
+        Every example is open source — the tool registrations are the code worth reading.
+      </p>
+      <a href="{{.Site.Links.ExamplesOrg}}" target="_blank" rel="noopener noreferrer"
+         class="inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[var(--border)] px-5 py-2.5 text-[14px] font-semibold text-[var(--foreground)] transition-colors duration-300 hover:border-[var(--foreground)]">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.95.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.05.77 2.12 0 1.53-.01 2.76-.01 3.14 0 .3.2.66.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+        View source on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ────────────────────────────────────────────────────── -->
+  <section class="px-6 pb-28">
+    <div data-reveal class="mx-auto flex max-w-6xl flex-col items-center gap-7 rounded-[28px] bg-[var(--ink-bg)] px-8 py-24 text-center sm:px-14">
+      <div class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-accent)">
+        Your turn
+      </div>
+      <h2 class="max-w-[20ch] font-serif text-4xl leading-[1.05] sm:text-5xl" style="color: var(--ink-fg)">
+        Ready to build your own Agent?
+      </h2>
+      <p class="max-w-[52ch] text-lg leading-relaxed" style="color: var(--ink-muted)">
+        Point us at your URL, register a few tools, and your site gets everything you just saw —
+        in under five minutes.
+      </p>
+      {{template "cta-form-card" .}}
+    </div>
+  </section>
+
+</main>
+{{end}}

@@ -1,0 +1,240 @@
+{{define "pricing-form"}}
+<form hx-post="/api/pricing-lead" hx-swap="outerHTML" action="/api/pricing-lead" method="post"
+      class="flex flex-col gap-4">
+  <h3 class="text-xl font-bold text-[var(--foreground)]">
+    Share a few details. We’ll come back with the right plan.
+  </h3>
+
+  <label for="pricing-name" class="sr-only">Name</label>
+  <input id="pricing-name" name="name" type="text" required placeholder="Name" aria-label="Name"
+         class="h-[46px] rounded-[9px] border border-[var(--border)] bg-[var(--background)] px-3.5 text-[15px] text-[var(--foreground)] outline-none focus:border-[var(--accent)]" />
+
+  <label for="pricing-email" class="sr-only">Work email</label>
+  <input id="pricing-email" name="email" type="email" required placeholder="Work email" aria-label="Work email"
+         class="h-[46px] rounded-[9px] border border-[var(--border)] bg-[var(--background)] px-3.5 text-[15px] text-[var(--foreground)] outline-none focus:border-[var(--accent)]" />
+
+  <label for="pricing-company" class="sr-only">Company</label>
+  <input id="pricing-company" name="company" type="text" placeholder="Company" aria-label="Company"
+         class="h-[46px] rounded-[9px] border border-[var(--border)] bg-[var(--background)] px-3.5 text-[15px] text-[var(--foreground)] outline-none focus:border-[var(--accent)]" />
+
+  <label for="pricing-message" class="sr-only">What are you hoping to do?</label>
+  <textarea id="pricing-message" name="message" rows="3" placeholder="What are you hoping to do?" aria-label="What are you hoping to do?"
+            class="rounded-[9px] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-[15px] text-[var(--foreground)] outline-none focus:border-[var(--accent)] resize-none"></textarea>
+
+  <button type="submit"
+          class="h-[50px] rounded-[9px] bg-[var(--foreground)] text-[var(--background)] font-bold transition-colors duration-300 hover:bg-[var(--accent)] hover:text-white">
+    Get a tailored plan
+  </button>
+
+  <p class="font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[var(--muted)] text-center">
+    No credit card. No spam. We respond within one business day.
+  </p>
+</form>
+{{end}}
+
+{{define "pricing-success"}}
+<div class="flex flex-col items-center text-center gap-4 py-6 pop-in">
+  <div class="flex h-14 w-14 items-center justify-center rounded-full" style="background: var(--accent)" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M5 12.5L10 17.5L19 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <h3 class="text-xl font-bold text-[var(--foreground)]">Thanks — we’re on it.</h3>
+  <p class="text-[15px] text-[var(--muted)]">Expect a tailored plan within one business day.</p>
+</div>
+{{end}}
+
+{{define "contact-form"}}
+<form hx-post="/api/contact" hx-swap="outerHTML" action="/api/contact" method="post"
+      class="flex flex-col gap-5"
+      zephlo-tool-name="contact_zephlo_team"
+      zephlo-tool-description="Submit a contact request to the Zephlo team to build a custom AI agent. Collects the prospect's name, work email, company, phone number, and a description of their use case.">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div class="flex flex-col gap-1.5">
+      <label for="contact-name" class="text-[12px] font-medium text-[var(--foreground)]">Name</label>
+      <input id="contact-name" type="text" name="name" required placeholder="Jane Smith"
+             zephlo-param-description="Full name of the person reaching out"
+             class="w-full rounded-xl border border-[var(--subtle-white-06)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 transition-colors duration-300" />
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label for="contact-email" class="text-[12px] font-medium text-[var(--foreground)]">Work email</label>
+      <input id="contact-email" type="email" name="email" required placeholder="jane@company.com"
+             zephlo-param-description="Work email address for follow-up"
+             class="w-full rounded-xl border border-[var(--subtle-white-06)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 transition-colors duration-300" />
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label for="contact-company" class="text-[12px] font-medium text-[var(--foreground)]">Company</label>
+    <input id="contact-company" type="text" name="company" required placeholder="Company name"
+           zephlo-param-description="Name of the company or organization"
+           class="w-full rounded-xl border border-[var(--subtle-white-06)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 transition-colors duration-300" />
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label for="contact-phone" class="text-[12px] font-medium text-[var(--foreground)]">Phone number</label>
+    <div class="flex gap-0">
+      <select name="country_code" aria-label="Country dialing code"
+              zephlo-param-description="International dialing code with leading + (e.g. +1, +44, +254)"
+              class="rounded-l-xl border border-r-0 border-[var(--subtle-white-06)] bg-[var(--background)] px-3 py-3 text-[13px] text-[var(--foreground)] font-mono outline-none transition-colors duration-300 hover:bg-[var(--subtle-white-03)]">
+        <option value="+1" selected>🇺🇸 +1</option>
+        <option value="+44">🇬🇧 +44</option>
+        <option value="+91">🇮🇳 +91</option>
+        <option value="+49">🇩🇪 +49</option>
+        <option value="+33">🇫🇷 +33</option>
+        <option value="+61">🇦🇺 +61</option>
+        <option value="+81">🇯🇵 +81</option>
+        <option value="+86">🇨🇳 +86</option>
+        <option value="+55">🇧🇷 +55</option>
+        <option value="+27">🇿🇦 +27</option>
+        <option value="+234">🇳🇬 +234</option>
+        <option value="+254">🇰🇪 +254</option>
+        <option value="+971">🇦🇪 +971</option>
+        <option value="+966">🇸🇦 +966</option>
+        <option value="+65">🇸🇬 +65</option>
+        <option value="+82">🇰🇷 +82</option>
+        <option value="+31">🇳🇱 +31</option>
+        <option value="+46">🇸🇪 +46</option>
+        <option value="+41">🇨🇭 +41</option>
+        <option value="+34">🇪🇸 +34</option>
+        <option value="+39">🇮🇹 +39</option>
+        <option value="+52">🇲🇽 +52</option>
+        <option value="+47">🇳🇴 +47</option>
+        <option value="+48">🇵🇱 +48</option>
+        <option value="+351">🇵🇹 +351</option>
+        <option value="+353">🇮🇪 +353</option>
+        <option value="+64">🇳🇿 +64</option>
+        <option value="+63">🇵🇭 +63</option>
+        <option value="+60">🇲🇾 +60</option>
+        <option value="+62">🇮🇩 +62</option>
+        <option value="+66">🇹🇭 +66</option>
+        <option value="+84">🇻🇳 +84</option>
+        <option value="+20">🇪🇬 +20</option>
+        <option value="+212">🇲🇦 +212</option>
+        <option value="+233">🇬🇭 +233</option>
+        <option value="+255">🇹🇿 +255</option>
+        <option value="+256">🇺🇬 +256</option>
+        <option value="+251">🇪🇹 +251</option>
+        <option value="+972">🇮🇱 +972</option>
+        <option value="+90">🇹🇷 +90</option>
+        <option value="+380">🇺🇦 +380</option>
+        <option value="+56">🇨🇱 +56</option>
+        <option value="+57">🇨🇴 +57</option>
+        <option value="+54">🇦🇷 +54</option>
+        <option value="+51">🇵🇪 +51</option>
+        <option value="+92">🇵🇰 +92</option>
+        <option value="+880">🇧🇩 +880</option>
+        <option value="+94">🇱🇰 +94</option>
+        <option value="+977">🇳🇵 +977</option>
+      </select>
+      <input id="contact-phone" type="tel" name="phone" placeholder="712 345 678"
+             zephlo-param-description="Local phone number digits (no country code)"
+             class="w-full min-w-0 rounded-r-xl border border-[var(--subtle-white-06)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 transition-colors duration-300" />
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label for="contact-message" class="text-[12px] font-medium text-[var(--foreground)]">
+      Tell us about your use case <span class="font-normal text-[var(--muted)]">(optional)</span>
+    </label>
+    <textarea id="contact-message" rows="4" name="message"
+              zephlo-param-description="Describe the workflows to automate and the tools the users need"
+              placeholder="What workflows would you like to automate? What tools do your users need?"
+              class="w-full rounded-xl border border-[var(--subtle-white-06)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 transition-colors duration-300 resize-none"></textarea>
+  </div>
+
+  <button type="submit"
+          class="group w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1275CA] px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0E5FA6] hover:shadow-[0_0_32px_-4px_rgba(18,117,202,0.5)] mt-1">
+    Send Message
+    <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+  </button>
+
+  <p class="text-[11px] text-[var(--muted)] opacity-50 text-center">
+    We’ll respond within 24 hours. No spam, ever.
+  </p>
+</form>
+{{end}}
+
+{{/* Full "Get in Touch" section — shared tail of every use-case page. */}}
+{{define "contact-section"}}
+<section id="contact" class="relative py-24 sm:py-40 px-6">
+  <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px]"
+       style="background: radial-gradient(ellipse at center, rgba(18,117,202,0.08) 0%, rgba(96,165,250,0.04) 40%, transparent 70%)"></div>
+
+  <div class="relative z-10 mx-auto max-w-5xl">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+      <!-- Left — copy -->
+      <div data-reveal class="flex flex-col gap-6">
+        <span class="inline-block text-[12px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">Get in Touch</span>
+        <h2 class="text-3xl sm:text-4xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.15]">
+          Build an agent
+          <br />
+          <span class="gradient-text">tailored to your business.</span>
+        </h2>
+        <p class="text-base sm:text-lg leading-relaxed text-[var(--muted)] max-w-md">
+          Every business has unique workflows. Our engineers work directly with your team to
+          understand your processes, design the right tools, and deliver a fully personalized
+          AI agent for your website.
+        </p>
+
+        <div class="flex flex-col gap-4 mt-4">
+          <div class="flex items-center gap-3">
+            <div class="h-5 w-5 rounded-full flex items-center justify-center shrink-0" style="background: var(--icon-bg)">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4.5 7.5L8 3" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </div>
+            <span class="text-sm text-[var(--muted)]">Agent customized to your exact workflows</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="h-5 w-5 rounded-full flex items-center justify-center shrink-0" style="background: var(--icon-bg)">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4.5 7.5L8 3" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </div>
+            <span class="text-sm text-[var(--muted)]">Dedicated engineer to build your tools</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="h-5 w-5 rounded-full flex items-center justify-center shrink-0" style="background: var(--icon-bg)">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4.5 7.5L8 3" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </div>
+            <span class="text-sm text-[var(--muted)]">Hands-on onboarding and integration support</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right — form -->
+      <div data-reveal data-reveal-delay="100" class="rounded-2xl border border-[var(--subtle-white)] bg-[var(--card)] p-8 sm:p-10">
+        {{if .Sent}}
+          {{template "contact-success"}}
+        {{else}}
+          {{template "contact-form"}}
+        {{end}}
+      </div>
+    </div>
+  </div>
+</section>
+{{end}}
+
+{{define "contact-success"}}
+<div class="flex flex-col items-center text-center gap-4 py-8 pop-in">
+  <div class="h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--icon-bg)">
+    <svg class="h-6 w-6 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+  </div>
+  <h3 class="text-xl font-semibold text-[var(--foreground)]">We’ll be in touch!</h3>
+  <p class="text-sm text-[var(--muted)] max-w-sm">
+    Thanks for reaching out. One of our engineers will review your requirements and get back to you within 24 hours.
+  </p>
+</div>
+{{end}}
+
+{{define "cta-form-card"}}
+<!-- The bottom call-to-action's conversion point: the contact form on a light
+     card, sitting on the dark ink block. Reuses "contact-form" as-is, so it
+     posts to /api/contact and gets the same success partial back. -->
+<!-- mx-auto matters: some CTA blocks are plain `text-center` divs rather than
+     flex columns, and without it the card sits left inside those. -->
+<div id="contact" class="mx-auto mt-2 w-full max-w-xl scroll-mt-24 rounded-2xl bg-[var(--card)] p-7 text-left shadow-[0_24px_64px_rgba(11,17,32,0.28)] sm:p-9">
+  {{if .Sent}}
+    {{template "contact-success"}}
+  {{else}}
+    {{template "contact-form"}}
+  {{end}}
+</div>
+{{end}}

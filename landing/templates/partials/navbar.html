@@ -1,0 +1,121 @@
+{{define "navbar"}}
+<header id="site-header"
+        class="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-transparent transition-[background-color,border-color,backdrop-filter] duration-[320ms] [transition-timing-function:var(--ease-out-expo)] [&.scrolled]:bg-[var(--background)]/70 [&.scrolled]:backdrop-blur-2xl [&.scrolled]:border-[var(--subtle-white)]">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <!-- Logo — wordmark with an accent period -->
+    <a href="/" aria-label="Zephlo home" class="group flex items-center">
+      <span class="text-[22px] font-extrabold tracking-[-0.02em] text-[var(--foreground)]">
+        zephlo<span class="text-[var(--accent)]">.</span>
+      </span>
+    </a>
+
+    <!-- Desktop links -->
+    <div class="hidden md:flex items-center gap-7">
+      {{/* Use-cases dropdown — CSS-driven (hover + focus-within), no JS. */}}
+      {{$onUseCase := or (eq .Path "/customer-success") (eq .Path "/onboarding") (eq .Path "/lead-generation")}}
+      <div class="group relative">
+        <button type="button" aria-haspopup="true"
+                class="relative flex items-center gap-1 text-[13px] transition-colors duration-200 {{if $onUseCase}}text-[var(--foreground)]{{else}}text-[var(--muted)] group-hover:text-[var(--foreground)] group-focus-within:text-[var(--foreground)]{{end}}">
+          Use cases
+          <svg class="h-3 w-3 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          {{if $onUseCase}}<span class="absolute -bottom-1.5 left-0 right-0 h-[2px] rounded-full bg-[var(--accent)]"></span>{{end}}
+        </button>
+        <div class="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+          <div class="w-64 rounded-xl border border-[var(--subtle-white-06)] bg-[var(--card)] p-1.5 shadow-[0_20px_40px_-12px_var(--shadow-color)]">
+            <a href="/customer-success" {{if eq .Path "/customer-success"}}aria-current="page"{{end}}
+               class="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 transition-colors {{if eq .Path "/customer-success"}}bg-[var(--accent)]/[0.08]{{else}}hover:bg-[var(--subtle-white-03)]{{end}}">
+              <span class="text-[13px] font-semibold {{if eq .Path "/customer-success"}}text-[var(--accent)]{{else}}text-[var(--foreground)]{{end}}">Customer Success</span>
+              <span class="text-[11.5px] text-[var(--muted)]">Resolve tickets, don&rsquo;t deflect them</span>
+            </a>
+            <a href="/onboarding" {{if eq .Path "/onboarding"}}aria-current="page"{{end}}
+               class="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 transition-colors {{if eq .Path "/onboarding"}}bg-[var(--accent)]/[0.08]{{else}}hover:bg-[var(--subtle-white-03)]{{end}}">
+              <span class="text-[13px] font-semibold {{if eq .Path "/onboarding"}}text-[var(--accent)]{{else}}text-[var(--foreground)]{{end}}">Onboarding</span>
+              <span class="text-[11.5px] text-[var(--muted)]">Activation in the first session</span>
+            </a>
+            <a href="/lead-generation" {{if eq .Path "/lead-generation"}}aria-current="page"{{end}}
+               class="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 transition-colors {{if eq .Path "/lead-generation"}}bg-[var(--accent)]/[0.08]{{else}}hover:bg-[var(--subtle-white-03)]{{end}}">
+              <span class="text-[13px] font-semibold {{if eq .Path "/lead-generation"}}text-[var(--accent)]{{else}}text-[var(--foreground)]{{end}}">Lead Generation</span>
+              <span class="text-[11.5px] text-[var(--muted)]">Capture every lead, 24/7</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {{/* Active on /examples and on /examples/<slug> detail pages. */}}
+      {{$onExamples := or (eq .Path "/examples") .Example}}
+      <a href="/examples"
+         {{if $onExamples}}aria-current="page"{{end}}
+         class="relative text-[13px] transition-colors duration-200 {{if $onExamples}}text-[var(--foreground)]{{else}}text-[var(--muted)] hover:text-[var(--foreground)]{{end}}">
+        Examples
+        {{if $onExamples}}<span class="absolute -bottom-1.5 left-0 right-0 h-[2px] rounded-full bg-[var(--accent)]"></span>{{end}}
+      </a>
+      <a href="/security"
+         {{if eq .Path "/security"}}aria-current="page"{{end}}
+         class="relative text-[13px] transition-colors duration-200 {{if eq .Path "/security"}}text-[var(--foreground)]{{else}}text-[var(--muted)] hover:text-[var(--foreground)]{{end}}">
+        Security
+        {{if eq .Path "/security"}}<span class="absolute -bottom-1.5 left-0 right-0 h-[2px] rounded-full bg-[var(--accent)]"></span>{{end}}
+      </a>
+    </div>
+
+    <!-- Desktop right side -->
+    <div class="hidden md:flex items-center gap-3">
+      {{template "theme-toggle"}}
+      <a href="{{.Site.Links.Docs}}" target="_blank" rel="noopener noreferrer"
+         class="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">Docs</a>
+      <a href="{{.Site.Links.SignIn}}"
+         class="text-[13px] text-[var(--muted)] transition-colors duration-200 hover:text-[var(--foreground)]">Sign in</a>
+    </div>
+
+    <!-- Mobile right side -->
+    <div class="flex md:hidden items-center gap-2">
+      {{template "theme-toggle"}}
+      <button id="menu-toggle" aria-label="Open menu" aria-expanded="false"
+              class="relative z-50 flex h-11 w-11 items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+        <svg class="icon-menu h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <svg class="icon-close hidden h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="mobile-menu md:hidden overflow-hidden border-b border-[var(--subtle-white)] bg-[var(--background)]/95 backdrop-blur-2xl" hidden>
+    <div class="flex flex-col gap-1 px-6 pb-6 pt-2">
+      <span class="px-3 pb-1 pt-2 font-[family-name:var(--font-geist-mono)] text-[10.5px] uppercase tracking-[0.12em] text-[var(--muted)]/70">Use cases</span>
+      <a href="/customer-success"
+         class="rounded-lg px-3 py-3 text-[15px] transition-colors {{if eq .Path "/customer-success"}}bg-[var(--accent)]/[0.08] text-[var(--accent)]{{else}}text-[var(--muted)] hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]{{end}}">
+        Customer Success
+      </a>
+      <a href="/onboarding"
+         class="rounded-lg px-3 py-3 text-[15px] transition-colors {{if eq .Path "/onboarding"}}bg-[var(--accent)]/[0.08] text-[var(--accent)]{{else}}text-[var(--muted)] hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]{{end}}">
+        Onboarding
+      </a>
+      <a href="/lead-generation"
+         class="rounded-lg px-3 py-3 text-[15px] transition-colors {{if eq .Path "/lead-generation"}}bg-[var(--accent)]/[0.08] text-[var(--accent)]{{else}}text-[var(--muted)] hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]{{end}}">
+        Lead Generation
+      </a>
+      <div class="my-2 border-t border-[var(--subtle-white-04)]"></div>
+      <a href="/examples"
+         class="rounded-lg px-3 py-3 text-[15px] transition-colors {{if eq .Path "/examples"}}bg-[var(--accent)]/[0.08] text-[var(--accent)]{{else}}text-[var(--muted)] hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]{{end}}">
+        Examples
+      </a>
+      <a href="/security"
+         class="rounded-lg px-3 py-3 text-[15px] transition-colors {{if eq .Path "/security"}}bg-[var(--accent)]/[0.08] text-[var(--accent)]{{else}}text-[var(--muted)] hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]{{end}}">
+        Security
+      </a>
+      <div class="my-2 border-t border-[var(--subtle-white-04)]"></div>
+      <a href="{{.Site.Links.Docs}}" target="_blank" rel="noopener noreferrer"
+         class="rounded-lg px-3 py-3 text-[15px] text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Docs</a>
+      <a href="{{.Site.Links.SignIn}}"
+         class="rounded-lg px-3 py-3 text-[15px] text-[var(--muted)] transition-colors hover:bg-[var(--subtle-white-03)] hover:text-[var(--foreground)]">Sign in</a>
+    </div>
+  </div>
+</header>
+{{end}}
+
+{{define "theme-toggle"}}
+<button data-theme-toggle aria-label="Toggle color theme"
+        class="relative h-9 w-9 rounded-full border border-[var(--subtle-white)] bg-[var(--subtle-white-03)] flex items-center justify-center text-[var(--muted)] transition-all duration-300 hover:text-[var(--foreground)] hover:border-[var(--subtle-white-hover)]">
+  <svg class="icon-sun h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  <svg class="icon-moon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+</button>
+{{end}}

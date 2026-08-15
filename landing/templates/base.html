@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-theme="dark" class="no-js h-full antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{.Title}}</title>
+  <meta name="description" content="{{.Description}}" />
+  <meta name="application-name" content="Zephlo" />
+  <meta name="keywords" content="AI agent, website chatbot, RAG, retrieval augmented generation, embeddable agent, conversational AI, AI platform, site search, customer support AI" />
+  <meta name="author" content="Zephlo" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="{{.Site.URL}}{{if ne .Path "/"}}{{.Path}}{{end}}" />
+  <link rel="icon" href="/static/logo.svg" />
+  <link rel="apple-touch-icon" href="/static/logo.svg" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050508" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAFAFA" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:title" content="{{.Title}}" />
+  <meta property="og:description" content="{{.Description}}" />
+  <meta property="og:site_name" content="Zephlo" />
+  <meta property="og:url" content="{{.Site.URL}}{{if ne .Path "/"}}{{.Path}}{{end}}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{.Title}}" />
+  <meta name="twitter:description" content="{{.Description}}" />
+  <meta name="twitter:creator" content="@zephlo" />
+
+  <!-- Set the theme before first paint so there is no light/dark flash. -->
+  <script>
+    (function () {
+      var stored = localStorage.getItem("zephlo-theme");
+      var theme = stored === "light" || stored === "dark"
+        ? stored
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/site.css?v={{.Site.AssetVer}}" />
+
+  {{if .Site.Widget.ChatbotID}}
+  <!-- Warm the connection for the chat widget's config fetch. -->
+  <link rel="preconnect" href="{{.Site.Widget.APIURL}}" crossorigin="anonymous" />
+  <link rel="dns-prefetch" href="{{.Site.Widget.APIURL}}" />
+  {{end}}
+
+  <script src="/static/js/htmx.min.js?v={{.Site.AssetVer}}" defer></script>
+  <script src="/static/js/site.js?v={{.Site.AssetVer}}" defer></script>
+
+  <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"Organization","name":"Zephlo","url":"{{.Site.URL}}","logo":"{{.Site.URL}}/static/logo.svg","sameAs":["https://twitter.com/zephlo","https://linkedin.com/company/zephlo","https://github.com/zephlo"]}
+  </script>
+  <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Zephlo","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"{{.Description}}","url":"{{.Site.URL}}","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+  </script>
+
+  <script>
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wmznkc9zt4");
+  </script>
+</head>
+<body class="min-h-full flex flex-col">
+  <a href="#main"
+     class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg">
+    Skip to content
+  </a>
+
+  {{template "navbar" .}}
+  {{block "content" .}}{{end}}
+  {{template "footer" .}}
+
+  {{if .Site.Widget.ChatbotID}}
+  <!-- Live Zephlo Agent on our own site. The script auto-injects a FAB. -->
+  <script>window.FLAPI = {{.Site.Widget.APIURL}};</script>
+  <script src="{{.Site.Widget.ScriptSrc}}" data-chatbot-id="{{.Site.Widget.ChatbotID}}" defer></script>
+  {{end}}
+</body>
+</html>

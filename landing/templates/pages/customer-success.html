@@ -1,0 +1,219 @@
+{{define "content"}}
+<main id="main" class="{{.MainClass}}">
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────── -->
+  <section class="px-6 pt-28 pb-24 sm:pt-36">
+    <div class="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+      <!-- Left -->
+      <div data-reveal>
+        <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--accent)]">
+          Zephlo for Customer Success
+        </span>
+        <h1 class="mt-5 font-serif text-5xl leading-[0.98] lg:text-[4.5rem]">
+          Don&rsquo;t deflect the ticket.
+          <span class="text-[var(--accent)]">Resolve it.</span>
+        </h1>
+        <p class="mt-6 max-w-[46ch] text-lg text-[var(--muted)]">
+          Deflection sends users to a doc and hopes. A Zephlo agent performs the fix — it updates
+          the setting, runs the export, cancels the trial — in the user&rsquo;s own session, with
+          every answer grounded in your docs.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a href="{{.Site.Links.Sales}}"
+             class="rounded-[10px] bg-[var(--foreground)] px-7 py-3.5 font-bold text-[var(--background)] transition-colors duration-300 hover:bg-[var(--accent)] hover:text-white">
+            Talk to sales
+          </a>
+        </div>
+      </div>
+
+      <!-- Right — scripted demo: the agent resolves a "how do I enable SSO?"
+           ticket by doing it. site.js plays any [data-demo] panel through
+           phases 0→6 on a loop; stays dark in both themes. -->
+      <div data-reveal data-reveal-delay="100">
+        <div data-demo aria-label="Zephlo Agent enabling SSO for a user">
+          <div class="rounded-[20px] bg-[#0B1120] p-3.5 shadow-[0_24px_64px_rgba(11,17,32,0.28)]">
+            <!-- Browser chrome -->
+            <div class="flex items-center gap-2 px-1.5 pb-3 pt-1">
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#273049]"></span>
+              <span class="ml-2.5 font-[family-name:var(--font-geist-mono)] text-[11.5px] text-[#6B7590]">app.acme.com/settings</span>
+              <span class="ml-auto flex items-center gap-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6FA5FF]"></span>
+                LIVE
+              </span>
+            </div>
+
+            <div class="grid h-[424px] grid-cols-[1fr_210px] gap-2.5 sm:grid-cols-[1fr_228px]">
+              <!-- Mock app -->
+              <div class="grid grid-cols-[104px_1fr] overflow-hidden rounded-[10px] bg-white">
+                <div class="flex flex-col gap-1 border-r border-[#ECEDF1] bg-[#FAFAFA] px-2.5 py-4">
+                  <div class="px-2 pb-3 text-[12.5px] font-bold tracking-tight text-[#101114]">Acme</div>
+                  <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">General</div>
+                  <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">Members</div>
+                  <div class="demo-nav rounded-md px-2 py-1.5 text-[12px]" data-active-from="3">Security</div>
+                  <div class="rounded-md px-2 py-1.5 text-[12px] text-[#5A5E6B]">Billing</div>
+                </div>
+
+                <div class="flex flex-col gap-3 px-4 py-4">
+                  <!-- Members screen (phases 0–2) -->
+                  <div class="demo-hide flex flex-col gap-3" data-hide-from="3">
+                    <div class="text-[14px] font-bold text-[#101114]">Members</div>
+                    <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">jordan@acme.com — Owner</div>
+                    <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">ana@acme.com — Admin</div>
+                    <div class="flex h-[34px] items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-[#ECEDF1] px-2.5 text-[12px] text-[#878B99]">+ 10 more members</div>
+                  </div>
+
+                  <!-- Security screen (phases 3+) -->
+                  <div class="demo-item flex-col gap-3" data-show-from="3">
+                    <div class="text-[14px] font-bold text-[#101114]">Security</div>
+                    <div class="flex items-center justify-between rounded-[9px] border border-[#ECEDF1] px-3 py-3">
+                      <div class="flex flex-col">
+                        <div class="text-[12.5px] font-semibold text-[#101114]">Single sign-on</div>
+                        <div class="text-[11px] text-[#878B99]">SAML / OIDC</div>
+                      </div>
+                      <span class="demo-toggle" data-active-from="4"></span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-[9px] border border-[#ECEDF1] px-3 py-3">
+                      <div class="text-[12.5px] font-semibold text-[#101114]">Provider</div>
+                      <div class="demo-swap rounded-md px-2.5 py-1 font-[family-name:var(--font-geist-mono)] text-[13px]" data-active-from="5" data-done="Okta ✓">—</div>
+                    </div>
+                    <div class="flex items-center justify-between rounded-[9px] border border-[#ECEDF1] px-3 py-3">
+                      <div class="text-[12.5px] font-semibold text-[#101114]">Enforce MFA</div>
+                      <span class="demo-toggle active"></span>
+                    </div>
+                    <div class="flex justify-end">
+                      <div class="demo-save rounded-[7px] px-4 py-2 text-[12px] font-bold text-white" data-active-from="6" data-done="Saved ✓">Save changes</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Agent chat -->
+              <div class="flex flex-col overflow-hidden rounded-[10px] border border-[#202A44] bg-[#0E1526]">
+                <div class="flex items-center gap-1.5 border-b border-[#202A44] px-3.5 py-3">
+                  <span class="h-2 w-2 rounded-full bg-[#6FA5FF]"></span>
+                  <span class="font-[family-name:var(--font-geist-mono)] text-[11px] tracking-[0.06em] text-[#C6CFE2]">ZEPHLO AGENT</span>
+                </div>
+                <div class="flex flex-1 flex-col gap-2.5 overflow-hidden p-3">
+                  <div data-show-from="1" class="demo-item max-w-[92%] self-end rounded-[10px_10px_3px_10px] bg-[#24304D] px-2.5 py-2 text-[12px] leading-snug text-[#E9EEF9]">
+                    How do I enable SSO for our workspace?
+                  </div>
+                  <div data-show-only="2" class="demo-item flex gap-1 self-start rounded-[10px] border border-[#202A44] px-3 py-2.5">
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]"></span>
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.2s"></span>
+                    <span class="h-[5px] w-[5px] animate-pulse rounded-full bg-[#6B7590]" style="animation-delay: 0.4s"></span>
+                  </div>
+                  <div data-show-from="3" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#202A44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                    I&rsquo;ll just do it for you — enabling SAML SSO with Okta.
+                  </div>
+                  <div data-show-from="3" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> navigate("/settings/security")
+                  </div>
+                  <div data-show-from="4" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> enable_sso("saml")
+                  </div>
+                  <div data-show-from="5" class="demo-item self-start flex items-center gap-1.5 rounded-md border border-[#6FA5FF33] bg-[#6FA5FF14] px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10.5px] text-[#6FA5FF]">
+                    <span aria-hidden="true">▸</span> set_provider("okta")
+                  </div>
+                  <div data-show-from="6" class="demo-item max-w-[94%] self-start rounded-[10px_10px_10px_3px] border border-[#6FA5FF44] bg-[#151D31] px-2.5 py-2 text-[12px] leading-snug text-[#C6CFE2]">
+                    Done — SSO is live. All 12 members now sign in through Okta. No ticket needed.
+                  </div>
+                </div>
+                <div class="m-2.5 rounded-lg border border-[#202A44] px-3 py-2 text-[11.5px] text-[#5C6680]">
+                  Ask anything, or ask for anything…
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-center pb-1 pt-3 font-[family-name:var(--font-geist-mono)] text-[11px] text-[#6B7590]">
+              Resolved in 41 seconds · No ticket filed · Tools run client-side
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 01 BEFORE / AFTER ────────────────────────────────────────────── -->
+  <section class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div data-reveal>
+        <div class="mb-5 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          01 — What changes
+        </div>
+        <h2 class="max-w-[22ch] font-serif text-4xl leading-[1.05] sm:text-5xl lg:text-[3.25rem]">
+          The &ldquo;how do I…?&rdquo; ticket, retired.
+        </h2>
+      </div>
+
+      <div class="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <!-- Today -->
+        <div data-reveal class="rounded-2xl border p-9" style="background: var(--tint-amber-bg); border-color: var(--tint-amber-br)">
+          <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--tint-amber-fg)">Today</span>
+          <ol class="mt-6">
+            <li class="flex gap-4 py-3.5 text-[15px] text-[var(--muted)] border-b border-[var(--border)]"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]">1</span><span>User can&rsquo;t find the setting, files a ticket</span></li>
+            <li class="flex gap-4 py-3.5 text-[15px] text-[var(--muted)] border-b border-[var(--border)]"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]">2</span><span>Support replies with a doc link, hours later</span></li>
+            <li class="flex gap-4 py-3.5 text-[15px] text-[var(--muted)] border-b border-[var(--border)]"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]">3</span><span>User tries, gets stuck, replies to the ticket</span></li>
+            <li class="flex gap-4 py-3.5 text-[15px] text-[var(--muted)]"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]">4</span><span>A CSM books a screen-share to do it for them</span></li>
+          </ol>
+        </div>
+
+        <!-- With Zephlo (ink) -->
+        <div data-reveal data-reveal-delay="100" class="rounded-2xl bg-[var(--ink-bg)] p-9">
+          <span class="font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em]" style="color: var(--ink-accent)">With Zephlo</span>
+          <ol class="mt-6">
+            <li class="flex gap-4 py-3.5 text-[15px] border-b" style="color: var(--ink-fg); border-color: var(--ink-border)"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]" style="color: var(--ink-accent)">1</span><span>User asks the agent, in your product</span></li>
+            <li class="flex gap-4 py-3.5 text-[15px] border-b" style="color: var(--ink-fg); border-color: var(--ink-border)"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]" style="color: var(--ink-accent)">2</span><span>The agent performs the change in their session</span></li>
+            <li class="flex gap-4 py-3.5 text-[15px]" style="color: var(--ink-fg)"><span class="font-[family-name:var(--font-geist-mono)] text-[13px]" style="color: var(--ink-accent)">3</span><span>User confirms. No ticket, no queue, no screen-share</span></li>
+          </ol>
+          <p class="mt-6 text-[15px] leading-relaxed" style="color: var(--ink-muted)">
+            Seconds instead of hours — and your CS team keeps its time for the conversations that actually need a human.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 02 CAPABILITIES ──────────────────────────────────────────────── -->
+  <section class="border-t border-[var(--border)] px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div data-reveal class="mb-14 font-[family-name:var(--font-geist-mono)] text-[12px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        02 — What the agent can do
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div data-reveal class="flex flex-col gap-2.5 rounded-2xl border p-8" style="background: var(--tint-purple-bg); border-color: var(--tint-purple-br)">
+          <h3 class="text-xl font-bold text-[var(--foreground)]">Update settings</h3>
+          <p class="text-[15px] leading-relaxed text-[var(--muted)]">Plan changes, seat counts, SSO, notification preferences — any change you expose as a tool, executed in the user&rsquo;s authenticated session.</p>
+        </div>
+        <div data-reveal data-reveal-delay="80" class="flex flex-col gap-2.5 rounded-2xl border p-8" style="background: var(--tint-teal-bg); border-color: var(--tint-teal-br)">
+          <h3 class="text-xl font-bold text-[var(--foreground)]">Navigate and guide</h3>
+          <p class="text-[15px] leading-relaxed text-[var(--muted)]">Instead of a doc link, the agent takes the user to the right screen and walks them through your product by operating it.</p>
+        </div>
+        <div data-reveal data-reveal-delay="160" class="flex flex-col gap-2.5 rounded-2xl border p-8" style="background: var(--tint-amber-bg); border-color: var(--tint-amber-br)">
+          <h3 class="text-xl font-bold text-[var(--foreground)]">Execute workflows</h3>
+          <p class="text-[15px] leading-relaxed text-[var(--muted)]">Multi-step requests — exports, migrations, form-heavy processes — collapse into one conversation. The agent composes your tools to finish the task.</p>
+        </div>
+        <div data-reveal data-reveal-delay="240" class="flex flex-col gap-2.5 rounded-2xl border p-8" style="background: var(--tint-pink-bg); border-color: var(--tint-pink-br)">
+          <h3 class="text-xl font-bold text-[var(--foreground)]">Answer with citations</h3>
+          <p class="text-[15px] leading-relaxed text-[var(--muted)]">For questions that just need an answer, responses are grounded in your indexed docs and cite the source page — auditable, never improvised.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ────────────────────────────────────────────────────── -->
+  <section class="px-6 py-24 sm:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div data-reveal class="rounded-[28px] bg-[var(--ink-bg)] px-8 py-24 text-center sm:px-14">
+        <h2 class="mx-auto max-w-[20ch] font-serif text-4xl leading-[1.05] sm:text-5xl" style="color: var(--ink-fg)">
+          Give your users an agent that finishes the job.
+        </h2>
+        {{template "cta-form-card" .}}
+      </div>
+    </div>
+  </section>
+
+</main>
+{{end}}

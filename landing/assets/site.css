@@ -1,0 +1,647 @@
+/* Tailwind input for the Go landing site. Built by `make css` into
+   static/css/site.css. Ported from the Next.js app's globals.css — the design
+   tokens and utilities are identical so the pages render pixel-for-pixel. */
+
+@import "tailwindcss";
+
+@source "../templates/**/*.html";
+@source "../static/js/site.js";
+
+/* Dark theme (default) — built on the redesign's deep navy surface (#0B1120).
+   Neutrals carry a subtle blue tint (hue ~250) so the whole UI reads cohesive. */
+:root,
+[data-theme="dark"] {
+  --background: #0B1120;
+  --foreground: #FAFAFA;
+  --muted: #AEB9D0;
+  --border: #202A44;
+  --card: #0E1526;
+  --card-hover: #131C33;
+  --accent: #2563EB;
+  --accent-light: #6FA5FF;
+  --gradient-start: #2563EB;
+  --gradient-end: #6FA5FF;
+  --icon-bg: rgba(37, 99, 235, 0.12);
+  --icon-bg-hover: rgba(37, 99, 235, 0.18);
+  --red-icon-bg: rgba(239, 68, 68, 0.08);
+  --red-icon-bg-hover: rgba(239, 68, 68, 0.12);
+  --red-icon-text: #f87171;
+  --subtle-white: rgba(255, 255, 255, 0.05);
+  --subtle-white-hover: rgba(255, 255, 255, 0.08);
+  --subtle-white-03: rgba(255, 255, 255, 0.03);
+  --subtle-white-04: rgba(255, 255, 255, 0.04);
+  --subtle-white-06: rgba(255, 255, 255, 0.06);
+  --code-bg: #0E1526;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --embed-edge: rgba(255, 255, 255, 0.10);
+  --emerald: #4ADE80;
+  --check-color: #4ADE80;
+  --x-color: rgba(248, 113, 113, 0.5);
+
+  /* ── Category tint surfaces ─────────────────────────────────────────
+     Soft pastel washes per card category. Dark mode uses low-opacity washes
+     of the same hue so the accent reads on navy. */
+  --tint-teal-bg: rgba(13, 148, 136, 0.10);
+  --tint-teal-br: rgba(13, 148, 136, 0.24);
+  --tint-teal-fg: #2DD4BF;
+  --tint-amber-bg: rgba(217, 119, 6, 0.10);
+  --tint-amber-br: rgba(217, 119, 6, 0.24);
+  --tint-amber-fg: #FBBF24;
+  --tint-purple-bg: rgba(124, 58, 237, 0.12);
+  --tint-purple-br: rgba(124, 58, 237, 0.26);
+  --tint-purple-fg: #A78BFA;
+  --tint-pink-bg: rgba(219, 39, 119, 0.12);
+  --tint-pink-br: rgba(219, 39, 119, 0.26);
+  --tint-pink-fg: #F472B6;
+
+  /* ── "Ink" panel ────────────────────────────────────────────────────
+     The deliberate dark contrast card/section. Stays dark in both themes. */
+  --ink-bg: #111A30;
+  --ink-fg: #FAFAFA;
+  --ink-muted: #AEB9D0;
+  --ink-border: #202A44;
+  --ink-accent: #6FA5FF;
+
+  /* ── Page-accent palette ────────────────────────────────────────────
+     Each page sets `--page-accent` (and friends) on a wrapper. */
+  --brand-accent: oklch(58% 0.16 248);
+  --brand-accent-soft: oklch(58% 0.16 248 / 0.10);
+  --brand-accent-border: oklch(58% 0.16 248 / 0.25);
+  --brand-accent-glow: oklch(58% 0.16 248 / 0.18);
+
+  --lead-accent: oklch(70% 0.16 162);
+  --lead-accent-soft: oklch(70% 0.16 162 / 0.10);
+  --lead-accent-border: oklch(70% 0.16 162 / 0.28);
+  --lead-accent-glow: oklch(70% 0.16 162 / 0.18);
+
+  --success-accent: oklch(76% 0.13 350);
+  --success-accent-soft: oklch(76% 0.13 350 / 0.10);
+  --success-accent-border: oklch(76% 0.13 350 / 0.28);
+  --success-accent-glow: oklch(76% 0.13 350 / 0.18);
+
+  --secure-accent: oklch(64% 0.13 230);
+  --secure-accent-soft: oklch(64% 0.13 230 / 0.10);
+  --secure-accent-border: oklch(64% 0.13 230 / 0.25);
+  --secure-accent-glow: oklch(64% 0.13 230 / 0.18);
+
+  --page-accent: var(--brand-accent);
+  --page-accent-soft: var(--brand-accent-soft);
+  --page-accent-border: var(--brand-accent-border);
+  --page-accent-glow: var(--brand-accent-glow);
+}
+
+/* Light theme — off-white paper (#FAFAFA), near-black ink (#101114), and a
+   single confident blue accent (#2563EB). */
+[data-theme="light"] {
+  --background: #FAFAFA;
+  --foreground: #101114;
+  --muted: #5A5E6B;
+  --border: #E7E7EA;
+  --card: #FFFFFF;
+  --card-hover: #F4F5F7;
+  --accent: #2563EB;
+  --accent-light: #1D4ED8;
+  --gradient-start: #2563EB;
+  --gradient-end: #7C3AED;
+  --icon-bg: rgba(37, 99, 235, 0.08);
+  --icon-bg-hover: rgba(37, 99, 235, 0.14);
+  --red-icon-bg: rgba(239, 68, 68, 0.06);
+  --red-icon-bg-hover: rgba(239, 68, 68, 0.10);
+  --red-icon-text: #dc2626;
+  --subtle-white: rgba(0, 0, 0, 0.05);
+  --subtle-white-hover: rgba(0, 0, 0, 0.08);
+  --subtle-white-03: rgba(0, 0, 0, 0.02);
+  --subtle-white-04: rgba(0, 0, 0, 0.04);
+  --subtle-white-06: rgba(0, 0, 0, 0.06);
+  --code-bg: #0B1120;
+  --shadow-color: rgba(11, 17, 32, 0.10);
+  --embed-edge: rgba(11, 17, 32, 0.08);
+  --emerald: #0D9488;
+  --check-color: #0D9488;
+  --x-color: rgba(220, 38, 38, 0.5);
+
+  --tint-teal-bg: #E8F7F4;
+  --tint-teal-br: #CDEBE4;
+  --tint-teal-fg: #0D9488;
+  --tint-amber-bg: #FDF3E3;
+  --tint-amber-br: #F4E3C4;
+  --tint-amber-fg: #D97706;
+  --tint-purple-bg: #F3EFFD;
+  --tint-purple-br: #E4D9FB;
+  --tint-purple-fg: #7C3AED;
+  --tint-pink-bg: #FDEFF5;
+  --tint-pink-br: #F6D8E6;
+  --tint-pink-fg: #DB2777;
+
+  --ink-bg: #0B1120;
+  --ink-fg: #FAFAFA;
+  --ink-muted: #AEB9D0;
+  --ink-border: #202A44;
+  --ink-accent: #6FA5FF;
+
+  --brand-accent: oklch(52% 0.18 248);
+  --brand-accent-soft: oklch(52% 0.18 248 / 0.08);
+  --brand-accent-border: oklch(52% 0.18 248 / 0.22);
+  --brand-accent-glow: oklch(52% 0.18 248 / 0.14);
+
+  --lead-accent: oklch(54% 0.16 162);
+  --lead-accent-soft: oklch(54% 0.16 162 / 0.08);
+  --lead-accent-border: oklch(54% 0.16 162 / 0.24);
+  --lead-accent-glow: oklch(54% 0.16 162 / 0.14);
+
+  --success-accent: oklch(58% 0.18 350);
+  --success-accent-soft: oklch(58% 0.18 350 / 0.08);
+  --success-accent-border: oklch(58% 0.18 350 / 0.24);
+  --success-accent-glow: oklch(58% 0.18 350 / 0.14);
+
+  --secure-accent: oklch(48% 0.13 230);
+  --secure-accent-soft: oklch(48% 0.13 230 / 0.08);
+  --secure-accent-border: oklch(48% 0.13 230 / 0.22);
+  --secure-accent-glow: oklch(48% 0.13 230 / 0.14);
+
+  --page-accent: var(--brand-accent);
+  --page-accent-soft: var(--brand-accent-soft);
+  --page-accent-border: var(--brand-accent-border);
+  --page-accent-glow: var(--brand-accent-glow);
+}
+
+/* Per-page accent themes — applied as a class on each page's <main>. */
+.theme-lead {
+  --page-accent: var(--lead-accent);
+  --page-accent-soft: var(--lead-accent-soft);
+  --page-accent-border: var(--lead-accent-border);
+  --page-accent-glow: var(--lead-accent-glow);
+  --gradient-start: oklch(64% 0.16 162);
+  --gradient-end: oklch(78% 0.14 158);
+}
+
+.theme-success {
+  --page-accent: var(--success-accent);
+  --page-accent-soft: var(--success-accent-soft);
+  --page-accent-border: var(--success-accent-border);
+  --page-accent-glow: var(--success-accent-glow);
+  --gradient-start: oklch(72% 0.14 350);
+  --gradient-end: oklch(80% 0.11 320);
+}
+
+.theme-secure {
+  --page-accent: var(--secure-accent);
+  --page-accent-soft: var(--secure-accent-soft);
+  --page-accent-border: var(--secure-accent-border);
+  --page-accent-glow: var(--secure-accent-glow);
+  --gradient-start: oklch(56% 0.13 230);
+  --gradient-end: oklch(72% 0.10 220);
+}
+
+[data-theme="light"] .theme-lead {
+  --gradient-start: oklch(50% 0.16 162);
+  --gradient-end: oklch(58% 0.16 158);
+}
+[data-theme="light"] .theme-success {
+  --gradient-start: oklch(54% 0.18 350);
+  --gradient-end: oklch(62% 0.15 325);
+}
+[data-theme="light"] .theme-secure {
+  --gradient-start: oklch(46% 0.14 230);
+  --gradient-end: oklch(54% 0.12 220);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-icon-bg: var(--icon-bg);
+  --color-subtle: var(--subtle-white);
+  --color-code-bg: var(--code-bg);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-manrope);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Fonts load from Google Fonts (see base.html). The variable names mirror the
+   Next.js build so every ported class keeps working. */
+:root {
+  --font-manrope: "Schibsted Grotesk";
+  --font-geist-mono: "IBM Plex Mono";
+}
+
+/* Display headings are Schibsted Grotesk in a heavier weight — no serif. */
+.font-serif {
+  font-family: var(--font-manrope), "Helvetica Neue", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Motion tokens */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-feedback: 180ms;
+  --dur-state: 320ms;
+  --dur-reveal: 600ms;
+  --dur-signature: 850ms;
+}
+
+/* Below-the-fold paint skipping. */
+main > section + section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* Mobile: downgrade backdrop-blur intensity — heavy blur is the single most
+   expensive thing mobile GPUs do during scroll. */
+@media (max-width: 767px) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .blur-2xl,
+  .blur-3xl {
+    filter: blur(32px) !important;
+  }
+}
+
+/* Respect reduced-motion — collapse everything to near-instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient border */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Glow effect */
+.glow {
+  box-shadow: 0 0 60px -12px rgba(37, 99, 235, 0.35);
+}
+
+/* Grid pattern */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(37, 99, 235, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+[data-theme="light"] .grid-pattern {
+  background-image:
+    linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
+}
+
+/* Dot pattern */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+[data-theme="light"] .dot-pattern {
+  background-image: radial-gradient(circle, rgba(37, 99, 235, 0.10) 1px, transparent 1px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Selection */
+::selection {
+  background: rgba(37, 99, 235, 0.25);
+  color: var(--foreground);
+}
+
+/* ═══ Motion (framer-motion equivalents, CSS-only) ══════════════════════ */
+
+/* Scroll reveal — elements with [data-reveal] start hidden; site.js adds
+   .revealed when they enter the viewport (IntersectionObserver, fire once). */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity var(--dur-reveal) var(--ease-out-expo),
+    transform var(--dur-reveal) var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal].revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* If JS never runs, content must not stay invisible. */
+.no-js [data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero copy — staggered fade-up-with-blur on page load. */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.hero-stagger > * {
+  animation: hero-rise var(--dur-signature) var(--ease-out-expo) both;
+}
+.hero-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-stagger > *:nth-child(2) { animation-delay: 0.13s; }
+.hero-stagger > *:nth-child(3) { animation-delay: 0.21s; }
+.hero-stagger > *:nth-child(4) { animation-delay: 0.29s; }
+.hero-stagger > *:nth-child(5) { animation-delay: 0.37s; }
+
+/* Hero demo panel — fade-up + slight scale on load. */
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.hero-panel-enter {
+  animation: panel-enter 0.95s var(--ease-out-expo) 0.3s both;
+}
+
+/* Example pages — the live demo iframe floats free on a layered shadow
+   (no frame around it) and rises in when the page opens. The 1px zero-offset
+   ring is the card's edge: without it the embed is invisible against a
+   same-color background (white demo on the light theme's off-white page). */
+.demo-embed {
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 1px var(--embed-edge),
+    0 4px 12px -2px var(--shadow-color),
+    0 32px 96px -24px var(--shadow-color);
+  animation: panel-enter 0.95s var(--ease-out-expo) 0.15s both;
+}
+
+/* Buttons/cards lift on hover. */
+.btn-lift {
+  transition: translate var(--dur-feedback) var(--ease-out-expo);
+}
+.btn-lift:hover {
+  translate: 0 -2px;
+}
+.btn-lift:active {
+  translate: 0 0;
+  scale: 0.985;
+}
+.card-lift {
+  transition: translate var(--dur-state) var(--ease-out-expo);
+}
+.card-lift:hover {
+  translate: 0 -4px;
+}
+
+/* Form success pop-in (htmx swap). */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.pop-in {
+  animation: pop-in 0.4s var(--ease-out-expo) both;
+}
+
+/* Item rise inside the demo/feed panels. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══ Scripted demo primitives ══════════════════════════════════════════
+   A [data-demo] panel (home hero + use-case heroes) plays a phased scene:
+   site.js toggles .on / .off / .active on the pieces below (see the
+   data-show-from / data-hide-from / data-active-from docs in site.js).
+   All colors are literal because demo panels depict a light-mode product
+   screenshot and stay identical in both site themes. */
+
+/* Chat items / late screens — hidden until their phase. */
+.demo-item {
+  display: none;
+}
+.demo-item.on {
+  display: flex;
+  animation: rise 0.35s var(--ease-out-expo) both;
+}
+
+/* Early screens — visible until their data-hide-from phase. */
+.demo-hide.off {
+  display: none;
+}
+
+/* Sidebar nav item the agent "navigates" to. */
+.demo-nav {
+  color: #5A5E6B;
+  transition: all 0.5s;
+}
+.demo-nav.active {
+  color: #101114;
+  background: #E7EEFC;
+  font-weight: 600;
+}
+
+/* Card selection (plan picker, time slot). */
+.demo-select {
+  border: 1.5px solid #ECEDF1;
+  background: #FFFFFF;
+  transition: all 0.5s;
+}
+.demo-select.active {
+  border-color: #2563EB;
+  background: #F0F5FF;
+}
+.demo-select .demo-check {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.demo-select.active .demo-check {
+  opacity: 1;
+}
+
+/* Value chip that swaps its text when done (seats 5→8, "Pending"→"Done ✓").
+   The done text lives in data-done; font-size:0 hides the original. */
+.demo-swap {
+  background: #F2F3F6;
+  color: #5A5E6B;
+  transition: all 0.5s;
+}
+.demo-swap.active {
+  background: #E7EEFC;
+  color: #2563EB;
+  font-size: 0;
+}
+.demo-swap.active::after {
+  content: attr(data-done);
+  font-size: 13px;
+}
+
+/* Primary button that confirms ("Save changes" → "Saved ✓"). */
+.demo-save {
+  background: #101114;
+  transition: all 0.5s;
+}
+.demo-save.active {
+  background: #2563EB;
+  font-size: 0;
+}
+.demo-save.active::after {
+  content: attr(data-done);
+  font-size: 12px;
+}
+
+/* Toggle switch the agent flips on. */
+.demo-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #E2E4EA;
+  transition: background 0.5s;
+  flex-shrink: 0;
+}
+.demo-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(11, 17, 32, 0.25);
+  transition: transform 0.5s;
+}
+.demo-toggle.active {
+  background: #2563EB;
+}
+.demo-toggle.active::after {
+  transform: translateX(16px);
+}
+
+/* ═══ Feed panels (customer-success / security heroes) ═════════════════
+   Rows inside [data-feed] start hidden; site.js reveals them one-by-one on
+   a loop by adding .on. Reduced-motion / no-JS shows all rows. */
+.feed-row {
+  display: none;
+}
+.feed-row.on {
+  display: flex;
+  animation: rise 0.45s var(--ease-out-expo) both;
+}
+.no-js .feed-row {
+  display: flex;
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-row {
+    display: flex;
+  }
+}
+
+/* Mobile menu slide-down. */
+.mobile-menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--dur-state) var(--ease-out-expo),
+    opacity var(--dur-state) var(--ease-out-expo);
+}
+.mobile-menu.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.mobile-menu > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Theme toggle: show the icon for the action, not the current state. */
+[data-theme="dark"] .icon-moon { display: none; }
+[data-theme="light"] .icon-sun { display: none; }

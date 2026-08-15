@@ -1,68 +1,23 @@
-# Build context is the project root (set in docker-compose.yml)
-# The widget is consumed via a turbopack alias in next.config.ts that points to
-# ../widget/dist/zephlo.esm.js, so we build the widget first and place its
-# output at /widget/dist/ for the alias to resolve during `next build`.
-
-# Stage 1: Build the local widget
-FROM node:20-alpine AS widget-build
-WORKDIR /widget
-COPY widget/package*.json ./
-RUN npm install
-COPY widget/ .
-RUN npm run build
-
-# Stage 2: Install landing dependencies
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY landing/package.json landing/package-lock.json* ./
+# Stage 1 — build the Tailwind CSS
+FROM node:22-alpine AS css
+WORKDIR /src
+COPY package.json package-lock.json ./
 RUN npm ci
+COPY assets ./assets
+COPY templates ./templates
+COPY static ./static
+RUN npx @tailwindcss/cli -i assets/site.css -o static/css/site.css --minify
 
-# Stage 3: Build the Next.js app
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=widget-build /widget /widget
-COPY landing/ .
+# Stage 2 — build the Go binary (templates + static embedded)
+FROM golang:1.23-alpine AS build
+WORKDIR /src
+COPY go.mod main.go ./
+COPY templates ./templates
+COPY --from=css /src/static ./static
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /landing .
 
-# NEXT_PUBLIC_* values are inlined into the JS bundle at build time, so they
-# must be available as ENV before `next build` runs. Setting them on the pod
-# at runtime would have no effect.
-ARG NEXT_PUBLIC_ZEPHLO_API_KEY
-ARG NEXT_PUBLIC_ZEPHLO_CHATBOT_ID
-ARG NEXT_PUBLIC_ZEPHLO_API_URL
-ARG NEXT_PUBLIC_DASHBOARD_URL
-ARG NEXT_PUBLIC_DOCS_URL
-ARG NEXT_PUBLIC_SALES_EMAIL
-ARG NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_ZEPHLO_API_KEY=$NEXT_PUBLIC_ZEPHLO_API_KEY \
-    NEXT_PUBLIC_ZEPHLO_CHATBOT_ID=$NEXT_PUBLIC_ZEPHLO_CHATBOT_ID \
-    NEXT_PUBLIC_ZEPHLO_API_URL=$NEXT_PUBLIC_ZEPHLO_API_URL \
-    NEXT_PUBLIC_DASHBOARD_URL=$NEXT_PUBLIC_DASHBOARD_URL \
-    NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
-    NEXT_PUBLIC_SALES_EMAIL=$NEXT_PUBLIC_SALES_EMAIL \
-    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-
-RUN npm run build
-
-# Stage 4: Production runner
-FROM node:20-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=3000
-
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-# `outputFileTracingRoot` in next.config.ts points one level above the project,
-# so Next nests the project under `app/` inside the standalone output.
-# Static/public must live at the same relative path; `node app/server.js` runs the bundled server.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./app/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./app/public
-
-USER nextjs
-
+# Stage 3 — scratch runtime, one static binary
+FROM gcr.io/distroless/static-debian12
+COPY --from=build /landing /landing
 EXPOSE 3000
-
-CMD ["node", "app/server.js"]
+ENTRYPOINT ["/landing"]
