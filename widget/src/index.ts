@@ -229,6 +229,9 @@ export class ChatbotWidget extends HTMLElement {
           if (!this.isOpen) this.toggle();
         }
       } catch { /* ignore */ }
+
+      // Host page asked for the panel to start expanded: `<zephlo-fab open>`.
+      if (this.hasAttribute("open") && !this.isOpen) this.toggle();
     }
   }
 
